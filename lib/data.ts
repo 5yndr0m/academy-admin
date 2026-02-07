@@ -214,6 +214,37 @@ class MockDataService {
             }, 300);
         });
     }
+
+    async markAttendance(studentId: string, subjectName: string, date: string, present: boolean): Promise<void> {
+        return new Promise((resolve) => {
+            setTimeout(() => {
+                const student = this.students.find(s => s.id === studentId);
+                if (student) {
+                    const subject = student.enrolledSubjects.find(s => s.subjectName === subjectName);
+                    if (subject) {
+                        const record = subject.attendance.find(a => a.date === date);
+                        if (record) {
+                            record.present = present;
+                        } else {
+                            subject.attendance.push({ date, present });
+                        }
+                    }
+                }
+                resolve();
+            }, 200);
+        });
+    }
+
+    async getSubjects(): Promise<string[]> {
+        return new Promise((resolve) => {
+            setTimeout(() => {
+                const subjects = new Set<string>();
+                this.teachers.forEach(t => t.subjects.forEach(s => subjects.add(s)));
+                this.students.forEach(s => s.enrolledSubjects.forEach(sub => subjects.add(sub.subjectName)));
+                resolve(Array.from(subjects));
+            }, 300);
+        });
+    }
 }
 
 export const mockDataService = new MockDataService();
