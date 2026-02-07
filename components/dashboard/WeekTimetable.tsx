@@ -85,29 +85,29 @@ export function WeekTimetable() {
                 <CardDescription>Overview of all classes for the current week.</CardDescription>
             </CardHeader>
             <CardContent>
-                <div className="overflow-x-auto">
+                <div className="overflow-x-auto w-full">
                     <Table>
                         <TableHeader>
                             <TableRow>
-                                <TableHead className="w-[120px]">Time</TableHead>
-                                <TableHead>Monday</TableHead>
-                                <TableHead>Tuesday</TableHead>
-                                <TableHead>Wednesday</TableHead>
-                                <TableHead>Thursday</TableHead>
-                                <TableHead>Friday</TableHead>
+                                <TableHead className="w-[100px]">Time</TableHead>
+                                <TableHead className="min-w-[140px]">Monday</TableHead>
+                                <TableHead className="min-w-[140px]">Tuesday</TableHead>
+                                <TableHead className="min-w-[140px]">Wednesday</TableHead>
+                                <TableHead className="min-w-[140px]">Thursday</TableHead>
+                                <TableHead className="min-w-[140px]">Friday</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
                             {schedule.map((slot, i) => (
                                 <TableRow key={i}>
-                                    <TableCell className="font-medium text-xs text-muted-foreground whitespace-nowrap">
+                                    <TableCell className="font-medium text-xs text-muted-foreground">
                                         {slot.time}
                                     </TableCell>
-                                    <TableCell>{slot.monday && <Badge variant="secondary" className="font-normal text-[10px] whitespace-nowrap">{slot.monday}</Badge>}</TableCell>
-                                    <TableCell>{slot.tuesday && <Badge variant="secondary" className="font-normal text-[10px] whitespace-nowrap">{slot.tuesday}</Badge>}</TableCell>
-                                    <TableCell>{slot.wednesday && <Badge variant="secondary" className="font-normal text-[10px] whitespace-nowrap">{slot.wednesday}</Badge>}</TableCell>
-                                    <TableCell>{slot.thursday && <Badge variant="secondary" className="font-normal text-[10px] whitespace-nowrap">{slot.thursday}</Badge>}</TableCell>
-                                    <TableCell>{slot.friday && <Badge variant="secondary" className="font-normal text-[10px] whitespace-nowrap">{slot.friday}</Badge>}</TableCell>
+                                    <TableCell>{slot.monday && <div className="text-xs p-2 rounded-md bg-accent/50 border border-accent">{slot.monday}</div>}</TableCell>
+                                    <TableCell>{slot.tuesday && <div className="text-xs p-2 rounded-md bg-accent/50 border border-accent">{slot.tuesday}</div>}</TableCell>
+                                    <TableCell>{slot.wednesday && <div className="text-xs p-2 rounded-md bg-accent/50 border border-accent">{slot.wednesday}</div>}</TableCell>
+                                    <TableCell>{slot.thursday && <div className="text-xs p-2 rounded-md bg-accent/50 border border-accent">{slot.thursday}</div>}</TableCell>
+                                    <TableCell>{slot.friday && <div className="text-xs p-2 rounded-md bg-accent/50 border border-accent">{slot.friday}</div>}</TableCell>
                                 </TableRow>
                             ))}
                         </TableBody>
