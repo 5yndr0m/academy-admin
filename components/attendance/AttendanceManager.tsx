@@ -109,7 +109,7 @@ export function AttendanceManager() {
     return (
         <div className="space-y-6">
             {/* Controls */}
-            <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between bg-white p-4 rounded-lg border shadow-sm">
+            <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between bg-card p-4 rounded-lg border shadow-sm">
                 <div className="flex gap-4 items-center">
                     <div className="w-[200px]">
                         <Select value={selectedSubject} onValueChange={setSelectedSubject}>
