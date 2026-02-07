@@ -60,11 +60,22 @@ export function ScheduleManager({ teacher, classrooms, onUpdate }: ScheduleManag
         // Create Date objects for the next occurrence of this day and time
         // For specific date-time logic we would need a more robust calendar system
         // For this simple demo, we will just use dummy dates with correct times
-        const start = new Date();
+        // Calculate the correct date based on selected day (0=Sunday, 1=Monday...)
+        const targetDay = parseInt(day);
+        const now = new Date();
+        const currentDay = now.getDay();
+        let distance = (targetDay + 7 - currentDay) % 7;
+        // If today is the day, but we want to ensure we're clear, we just use today. 
+        // Or strictly future? Let's stick to nearest occurrence including today.
+
+        const date = new Date();
+        date.setDate(date.getDate() + distance);
+
+        const start = new Date(date);
         const [startH, startM] = startTime.split(':').map(Number);
         start.setHours(startH, startM, 0);
 
-        const end = new Date();
+        const end = new Date(date);
         const [endH, endM] = endTime.split(':').map(Number);
         end.setHours(endH, endM, 0);
 
@@ -94,17 +105,17 @@ export function ScheduleManager({ teacher, classrooms, onUpdate }: ScheduleManag
                     Manage Schedule
                 </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-2xl">
+            <DialogContent className="sm:max-w-5xl">
                 <DialogHeader>
                     <DialogTitle>Schedule: {teacher.fullName}</DialogTitle>
                 </DialogHeader>
 
-                <div className="grid gap-6 py-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 py-4">
                     {/* Add New Slot Form */}
-                    <div className="bg-muted/40 p-4 rounded-lg border">
-                        <h4 className="font-medium mb-3 text-sm">Add Class Slot</h4>
-                        <form onSubmit={handleAddSlot} className="grid grid-cols-2 gap-4">
-                            <div>
+                    <div className="bg-muted/40 p-6 rounded-lg border h-fit">
+                        <h4 className="font-medium mb-4 text-sm">Add Class Slot</h4>
+                        <form onSubmit={handleAddSlot} className="grid grid-cols-1 gap-4">
+                            <div className="space-y-2">
                                 <Label>Day</Label>
                                 <Select value={day} onValueChange={setDay}>
                                     <SelectTrigger>
@@ -117,7 +128,7 @@ export function ScheduleManager({ teacher, classrooms, onUpdate }: ScheduleManag
                                     </SelectContent>
                                 </Select>
                             </div>
-                            <div>
+                            <div className="space-y-2">
                                 <Label>Subject</Label>
                                 <Input
                                     value={subject}
@@ -125,23 +136,25 @@ export function ScheduleManager({ teacher, classrooms, onUpdate }: ScheduleManag
                                     placeholder="e.g. Math 101"
                                 />
                             </div>
-                            <div>
-                                <Label>Start Time</Label>
-                                <Input
-                                    type="time"
-                                    value={startTime}
-                                    onChange={e => setStartTime(e.target.value)}
-                                />
+                            <div className="grid grid-cols-2 gap-4">
+                                <div className="space-y-2">
+                                    <Label>Start Time</Label>
+                                    <Input
+                                        type="time"
+                                        value={startTime}
+                                        onChange={e => setStartTime(e.target.value)}
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <Label>End Time</Label>
+                                    <Input
+                                        type="time"
+                                        value={endTime}
+                                        onChange={e => setEndTime(e.target.value)}
+                                    />
+                                </div>
                             </div>
-                            <div>
-                                <Label>End Time</Label>
-                                <Input
-                                    type="time"
-                                    value={endTime}
-                                    onChange={e => setEndTime(e.target.value)}
-                                />
-                            </div>
-                            <div className="col-span-2">
+                            <div className="space-y-2">
                                 <Label>Classroom (Optional)</Label>
                                 <Select value={classroomId} onValueChange={setClassroomId}>
                                     <SelectTrigger>
@@ -156,40 +169,38 @@ export function ScheduleManager({ teacher, classrooms, onUpdate }: ScheduleManag
                                     </SelectContent>
                                 </Select>
                             </div>
-                            <Button type="submit" disabled={loading} className="col-span-2 mt-2">
+                            <Button type="submit" disabled={loading} className="mt-2">
                                 Add Slot
                             </Button>
                         </form>
                     </div>
 
                     {/* Existing Slots List */}
-                    <div className="space-y-2">
+                    <div className="space-y-2 max-h-[500px] overflow-y-auto pr-1">
                         <h4 className="font-medium text-sm">Current Schedule</h4>
                         {teacher.schedule.length === 0 ? (
                             <p className="text-sm text-muted-foreground italic">No classes scheduled.</p>
                         ) : (
-                            <div className="border rounded-md divide-y">
+                            <div className="space-y-3">
                                 {teacher.schedule.map(slot => (
-                                    <div key={slot.id} className="flex items-center justify-between p-3 bg-muted rounded-lg border">
-                                        <div className="flex items-center gap-3">
-                                            <div className="bg-background p-2 rounded-md border text-center min-w-[80px]">
-                                                <div className="text-xs font-medium">{format(slot.startTime, 'HH:mm')}</div>
-                                                <div className="text-[10px] text-muted-foreground">to</div>
-                                                <div className="text-xs font-medium">{format(slot.endTime, 'HH:mm')}</div>
+                                    <div key={slot.id} className="group flex items-center justify-between p-4 rounded-xl border bg-card hover:bg-accent/5 transition-all shadow-sm">
+                                        <div className="flex flex-col gap-1.5">
+                                            <div className="flex items-center gap-2">
+                                                <span className="font-semibold text-sm">{slot.subject}</span>
+                                                <Badge variant="secondary" className="text-[10px] font-normal px-1.5 py-0 h-5">
+                                                    {classrooms.find(c => c.id === slot.classroomId)?.name || 'Unknown Room'}
+                                                </Badge>
                                             </div>
-                                            <div>
-                                                <div className="font-medium text-sm">{slot.subject}</div>
-                                                <div className="text-xs text-muted-foreground flex items-center gap-1">
-                                                    <Badge variant="outline" className="text-[10px] h-5 font-normal">
-                                                        {classrooms.find(c => c.id === slot.classroomId)?.name || 'Unknown Room'}
-                                                    </Badge>
-                                                </div>
+                                            <div className="text-xs text-muted-foreground flex items-center gap-2">
+                                                <span className="font-medium text-foreground/70">{format(slot.startTime, 'EEEE')}</span>
+                                                <span className="w-1 h-1 rounded-full bg-border" />
+                                                <span>{format(slot.startTime, 'HH:mm')} - {format(slot.endTime, 'HH:mm')}</span>
                                             </div>
                                         </div>
                                         <Button
                                             variant="ghost"
                                             size="icon"
-                                            className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                                            className="h-8 w-8 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity hover:text-destructive hover:bg-destructive/10"
                                             onClick={() => handleRemoveSlot(slot.id)}
                                         >
                                             <Trash2 className="h-4 w-4" />
