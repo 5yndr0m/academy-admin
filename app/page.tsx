@@ -7,6 +7,8 @@ import { ClassroomStatusGrid } from "@/components/dashboard/ClassroomStatusGrid"
 import { mockDataService } from '@/lib/data';
 import { Classroom } from '@/types';
 import { Loader2 } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { WeekTimetable } from "@/components/dashboard/WeekTimetable";
 
 export default function Home() {
     const [stats, setStats] = useState({ students: 0, teachers: 0, classroomsTotal: 0, classroomsInUse: 0 });
@@ -43,10 +45,21 @@ export default function Home() {
         <div className="space-y-6">
             <StatsCards stats={stats} />
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <UpcomingClasses schedule={schedule} />
-                <ClassroomStatusGrid classrooms={classrooms} />
-            </div>
+            <Tabs defaultValue="overview" className="space-y-4">
+                <TabsList>
+                    <TabsTrigger value="overview">Overview</TabsTrigger>
+                    <TabsTrigger value="week">Week Schedule</TabsTrigger>
+                </TabsList>
+                <TabsContent value="overview" className="space-y-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <UpcomingClasses schedule={schedule} />
+                        <ClassroomStatusGrid classrooms={classrooms} />
+                    </div>
+                </TabsContent>
+                <TabsContent value="week">
+                    <WeekTimetable />
+                </TabsContent>
+            </Tabs>
         </div>
     );
 }
