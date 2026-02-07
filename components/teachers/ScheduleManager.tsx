@@ -18,6 +18,8 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
+import { format } from "date-fns";
 import { Teacher, Classroom, ScheduleSlot } from '@/types';
 import { mockDataService } from '@/lib/data';
 import { CalendarDays, Plus, Trash2 } from 'lucide-react';
@@ -99,7 +101,7 @@ export function ScheduleManager({ teacher, classrooms, onUpdate }: ScheduleManag
 
                 <div className="grid gap-6 py-4">
                     {/* Add New Slot Form */}
-                    <div className="bg-slate-50 p-4 rounded-lg border">
+                    <div className="bg-muted/40 p-4 rounded-lg border">
                         <h4 className="font-medium mb-3 text-sm">Add Class Slot</h4>
                         <form onSubmit={handleAddSlot} className="grid grid-cols-2 gap-4">
                             <div>
@@ -164,33 +166,34 @@ export function ScheduleManager({ teacher, classrooms, onUpdate }: ScheduleManag
                     <div className="space-y-2">
                         <h4 className="font-medium text-sm">Current Schedule</h4>
                         {teacher.schedule.length === 0 ? (
-                            <p className="text-sm text-slate-500 italic">No classes scheduled.</p>
+                            <p className="text-sm text-muted-foreground italic">No classes scheduled.</p>
                         ) : (
                             <div className="border rounded-md divide-y">
                                 {teacher.schedule.map(slot => (
-                                    <div key={slot.id} className="p-3 flex items-center justify-between text-sm">
-                                        <div>
-                                            <p className="font-medium">{slot.subject}</p>
-                                            <p className="text-slate-500">
-                                                {new Date(slot.startTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} -
-                                                {new Date(slot.endTime).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                            </p>
-                                        </div>
+                                    <div key={slot.id} className="flex items-center justify-between p-3 bg-muted rounded-lg border">
                                         <div className="flex items-center gap-3">
-                                            {slot.classroomId && (
-                                                <span className="bg-slate-100 px-2 py-1 rounded text-xs">
-                                                    {classrooms.find(c => c.id === slot.classroomId)?.name || 'Unknown Room'}
-                                                </span>
-                                            )}
-                                            <Button
-                                                variant="ghost"
-                                                size="icon-sm"
-                                                onClick={() => handleRemoveSlot(slot.id)}
-                                                className="text-red-500 hover:text-red-600 hover:bg-red-50"
-                                            >
-                                                <Trash2 className="h-4 w-4" />
-                                            </Button>
+                                            <div className="bg-background p-2 rounded-md border text-center min-w-[80px]">
+                                                <div className="text-xs font-medium">{format(slot.startTime, 'HH:mm')}</div>
+                                                <div className="text-[10px] text-muted-foreground">to</div>
+                                                <div className="text-xs font-medium">{format(slot.endTime, 'HH:mm')}</div>
+                                            </div>
+                                            <div>
+                                                <div className="font-medium text-sm">{slot.subject}</div>
+                                                <div className="text-xs text-muted-foreground flex items-center gap-1">
+                                                    <Badge variant="outline" className="text-[10px] h-5 font-normal">
+                                                        {classrooms.find(c => c.id === slot.classroomId)?.name || 'Unknown Room'}
+                                                    </Badge>
+                                                </div>
+                                            </div>
                                         </div>
+                                        <Button
+                                            variant="ghost"
+                                            size="icon"
+                                            className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                                            onClick={() => handleRemoveSlot(slot.id)}
+                                        >
+                                            <Trash2 className="h-4 w-4" />
+                                        </Button>
                                     </div>
                                 ))}
                             </div>
