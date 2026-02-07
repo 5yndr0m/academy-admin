@@ -9,6 +9,7 @@ import {
     SheetTitle,
     SheetTrigger,
 } from "@/components/ui/sheet";
+import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
@@ -56,17 +57,29 @@ export function StudentDetailsSheet({ student, onUpdate }: StudentDetailsSheetPr
                     </SheetDescription>
                 </SheetHeader>
 
-                <div className="py-6 space-y-6">
-                    {/* Profile Section */}
-                    <div className="space-y-2 text-sm">
-                        <h3 className="font-semibold border-b pb-1">Profile</h3>
-                        <div className="grid grid-cols-2 gap-2">
-                            <span className="text-slate-500">Contact:</span>
-                            <span>{student.contactNumber}</span>
-                            <span className="text-slate-500">Guardian:</span>
-                            <span>{student.guardianName}</span>
-                            <span className="text-slate-500">Guardian Contact:</span>
-                            <span>{student.guardianContact}</span>
+                <div className="grid gap-6 py-4 pl-1">
+                    <div className="flex items-center gap-4 bg-muted/50 p-4 rounded-lg border">
+                        <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-lg">
+                            {student.fullName.charAt(0)}
+                        </div>
+                        <div>
+                            <h3 className="font-semibold text-lg">{student.fullName}</h3>
+                            <p className="text-sm text-muted-foreground">ID: {student.id}</p>
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                        <div className="space-y-1">
+                            <Label className="text-xs text-muted-foreground">Guardian Name</Label>
+                            <p className="text-sm font-medium">{student.guardianName}</p>
+                        </div>
+                        <div className="space-y-1">
+                            <Label className="text-xs text-muted-foreground">Contact</Label>
+                            <p className="text-sm font-medium">{student.contactNumber}</p>
+                        </div>
+                        <div className="space-y-1">
+                            <Label className="text-xs text-muted-foreground">Guardian Contact</Label>
+                            <p className="text-sm font-medium">{student.guardianContact}</p>
                         </div>
                     </div>
 
@@ -74,11 +87,11 @@ export function StudentDetailsSheet({ student, onUpdate }: StudentDetailsSheetPr
                     <div className="space-y-4">
                         <h3 className="font-semibold border-b pb-1">Academics & Payments</h3>
                         {student.enrolledSubjects.length === 0 ? (
-                            <p className="text-sm text-slate-500">No enrolled subjects.</p>
+                            <p className="text-sm text-muted-foreground">No enrolled subjects.</p>
                         ) : (
                             <div className="space-y-6">
                                 {student.enrolledSubjects.map((sub) => (
-                                    <div key={sub.subjectName} className="border rounded-lg p-3 space-y-3 bg-slate-50/50">
+                                    <div key={sub.subjectName} className="border rounded-lg p-3 space-y-3 bg-muted/40">
                                         <div className="flex items-center justify-between">
                                             <span className="font-medium flex items-center gap-2">
                                                 <Badge variant="outline">{sub.subjectName}</Badge>

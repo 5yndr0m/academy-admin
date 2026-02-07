@@ -72,7 +72,7 @@ export function AddStudentDialog({ onAdded }: { onAdded?: () => void }) {
                         </DialogDescription>
                     </DialogHeader>
                     <div className="grid gap-4 py-4">
-                        <h4 className="font-medium text-sm text-slate-900">Student Information</h4>
+                        <h4 className="font-medium text-sm text-foreground">Student Information</h4>
                         <div className="grid grid-cols-4 items-center gap-4">
                             <Label htmlFor="fullname" className="text-right">Name</Label>
                             <Input id="fullname" value={fullName} onChange={e => setFullName(e.target.value)} className="col-span-3" required />
@@ -82,7 +82,7 @@ export function AddStudentDialog({ onAdded }: { onAdded?: () => void }) {
                             <Input id="contact" value={contactNumber} onChange={e => setContactNumber(e.target.value)} className="col-span-3" required />
                         </div>
 
-                        <h4 className="font-medium text-sm text-slate-900 mt-2">Guardian Information</h4>
+                        <h4 className="font-medium text-sm text-foreground mt-2">Guardian Information</h4>
                         <div className="grid grid-cols-4 items-center gap-4">
                             <Label htmlFor="gname" className="text-right">Name</Label>
                             <Input id="gname" value={guardianName} onChange={e => setGuardianName(e.target.value)} className="col-span-3" required />
@@ -92,7 +92,7 @@ export function AddStudentDialog({ onAdded }: { onAdded?: () => void }) {
                             <Input id="gcontact" value={guardianContact} onChange={e => setGuardianContact(e.target.value)} className="col-span-3" required />
                         </div>
 
-                        <h4 className="font-medium text-sm text-slate-900 mt-2">Academics</h4>
+                        <h4 className="font-medium text-sm text-foreground mt-2">Academics</h4>
                         <div className="grid grid-cols-4 items-center gap-4">
                             <Label htmlFor="subjects" className="text-right">Subjects</Label>
                             <Input id="subjects" value={subjects} onChange={e => setSubjects(e.target.value)} className="col-span-3" placeholder="Math, English (comma separated)" />
