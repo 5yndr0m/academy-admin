@@ -49,7 +49,7 @@ export function StudentDetailsSheet({ student, onUpdate }: StudentDetailsSheetPr
                     <Eye className="h-4 w-4" />
                 </Button>
             </SheetTrigger>
-            <SheetContent className="sm:max-w-md overflow-y-auto">
+            <SheetContent className="w-full sm:max-w-md overflow-y-auto">
                 <SheetHeader>
                     <SheetTitle>{student.fullName}</SheetTitle>
                     <SheetDescription>
