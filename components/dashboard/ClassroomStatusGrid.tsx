@@ -24,8 +24,8 @@ export function ClassroomStatusGrid({ classrooms }: ClassroomStatusGridProps) {
                             className={cn(
                                 "p-3 rounded-lg border text-center transition-colors flex flex-col items-center justify-center gap-2",
                                 room.status === 'Free'
-                                    ? "bg-green-50 border-green-200"
-                                    : "bg-red-50 border-red-200"
+                                    ? "bg-green-50/50 dark:bg-green-900/20 border-green-200 dark:border-green-800"
+                                    : "bg-red-50/50 dark:bg-red-900/20 border-red-200 dark:border-red-800"
                             )}
                         >
                             <div className="font-semibold text-sm">{room.name}</div>

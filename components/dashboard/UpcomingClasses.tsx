@@ -30,7 +30,7 @@ export function UpcomingClasses({ schedule }: UpcomingClassesProps) {
                                 key={slot.id}
                                 className="grid grid-cols-[80px_1fr_auto] items-center gap-4 border-b last:border-0 pb-4 last:pb-0"
                             >
-                                <span className="text-xs font-medium text-muted-foreground bg-slate-100 px-2 py-1 rounded text-center">
+                                <span className="text-xs font-medium text-foreground bg-muted px-2 py-1 rounded text-center">
                                     {slot.time.split('-')[0].trim()}
                                 </span>
                                 <div className="space-y-1">
