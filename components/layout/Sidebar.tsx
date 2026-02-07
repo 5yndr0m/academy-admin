@@ -23,10 +23,10 @@ export function Sidebar({ className }: { className?: string }) {
     const pathname = usePathname();
 
     return (
-        <div className={cn("flex flex-col h-full bg-slate-900 text-white w-64 border-r border-slate-800", className)}>
+        <div className={cn("flex flex-col h-full", className)}>
             <div className="p-6">
                 <h1 className="text-2xl font-bold tracking-tight">Academy</h1>
-                <p className="text-xs text-slate-400 mt-1">Admin Dashboard</p>
+                <p className="text-xs text-muted-foreground mt-1">Admin Dashboard</p>
             </div>
 
             <nav className="flex-1 px-4 space-y-2">
@@ -39,8 +39,8 @@ export function Sidebar({ className }: { className?: string }) {
                             className={cn(
                                 "flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-colors",
                                 isActive
-                                    ? "bg-slate-800 text-white shadow-sm"
-                                    : "text-slate-400 hover:text-white hover:bg-slate-800/50"
+                                    ? "bg-primary text-primary-foreground shadow-sm"
+                                    : "text-muted-foreground hover:text-foreground hover:bg-accent"
                             )}
                         >
                             <item.icon className="w-5 h-5" />
@@ -50,14 +50,14 @@ export function Sidebar({ className }: { className?: string }) {
                 })}
             </nav>
 
-            <div className="p-4 border-t border-slate-800">
+            <div className="p-4 border-t">
                 <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-slate-700 flex items-center justify-center text-xs font-bold">
+                    <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center text-xs font-bold">
                         AD
                     </div>
                     <div className="text-sm">
                         <p className="font-medium">Administrator</p>
-                        <p className="text-xs text-slate-500">Log out</p>
+                        <p className="text-xs text-muted-foreground">Log out</p>
                     </div>
                 </div>
             </div>
