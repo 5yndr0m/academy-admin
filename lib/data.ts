@@ -43,8 +43,84 @@ class MockDataService {
         });
     }
 
-    // Placeholder for future methods
-    async getTeachers(): Promise<Teacher[]> { return []; }
+    // Teacher Data
+    private teachers: Teacher[] = [
+        {
+            id: '1',
+            fullName: 'John Doe',
+            contactNumber: '555-0101',
+            email: 'john.doe@academy.com',
+            subjects: ['Mathematics', 'Physics'],
+            schedule: [
+                {
+                    id: 's1',
+                    teacherId: '1',
+                    classroomId: '1',
+                    subject: 'Mathematics',
+                    startTime: new Date('2024-01-01T09:00:00'),
+                    endTime: new Date('2024-01-01T10:30:00'),
+                }
+            ]
+        },
+        {
+            id: '2',
+            fullName: 'Jane Smith',
+            contactNumber: '555-0102',
+            email: 'jane.smith@academy.com',
+            subjects: ['English', 'Literature'],
+            schedule: []
+        }
+    ];
+
+    async getTeachers(): Promise<Teacher[]> {
+        return new Promise((resolve) => {
+            setTimeout(() => resolve([...this.teachers]), 500);
+        });
+    }
+
+    async addTeacher(teacher: Omit<Teacher, 'id' | 'schedule'>): Promise<Teacher> {
+        return new Promise((resolve) => {
+            setTimeout(() => {
+                const newTeacher: Teacher = {
+                    ...teacher,
+                    id: Math.random().toString(36).substr(2, 9),
+                    schedule: [],
+                };
+                this.teachers.push(newTeacher);
+                resolve(newTeacher);
+            }, 500);
+        });
+    }
+
+    async addScheduleSlot(teacherId: string, slot: Omit<import('@/types').ScheduleSlot, 'id' | 'teacherId'>): Promise<import('@/types').ScheduleSlot> {
+        return new Promise((resolve) => {
+            setTimeout(() => {
+                const teacher = this.teachers.find(t => t.id === teacherId);
+                if (teacher) {
+                    const newSlot = {
+                        ...slot,
+                        id: Math.random().toString(36).substr(2, 9),
+                        teacherId,
+                    };
+                    teacher.schedule.push(newSlot);
+                    resolve(newSlot);
+                }
+            }, 300);
+        });
+    }
+
+    async removeScheduleSlot(teacherId: string, slotId: string): Promise<void> {
+        return new Promise((resolve) => {
+            setTimeout(() => {
+                const teacher = this.teachers.find(t => t.id === teacherId);
+                if (teacher) {
+                    teacher.schedule = teacher.schedule.filter(s => s.id !== slotId);
+                    resolve();
+                }
+            }, 300);
+        });
+    }
+
     async getStudents(): Promise<Student[]> { return []; }
 }
 
