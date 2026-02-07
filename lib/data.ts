@@ -121,7 +121,99 @@ class MockDataService {
         });
     }
 
-    async getStudents(): Promise<Student[]> { return []; }
+    // Student Data
+    private students: Student[] = [
+        {
+            id: '1',
+            fullName: 'Bobby Tables',
+            contactNumber: '555-1001',
+            guardianName: 'Robert Tables',
+            guardianContact: '555-2001',
+            enrolledSubjects: [
+                {
+                    subjectName: 'Mathematics',
+                    attendance: [],
+                    payments: [
+                        { month: '2024-01', amount: 100, status: 'Paid' },
+                        { month: '2024-02', amount: 100, status: 'Pending' }
+                    ]
+                },
+                {
+                    subjectName: 'Physics',
+                    attendance: [],
+                    payments: [
+                        { month: '2024-01', amount: 120, status: 'Paid' }
+                    ]
+                }
+            ]
+        },
+        {
+            id: '2',
+            fullName: 'Alice Wonderland',
+            contactNumber: '555-1002',
+            guardianName: 'Lewis Carroll',
+            guardianContact: '555-2002',
+            enrolledSubjects: [
+                {
+                    subjectName: 'English',
+                    attendance: [],
+                    payments: [
+                        { month: '2024-01', amount: 90, status: 'Overdue' }
+                    ]
+                }
+            ]
+        }
+    ];
+
+    async getStudents(): Promise<Student[]> {
+        return new Promise((resolve) => {
+            setTimeout(() => resolve([...this.students]), 500);
+        });
+    }
+
+    async addStudent(student: Omit<Student, 'id' | 'enrolledSubjects'> & { subjects: string[] }): Promise<Student> {
+        return new Promise((resolve) => {
+            setTimeout(() => {
+                const newStudent: Student = {
+                    id: Math.random().toString(36).substr(2, 9),
+                    fullName: student.fullName,
+                    contactNumber: student.contactNumber,
+                    guardianName: student.guardianName,
+                    guardianContact: student.guardianContact,
+                    enrolledSubjects: student.subjects.map(sub => ({
+                        subjectName: sub,
+                        attendance: [],
+                        payments: [
+                            { month: new Date().toISOString().slice(0, 7), amount: 100, status: 'Pending' } // Default entry
+                        ]
+                    }))
+                };
+                this.students.push(newStudent);
+                resolve(newStudent);
+            }, 500);
+        });
+    }
+
+    async updateStudentPayment(studentId: string, subjectName: string, month: string, status: 'Paid' | 'Pending' | 'Overdue'): Promise<void> {
+        return new Promise((resolve) => {
+            setTimeout(() => {
+                const student = this.students.find(s => s.id === studentId);
+                if (student) {
+                    const subject = student.enrolledSubjects.find(s => s.subjectName === subjectName);
+                    if (subject) {
+                        const payment = subject.payments.find(p => p.month === month);
+                        if (payment) {
+                            payment.status = status;
+                        } else {
+                            // Add new if not exists (for demo)
+                            subject.payments.push({ month, amount: 100, status });
+                        }
+                    }
+                }
+                resolve();
+            }, 300);
+        });
+    }
 }
 
 export const mockDataService = new MockDataService();
