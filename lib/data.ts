@@ -57,8 +57,16 @@ class MockDataService {
                     teacherId: '1',
                     classroomId: '1',
                     subject: 'Mathematics',
-                    startTime: new Date('2024-01-01T09:00:00'),
-                    endTime: new Date('2024-01-01T10:30:00'),
+                    startTime: new Date(new Date().setHours(9, 0, 0, 0)),
+                    endTime: new Date(new Date().setHours(10, 30, 0, 0)),
+                },
+                {
+                    id: 's2',
+                    teacherId: '1',
+                    classroomId: '2',
+                    subject: 'Physics',
+                    startTime: new Date(new Date().setHours(11, 0, 0, 0)),
+                    endTime: new Date(new Date().setHours(12, 30, 0, 0)),
                 }
             ]
         },
@@ -68,7 +76,58 @@ class MockDataService {
             contactNumber: '555-0102',
             email: 'jane.smith@academy.com',
             subjects: ['English', 'Literature'],
+            schedule: [
+                {
+                    id: 's3',
+                    teacherId: '2',
+                    classroomId: '3',
+                    subject: 'English',
+                    startTime: new Date(new Date().setHours(9, 30, 0, 0)),
+                    endTime: new Date(new Date().setHours(11, 0, 0, 0)),
+                }
+            ]
+        },
+        {
+            id: '3',
+            fullName: 'Robert Brown',
+            contactNumber: '555-0103',
+            email: 'robert.brown@academy.com',
+            subjects: ['Chemistry', 'Biology'],
+            schedule: [
+                {
+                    id: 's4',
+                    teacherId: '3',
+                    classroomId: '3',
+                    subject: 'Biology',
+                    startTime: new Date(new Date().setHours(13, 0, 0, 0)),
+                    endTime: new Date(new Date().setHours(14, 30, 0, 0)),
+                }
+            ]
+        },
+        {
+            id: '4',
+            fullName: 'Emily White',
+            contactNumber: '555-0104',
+            email: 'emily.white@academy.com',
+            subjects: ['History', 'Geography'],
             schedule: []
+        },
+        {
+            id: '5',
+            fullName: 'Michael Green',
+            contactNumber: '555-0105',
+            email: 'michael.green@academy.com',
+            subjects: ['Computer Science', 'Mathematics'],
+            schedule: [
+                {
+                    id: 's5',
+                    teacherId: '5',
+                    classroomId: '2',
+                    subject: 'Computer Science',
+                    startTime: new Date(new Date().setHours(14, 0, 0, 0)),
+                    endTime: new Date(new Date().setHours(15, 30, 0, 0)),
+                }
+            ]
         }
     ];
 
@@ -160,6 +219,105 @@ class MockDataService {
                     payments: [
                         { month: '2024-01', amount: 90, status: 'Overdue' }
                     ]
+                }
+            ]
+        },
+        {
+            id: '3',
+            fullName: 'Charlie Brown',
+            contactNumber: '555-1003',
+            guardianName: 'Snoopy',
+            guardianContact: '555-2003',
+            enrolledSubjects: [
+                {
+                    subjectName: 'Mathematics',
+                    attendance: [],
+                    payments: []
+                },
+                {
+                    subjectName: 'Computer Science',
+                    attendance: [],
+                    payments: []
+                }
+            ]
+        },
+        {
+            id: '4',
+            fullName: 'Diana Prince',
+            contactNumber: '555-1004',
+            guardianName: 'Hippolyta',
+            guardianContact: '555-2004',
+            enrolledSubjects: [
+                {
+                    subjectName: 'History',
+                    attendance: [],
+                    payments: []
+                },
+                {
+                    subjectName: 'Geography',
+                    attendance: [],
+                    payments: []
+                }
+            ]
+        },
+        {
+            id: '5',
+            fullName: 'Evan Wright',
+            contactNumber: '555-1005',
+            guardianName: 'Martha Wright',
+            guardianContact: '555-2005',
+            enrolledSubjects: [
+                {
+                    subjectName: 'Physics',
+                    attendance: [],
+                    payments: []
+                },
+                {
+                    subjectName: 'Chemistry',
+                    attendance: [],
+                    payments: []
+                }
+            ]
+        },
+        {
+            id: '6',
+            fullName: 'Fiona Gallagher',
+            contactNumber: '555-1006',
+            guardianName: 'Frank Gallagher',
+            guardianContact: '555-2006',
+            enrolledSubjects: [
+                {
+                    subjectName: 'Mathematics',
+                    attendance: [],
+                    payments: []
+                }
+            ]
+        },
+        {
+            id: '7',
+            fullName: 'George Weasley',
+            contactNumber: '555-1007',
+            guardianName: 'Molly Weasley',
+            guardianContact: '555-2007',
+            enrolledSubjects: [
+                {
+                    subjectName: 'Magic',
+                    attendance: [],
+                    payments: []
+                }
+            ]
+        },
+        {
+            id: '8',
+            fullName: 'Hannah Montana',
+            contactNumber: '555-1008',
+            guardianName: 'Robby Ray',
+            guardianContact: '555-2008',
+            enrolledSubjects: [
+                {
+                    subjectName: 'Music',
+                    attendance: [],
+                    payments: []
                 }
             ]
         }
