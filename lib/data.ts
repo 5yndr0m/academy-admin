@@ -245,6 +245,66 @@ class MockDataService {
             }, 300);
         });
     }
+
+    async getDashboardStats() {
+        return new Promise<{ students: number; teachers: number; classroomsTotal: number; classroomsInUse: number }>((resolve) => {
+            setTimeout(() => {
+                resolve({
+                    students: this.students.length,
+                    teachers: this.teachers.length,
+                    classroomsTotal: this.classrooms.length,
+                    classroomsInUse: this.classrooms.filter(c => c.status === 'In Use').length,
+                });
+            }, 300);
+        });
+    }
+
+    async getTodaySchedule(): Promise<{
+        id: string;
+        time: string;
+        subject: string;
+        teacherName: string;
+        classroomName: string | undefined
+    }[]> {
+        return new Promise((resolve) => {
+            setTimeout(() => {
+                const today = new Date();
+                const dayOfWeek = today.getDay(); // 0-6
+                const schedule: any[] = [];
+
+                this.teachers.forEach(teacher => {
+                    // Filter slots for today (dayOfWeek matches)
+                    // Note: In our mock data we stored specific dates in startTime/endTime for simplicity in the ScheduleManager 
+                    // but usually a recurring schedule uses dayOfWeek. 
+                    // To make the Dashboard show something for "Today" regardless of the specific date set in the mock, 
+                    // we will just pull ALL slots and pretend they are today for demonstration. 
+                    // In a real app, we'd filter by dayOfWeek or specific date.
+
+                    teacher.schedule.forEach(slot => {
+                        // Mock logic: Show all slots as if they are today
+                        // Sort by start time later
+                        const start = new Date(slot.startTime);
+                        const end = new Date(slot.endTime);
+                        const timeString = `${start.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - ${end.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`;
+
+                        schedule.push({
+                            id: slot.id,
+                            time: timeString,
+                            subject: slot.subject,
+                            teacherName: teacher.fullName,
+                            classroomName: this.classrooms.find(c => c.id === slot.classroomId)?.name || 'Unassigned',
+                            rawStartTime: start // detailed sort helper
+                        });
+                    });
+                });
+
+                // Sort by time
+                schedule.sort((a, b) => a.rawStartTime.getTime() - b.rawStartTime.getTime());
+
+                resolve(schedule);
+            }, 500);
+        });
+    }
 }
 
 export const mockDataService = new MockDataService();
