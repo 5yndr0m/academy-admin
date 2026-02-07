@@ -24,7 +24,7 @@ export default function LoginPage() {
     };
 
     return (
-        <div className="min-h-screen flex items-center justify-center bg-slate-50 dark:bg-slate-900 px-4">
+        <div className="min-h-screen flex items-center justify-center bg-background px-4">
             <Card className="w-full max-w-sm">
                 <CardHeader className="space-y-1 text-center">
                     <div className="flex justify-center mb-2">
@@ -50,7 +50,9 @@ export default function LoginPage() {
                             />
                         </div>
                         <div className="space-y-2">
-                            <Label htmlFor="password">Password</Label>
+                            <div className="flex items-center justify-between">
+                                <Label htmlFor="password">Password</Label>
+                            </div>
                             <Input
                                 id="password"
                                 type="password"
@@ -62,7 +64,7 @@ export default function LoginPage() {
                         </div>
                         {error && <p className="text-sm text-red-500 text-center">{error}</p>}
                     </CardContent>
-                    <CardFooter>
+                    <CardFooter className="pt-2">
                         <Button className="w-full" type="submit">Sign In</Button>
                     </CardFooter>
                 </form>
