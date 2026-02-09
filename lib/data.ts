@@ -9,6 +9,17 @@ class MockDataService {
         { id: '5', name: 'Room 305', capacity: 30, status: 'In Use' },
     ];
 
+    private packages: import('@/types').ClassPackage[] = [
+        { id: 'p1', title: 'Standard Monthly', fee: 100, frequency: 'Monthly' },
+        { id: 'p2', title: 'Intensive Monthly', fee: 180, frequency: 'Monthly' },
+        { id: 'p3', title: 'Single Session', fee: 25, frequency: 'Session' },
+    ];
+
+    private staff: import('@/types').Staff[] = [
+        { id: 'st1', fullName: 'Admin User', email: 'admin@academy.com', contactNumber: '555-9001', role: 'Admin', basicSalary: 5000, status: 'Active' },
+        { id: 'st2', fullName: 'Sarah Clerk', email: 'sarah@academy.com', contactNumber: '555-9002', role: 'Staff', basicSalary: 3000, status: 'Active' },
+    ];
+
     async getClassrooms(): Promise<Classroom[]> {
         return new Promise((resolve) => {
             setTimeout(() => resolve([...this.classrooms]), 500);
@@ -40,6 +51,18 @@ class MockDataService {
                     resolve(undefined);
                 }
             }, 300);
+        });
+    }
+
+    async getPackages(): Promise<import('@/types').ClassPackage[]> {
+        return new Promise((resolve) => {
+            setTimeout(() => resolve([...this.packages]), 300);
+        });
+    }
+
+    async getStaff(): Promise<import('@/types').Staff[]> {
+        return new Promise((resolve) => {
+            setTimeout(() => resolve([...this.staff]), 300);
         });
     }
 
@@ -131,6 +154,33 @@ class MockDataService {
         }
     ];
 
+    async generateMonthlyBills(studentId: string): Promise<void> {
+        return new Promise((resolve, reject) => {
+            setTimeout(() => {
+                const student = this.students.find(s => s.id === studentId);
+                if (!student) return reject(new Error('Student not found'));
+
+                const currentMonth = new Date().toISOString().slice(0, 7); // YYYY-MM
+
+                student.enrolledSubjects.forEach(subject => {
+                    const pkg = this.packages.find(p => p.id === subject.packageId);
+                    if (!pkg) return;
+
+                    // Check if payment for current month already exists
+                    const existingPayment = subject.payments.find(p => p.month === currentMonth);
+                    if (!existingPayment) {
+                        subject.payments.push({
+                            month: currentMonth,
+                            amount: pkg.fee,
+                            status: 'Pending'
+                        });
+                    }
+                });
+                resolve();
+            }, 500);
+        });
+    }
+
     async getTeachers(): Promise<Teacher[]> {
         return new Promise((resolve) => {
             setTimeout(() => resolve([...this.teachers]), 500);
@@ -191,6 +241,7 @@ class MockDataService {
             enrolledSubjects: [
                 {
                     subjectName: 'Mathematics',
+                    packageId: 'p1',
                     attendance: [],
                     payments: [
                         { month: '2024-01', amount: 100, status: 'Paid' },
@@ -199,6 +250,7 @@ class MockDataService {
                 },
                 {
                     subjectName: 'Physics',
+                    packageId: 'p2',
                     attendance: [],
                     payments: [
                         { month: '2024-01', amount: 120, status: 'Paid' }
@@ -215,6 +267,7 @@ class MockDataService {
             enrolledSubjects: [
                 {
                     subjectName: 'English',
+                    packageId: 'p1',
                     attendance: [],
                     payments: [
                         { month: '2024-01', amount: 90, status: 'Overdue' }
@@ -231,11 +284,13 @@ class MockDataService {
             enrolledSubjects: [
                 {
                     subjectName: 'Mathematics',
+                    packageId: 'p1',
                     attendance: [],
                     payments: []
                 },
                 {
                     subjectName: 'Computer Science',
+                    packageId: 'p2',
                     attendance: [],
                     payments: []
                 }
@@ -250,11 +305,13 @@ class MockDataService {
             enrolledSubjects: [
                 {
                     subjectName: 'History',
+                    packageId: 'p1',
                     attendance: [],
                     payments: []
                 },
                 {
                     subjectName: 'Geography',
+                    packageId: 'p1',
                     attendance: [],
                     payments: []
                 }
@@ -269,11 +326,13 @@ class MockDataService {
             enrolledSubjects: [
                 {
                     subjectName: 'Physics',
+                    packageId: 'p2',
                     attendance: [],
                     payments: []
                 },
                 {
                     subjectName: 'Chemistry',
+                    packageId: 'p2',
                     attendance: [],
                     payments: []
                 }
@@ -288,6 +347,7 @@ class MockDataService {
             enrolledSubjects: [
                 {
                     subjectName: 'Mathematics',
+                    packageId: 'p1',
                     attendance: [],
                     payments: []
                 }
@@ -302,6 +362,7 @@ class MockDataService {
             enrolledSubjects: [
                 {
                     subjectName: 'Magic',
+                    packageId: 'p3',
                     attendance: [],
                     payments: []
                 }
@@ -316,6 +377,7 @@ class MockDataService {
             enrolledSubjects: [
                 {
                     subjectName: 'Music',
+                    packageId: 'p3',
                     attendance: [],
                     payments: []
                 }
@@ -340,6 +402,7 @@ class MockDataService {
                     guardianContact: student.guardianContact,
                     enrolledSubjects: student.subjects.map(sub => ({
                         subjectName: sub,
+                        packageId: 'p1', // Default package
                         attendance: [],
                         payments: [
                             { month: new Date().toISOString().slice(0, 7), amount: 100, status: 'Pending' } // Default entry
