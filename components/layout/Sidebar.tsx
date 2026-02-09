@@ -2,13 +2,15 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { useAuth } from '@/components/auth/AuthProvider';
 import { cn } from '@/lib/utils';
 import {
     LayoutDashboard,
     Presentation,
     Users,
     User,
-    CalendarDays
+    CalendarDays,
+    Wallet
 } from 'lucide-react';
 
 const navigation = [
@@ -17,10 +19,12 @@ const navigation = [
     { name: 'Teachers', href: '/teachers', icon: User },
     { name: 'Students', href: '/students', icon: Users },
     { name: 'Attendance', href: '/attendance', icon: CalendarDays },
+    { name: 'Finance', href: '/finance', icon: Wallet },
 ];
 
 export function Sidebar({ className }: { className?: string }) {
     const pathname = usePathname();
+    const { role } = useAuth();
 
     return (
         <div className={cn("flex flex-col h-full", className)}>
@@ -31,6 +35,7 @@ export function Sidebar({ className }: { className?: string }) {
 
             <nav className="flex-1 px-4 space-y-2">
                 {navigation.map((item) => {
+                    if (item.name === 'Finance' && role !== 'Admin') return null;
                     const isActive = pathname === item.href || (item.href !== '/' && pathname.startsWith(item.href));
                     return (
                         <Link
@@ -52,12 +57,12 @@ export function Sidebar({ className }: { className?: string }) {
 
             <div className="p-4 border-t">
                 <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center text-xs font-bold">
-                        AD
+                    <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-xs font-bold text-primary">
+                        {role?.charAt(0) || 'U'}
                     </div>
                     <div className="text-sm">
-                        <p className="font-medium">Administrator</p>
-                        <p className="text-xs text-muted-foreground">Log out</p>
+                        <p className="font-medium">{role || 'User'}</p>
+                        <p className="text-xs text-muted-foreground">{role === 'Admin' ? 'Full Access' : 'Restricted Access'}</p>
                     </div>
                 </div>
             </div>
