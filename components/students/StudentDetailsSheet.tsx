@@ -85,7 +85,22 @@ export function StudentDetailsSheet({ student, onUpdate }: StudentDetailsSheetPr
 
                     {/* Subjects & Payments Section */}
                     <div className="space-y-4">
-                        <h3 className="font-semibold border-b pb-1">Academics & Payments</h3>
+                        <div className="flex items-center justify-between border-b pb-1">
+                            <h3 className="font-semibold">Academics & Payments</h3>
+                            <Button
+                                variant="outline"
+                                size="sm"
+                                className="h-7 text-xs gap-1"
+                                onClick={async () => {
+                                    await mockDataService.generateMonthlyBills(student.id);
+                                    onUpdate();
+                                    alert('Monthly bill generated and sent via SMS/Email.');
+                                }}
+                            >
+                                <CreditCard className="h-3 w-3" />
+                                Generate Bill
+                            </Button>
+                        </div>
                         {student.enrolledSubjects.length === 0 ? (
                             <p className="text-sm text-muted-foreground">No enrolled subjects.</p>
                         ) : (
@@ -95,6 +110,9 @@ export function StudentDetailsSheet({ student, onUpdate }: StudentDetailsSheetPr
                                         <div className="flex items-center justify-between">
                                             <span className="font-medium flex items-center gap-2">
                                                 <Badge variant="outline">{sub.subjectName}</Badge>
+                                            </span>
+                                            <span className="text-[10px] text-muted-foreground italic">
+                                                Package: {sub.packageId}
                                             </span>
                                         </div>
 
