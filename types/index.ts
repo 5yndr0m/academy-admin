@@ -31,6 +31,27 @@ export interface Teacher {
   schedule: ScheduleSlot[];
 }
 
+export type UserRole = 'Admin' | 'Staff';
+
+export interface Staff {
+  id: string;
+  fullName: string;
+  contactNumber: string;
+  email: string;
+  role: UserRole;
+  basicSalary: number;
+  status: 'Active' | 'Inactive';
+}
+
+export type BillingFrequency = 'Monthly' | 'Session';
+
+export interface ClassPackage {
+  id: string;
+  title: string;
+  fee: number;
+  frequency: BillingFrequency;
+}
+
 export interface AttendanceRecord {
   date: string; // YYYY-MM-DD
   present: boolean;
@@ -44,6 +65,7 @@ export interface PaymentRecord {
 
 export interface StudentSubject {
   subjectName: string;
+  packageId: string;
   attendance: AttendanceRecord[];
   payments: PaymentRecord[];
 }
