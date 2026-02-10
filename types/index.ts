@@ -22,6 +22,33 @@ export interface ScheduleSlot {
   endTime: Date;
 }
 
+export interface AuditLog {
+  id: string;
+  action: string;
+  user: string;
+  timestamp: string;
+  category: 'Billing' | 'Attendance' | 'Staff' | 'System';
+}
+
+export interface CommunicationLog {
+  id: string;
+  studentId: string;
+  type: 'SMS' | 'Email';
+  recipient: string;
+  subject: string;
+  timestamp: string;
+  status: 'Sent' | 'Failed';
+}
+
+export interface TeacherPayout {
+  id: string;
+  teacherId: string;
+  month: string; // YYYY-MM
+  amount: number;
+  classCount: number;
+  status: 'Paid' | 'Pending';
+}
+
 export interface Teacher {
   id: string;
   fullName: string;
@@ -29,6 +56,7 @@ export interface Teacher {
   email: string;
   subjects: string[];
   schedule: ScheduleSlot[];
+  baseRatePerClass?: number; // Added for payout calculation
 }
 
 export type UserRole = 'Admin' | 'Staff';

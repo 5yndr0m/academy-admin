@@ -20,6 +20,22 @@ class MockDataService {
         { id: 'st2', fullName: 'Sarah Clerk', email: 'sarah@academy.com', contactNumber: '555-9002', role: 'Staff', basicSalary: 3000, status: 'Active' },
     ];
 
+    private auditLogs: import('@/types').AuditLog[] = [
+        { id: 'a1', action: 'Login successful', user: 'admin', timestamp: new Date(Date.now() - 1000 * 60 * 60).toISOString(), category: 'System' },
+        { id: 'a2', action: 'Invoice generated for Alice Smith', user: 'admin', timestamp: new Date(Date.now() - 1000 * 60 * 120).toISOString(), category: 'Billing' },
+        { id: 'a3', action: 'Attendance marked for Mathematics', user: 'sarah', timestamp: new Date(Date.now() - 1000 * 60 * 180).toISOString(), category: 'Attendance' },
+    ];
+
+    private commsLogs: import('@/types').CommunicationLog[] = [
+        { id: 'c1', studentId: '1', type: 'Email', recipient: 'bob.smith@example.com', subject: 'Invoice for Jan 2024', timestamp: new Date(Date.now() - 86400000).toISOString(), status: 'Sent' },
+        { id: 'c2', studentId: '1', type: 'SMS', recipient: '555-0103', subject: 'Payment Received', timestamp: new Date(Date.now() - 43200000).toISOString(), status: 'Sent' },
+    ];
+
+    private teacherPayouts: import('@/types').TeacherPayout[] = [
+        { id: 'tp1', teacherId: '1', month: '2024-01', amount: 800, classCount: 32, status: 'Pending' },
+        { id: 'tp2', teacherId: '2', month: '2024-01', amount: 650, classCount: 26, status: 'Paid' },
+    ];
+
     async getClassrooms(): Promise<Classroom[]> {
         return new Promise((resolve) => {
             setTimeout(() => resolve([...this.classrooms]), 500);
@@ -51,6 +67,34 @@ class MockDataService {
                     resolve(undefined);
                 }
             }, 300);
+        });
+    }
+
+    async getAuditLogs(): Promise<import('@/types').AuditLog[]> {
+        return new Promise((resolve) => {
+            setTimeout(() => resolve([...this.auditLogs].sort((a, b) => b.timestamp.localeCompare(a.timestamp))), 300);
+        });
+    }
+
+    async getCommunicationLogs(studentId: string): Promise<import('@/types').CommunicationLog[]> {
+        return new Promise((resolve) => {
+            setTimeout(() => resolve(this.commsLogs.filter(c => c.studentId === studentId)), 300);
+        });
+    }
+
+    async getTeacherPayouts(): Promise<import('@/types').TeacherPayout[]> {
+        return new Promise((resolve) => {
+            setTimeout(() => resolve([...this.teacherPayouts]), 300);
+        });
+    }
+
+    async logAction(action: string, user: string, category: import('@/types').AuditLog['category']): Promise<void> {
+        this.auditLogs.unshift({
+            id: Math.random().toString(36).substr(2, 9),
+            action,
+            user,
+            category,
+            timestamp: new Date().toISOString()
         });
     }
 
