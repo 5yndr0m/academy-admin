@@ -10,7 +10,8 @@ import {
     Users,
     User,
     CalendarDays,
-    Wallet
+    Wallet,
+    Settings2
 } from 'lucide-react';
 
 const navigation = [
@@ -19,6 +20,7 @@ const navigation = [
     { name: 'Teachers', href: '/teachers', icon: User },
     { name: 'Students', href: '/students', icon: Users },
     { name: 'Attendance', href: '/attendance', icon: CalendarDays },
+    { name: 'Operations', href: '/operations', icon: Settings2 },
     { name: 'Finance', href: '/finance', icon: Wallet },
 ];
 
@@ -35,7 +37,7 @@ export function Sidebar({ className }: { className?: string }) {
 
             <nav className="flex-1 px-4 space-y-2">
                 {navigation.map((item) => {
-                    if (item.name === 'Finance' && role !== 'Admin') return null;
+                    if ((item.name === 'Finance' || item.name === 'Operations') && role !== 'Admin') return null;
                     const isActive = pathname === item.href || (item.href !== '/' && pathname.startsWith(item.href));
                     return (
                         <Link
