@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { StatsCards } from "@/components/dashboard/StatsCards";
 import { UpcomingClasses } from "@/components/dashboard/UpcomingClasses";
 import { ClassroomStatusGrid } from "@/components/dashboard/ClassroomStatusGrid";
+import { ActivityFeed } from "@/components/dashboard/ActivityFeed";
 import { mockDataService } from '@/lib/data';
 import { Classroom } from '@/types';
 import { Loader2 } from 'lucide-react';
@@ -51,9 +52,14 @@ export default function Home() {
                     <TabsTrigger value="week">Week Schedule</TabsTrigger>
                 </TabsList>
                 <TabsContent value="overview" className="space-y-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <UpcomingClasses schedule={schedule} />
-                        <ClassroomStatusGrid classrooms={classrooms} />
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        <div className="lg:col-span-2 space-y-6">
+                            <UpcomingClasses schedule={schedule} />
+                            <ClassroomStatusGrid classrooms={classrooms} />
+                        </div>
+                        <div className="lg:col-span-1">
+                            <ActivityFeed />
+                        </div>
                     </div>
                 </TabsContent>
                 <TabsContent value="week">
