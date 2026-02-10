@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { LayoutDashboard, Users, CreditCard, Banknote, ShieldAlert, BarChart, FileDown, DollarSign } from 'lucide-react';
+import { LayoutDashboard, Users, CreditCard, Banknote, ShieldAlert, BarChart, FileDown, DollarSign, Wallet } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
     Card,
@@ -10,10 +10,10 @@ import {
     CardHeader,
     CardTitle,
 } from "@/components/ui/card";
-import { StaffList } from "@/components/finance/StaffList";
 import { PayrollTable } from "@/components/finance/PayrollTable";
-import { PackageList } from "@/components/finance/PackageList";
-import { AttendanceReport } from "@/components/finance/AttendanceReport";
+import { FeePackageList } from "@/components/finance/FeePackageList";
+import { RevenueBreakdown } from "@/components/finance/RevenueBreakdown";
+import { TeacherPayoutTable } from "@/components/finance/TeacherPayoutTable";
 import { mockDataService } from '@/lib/data';
 import { Staff } from '@/types';
 import { useAuth } from '@/components/auth/AuthProvider';
@@ -48,32 +48,28 @@ export default function FinancePage() {
         <div className="space-y-6">
             <div className="flex items-center justify-between">
                 <div>
-                    <h2 className="text-3xl font-bold tracking-tight">Finance & Operations</h2>
+                    <h2 className="text-3xl font-bold tracking-tight">Financial Hub</h2>
                     <p className="text-muted-foreground">
-                        Manage staff, payroll, statutory contributions, and class packages.
+                        Payroll, statutory reports, and revenue analytics.
                     </p>
                 </div>
             </div>
 
-            <Tabs defaultValue="staff" className="space-y-4">
+            <Tabs defaultValue="payroll" className="space-y-4">
                 <TabsList className="bg-muted/60 p-1">
-                    <TabsTrigger value="staff" className="flex items-center gap-2">
-                        <Users className="h-4 w-4" /> Staff Management
-                    </TabsTrigger>
                     <TabsTrigger value="payroll" className="flex items-center gap-2">
                         <Banknote className="h-4 w-4" /> Payroll & Statutory
                     </TabsTrigger>
                     <TabsTrigger value="packages" className="flex items-center gap-2">
                         <CreditCard className="h-4 w-4" /> Class Packages
                     </TabsTrigger>
+                    <TabsTrigger value="payouts" className="flex items-center gap-2">
+                        <Wallet className="h-4 w-4" /> Teacher Payouts
+                    </TabsTrigger>
                     <TabsTrigger value="reports" className="flex items-center gap-2">
-                        <BarChart className="h-4 w-4" /> Reporting Hub
+                        <BarChart className="h-4 w-4" /> Revenue Reports
                     </TabsTrigger>
                 </TabsList>
-
-                <TabsContent value="staff" className="space-y-4">
-                    <StaffList />
-                </TabsContent>
 
                 <TabsContent value="payroll" className="space-y-4">
                     <div className="bg-card border rounded-lg p-6">
@@ -90,25 +86,30 @@ export default function FinancePage() {
                     </div>
                 </TabsContent>
 
+                <TabsContent value="payouts" className="space-y-4">
+                    <TeacherPayoutTable />
+                </TabsContent>
+
                 <TabsContent value="packages" className="space-y-4">
-                    <PackageList />
+                    <FeePackageList />
                 </TabsContent>
 
                 <TabsContent value="reports" className="space-y-4">
                     <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
                         <Card>
                             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                                <CardTitle className="text-sm font-medium italic underline">Revenue (Est)</CardTitle>
+                                <CardTitle className="text-sm font-medium">Monthly Collection</CardTitle>
                                 <DollarSign className="h-4 w-4 text-muted-foreground" />
                             </CardHeader>
                             <CardContent>
                                 <div className="text-2xl font-bold font-mono">$12,450</div>
-                                <p className="text-xs text-muted-foreground">+12% from last month</p>
+                                <p className="text-xs text-muted-foreground font-medium text-green-600">+12.5% vs target</p>
                             </CardContent>
                         </Card>
-                        {/* More stats if needed */}
                     </div>
-                    <AttendanceReport />
+                    <div className="max-w-2xl">
+                        <RevenueBreakdown />
+                    </div>
                 </TabsContent>
             </Tabs>
         </div>
