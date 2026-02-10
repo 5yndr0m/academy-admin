@@ -21,8 +21,9 @@ import { Badge } from "@/components/ui/badge";
 import { ClassPackage } from '@/types';
 import { mockDataService } from '@/lib/data';
 import { Plus, Tag, CalendarRange, DollarSign } from 'lucide-react';
+import { AddPackageModal } from './AddPackageModal';
 
-export function PackageList() {
+export function FeePackageList() {
     const [packages, setPackages] = useState<ClassPackage[]>([]);
     const [loading, setLoading] = useState(true);
 
@@ -46,9 +47,10 @@ export function PackageList() {
                         Define fee structures and billing frequencies for various classes.
                     </CardDescription>
                 </div>
-                <Button>
-                    <Plus className="mr-2 h-4 w-4" /> New Package
-                </Button>
+                <AddPackageModal onAdd={(newPkg) => {
+                    setPackages([...packages, newPkg]);
+                    mockDataService.logAction(`Created new class package: ${newPkg.title}`, 'admin', 'Billing');
+                }} />
             </CardHeader>
             <CardContent>
                 <Table>
