@@ -21,6 +21,7 @@ import { Badge } from "@/components/ui/badge";
 import { Staff } from '@/types';
 import { mockDataService } from '@/lib/data';
 import { Plus, UserCog, Mail, Phone, ShieldCheck } from 'lucide-react';
+import { AddStaffModal } from './AddStaffModal';
 
 export function StaffList() {
     const [staffMembers, setStaffMembers] = useState<Staff[]>([]);
@@ -46,9 +47,10 @@ export function StaffList() {
                         Manage system users, administrators, and operational staff.
                     </CardDescription>
                 </div>
-                <Button>
-                    <Plus className="mr-2 h-4 w-4" /> Add Staff
-                </Button>
+                <AddStaffModal onAdd={(newStaff) => {
+                    setStaffMembers([...staffMembers, newStaff]);
+                    mockDataService.logAction(`Added staff member: ${newStaff.fullName}`, 'admin', 'Staff');
+                }} />
             </CardHeader>
             <CardContent>
                 <Table>
