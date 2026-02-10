@@ -16,7 +16,7 @@ export default function LoginPage() {
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        if (username === 'admin' && password === 'password') {
+        if ((username === 'admin' || username === 'staff1') && password === 'password') {
             login(username);
         } else {
             setError('Invalid credentials');
@@ -34,7 +34,7 @@ export default function LoginPage() {
                     </div>
                     <CardTitle className="text-2xl">Academy Admin</CardTitle>
                     <CardDescription>
-                        Enter your credentials to access the dashboard
+                        Use <code className="bg-muted px-1 rounded">admin</code> or <code className="bg-muted px-1 rounded">staff1</code> with password <code className="bg-muted px-1 rounded">password</code>
                     </CardDescription>
                 </CardHeader>
                 <form onSubmit={handleSubmit}>
