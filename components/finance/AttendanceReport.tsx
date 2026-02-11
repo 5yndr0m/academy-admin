@@ -86,7 +86,7 @@ export function AttendanceReport() {
                                         <BookOpen className="h-4 w-4 text-muted-foreground" />
                                         {stat.name}
                                     </TableCell>
-                                    <TableCell className="w-[300px]">
+                                    <TableCell className="min-w-[150px] max-w-[300px]">
                                         <div className="flex items-center gap-3">
                                             <div className="h-2 w-full bg-muted rounded-full overflow-hidden">
                                                 <div
