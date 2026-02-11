@@ -12,7 +12,14 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { WeekTimetable } from "@/components/dashboard/WeekTimetable";
 
 export default function Home() {
-    const [stats, setStats] = useState({ students: 0, teachers: 0, classroomsTotal: 0, classroomsInUse: 0 });
+    const [stats, setStats] = useState({
+        students: 0,
+        teachers: 0,
+        classroomsTotal: 0,
+        classroomsInUse: 0,
+        monthlyCollections: 0,
+        totalOutstanding: 0
+    });
     const [schedule, setSchedule] = useState<any[]>([]);
     const [classrooms, setClassrooms] = useState<Classroom[]>([]);
     const [loading, setLoading] = useState(true);
@@ -25,7 +32,13 @@ export default function Home() {
                 mockDataService.getTodaySchedule(),
                 mockDataService.getClassrooms(),
             ]);
-            setStats(statsData);
+
+            // Augment stats with mock financial data
+            setStats({
+                ...statsData,
+                monthlyCollections: 8520,
+                totalOutstanding: 2150
+            });
             setSchedule(scheduleData);
             setClassrooms(classroomsData);
             setLoading(false);
