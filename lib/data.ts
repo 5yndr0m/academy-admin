@@ -435,6 +435,15 @@ class MockDataService {
         });
     }
 
+    async getStudentById(id: string): Promise<Student | undefined> {
+        return new Promise((resolve) => {
+            setTimeout(() => {
+                const student = this.students.find(s => s.id === id);
+                resolve(student ? { ...student } : undefined);
+            }, 300);
+        });
+    }
+
     async addStudent(student: Omit<Student, 'id' | 'enrolledSubjects'> & { subjects: string[] }): Promise<Student> {
         return new Promise((resolve) => {
             setTimeout(() => {
