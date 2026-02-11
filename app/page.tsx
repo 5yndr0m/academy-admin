@@ -10,6 +10,8 @@ import { Classroom } from '@/types';
 import { Loader2 } from 'lucide-react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { WeekTimetable } from "@/components/dashboard/WeekTimetable";
+import { DashboardFinanceSummary } from "@/components/dashboard/DashboardFinanceSummary";
+import { useAuth } from '@/components/auth/AuthProvider';
 
 export default function Home() {
     const [stats, setStats] = useState({
@@ -47,6 +49,8 @@ export default function Home() {
         loadDashboardData();
     }, []);
 
+    const { role } = useAuth();
+
     if (loading) {
         return (
             <div className="flex h-full items-center justify-center p-8">
@@ -60,10 +64,15 @@ export default function Home() {
             <StatsCards stats={stats} />
 
             <Tabs defaultValue="overview" className="space-y-4">
-                <TabsList>
-                    <TabsTrigger value="overview">Overview</TabsTrigger>
-                    <TabsTrigger value="week">Week Schedule</TabsTrigger>
-                </TabsList>
+                <div className="w-full overflow-x-auto pb-1 scrollbar-hide">
+                    <TabsList className="bg-muted/60 p-1 inline-flex w-full justify-start md:w-fit whitespace-nowrap">
+                        <TabsTrigger value="overview">Overview</TabsTrigger>
+                        <TabsTrigger value="week">Week Schedule</TabsTrigger>
+                        {role === 'Admin' && (
+                            <TabsTrigger value="financial">Financial Summary</TabsTrigger>
+                        )}
+                    </TabsList>
+                </div>
                 <TabsContent value="overview" className="space-y-4">
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                         <div className="lg:col-span-2 space-y-6">
@@ -78,6 +87,11 @@ export default function Home() {
                 <TabsContent value="week">
                     <WeekTimetable />
                 </TabsContent>
+                {role === 'Admin' && (
+                    <TabsContent value="financial">
+                        <DashboardFinanceSummary />
+                    </TabsContent>
+                )}
             </Tabs>
         </div>
     );
