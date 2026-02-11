@@ -30,25 +30,15 @@ export function ClassroomStatusGrid({ classrooms }: ClassroomStatusGridProps) {
                             )}
                         >
                             <div className="font-semibold text-sm">{room.name}</div>
-                            <button
-                                onClick={() => {
-                                    // SRS 3.3/Proposal 3: Allocation toggle
-                                    mockDataService.toggleClassroomStatus(room.id).then(() => {
-                                        if (typeof window !== 'undefined') window.location.reload(); // Simple refresh for demo
-                                    });
-                                }}
-                                className="hover:scale-105 transition-transform"
+                            <Badge
+                                variant={room.status === 'Free' ? "secondary" : "destructive"}
+                                className={cn(
+                                    "text-[10px] h-5",
+                                    room.status === 'Free' ? "bg-green-100 text-green-700 hover:bg-green-200" : ""
+                                )}
                             >
-                                <Badge
-                                    variant={room.status === 'Free' ? "secondary" : "destructive"}
-                                    className={cn(
-                                        "text-[10px] h-5 cursor-pointer",
-                                        room.status === 'Free' ? "bg-green-100 text-green-700 hover:bg-green-200" : ""
-                                    )}
-                                >
-                                    {room.status}
-                                </Badge>
-                            </button>
+                                {room.status}
+                            </Badge>
                         </div>
                     ))}
                 </div>
