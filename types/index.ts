@@ -78,6 +78,7 @@ export interface ClassPackage {
   title: string;
   fee: number;
   frequency: BillingFrequency;
+  validityPeriod?: string; // e.g., "6 months", "Lifetime"
 }
 
 export interface AttendanceRecord {

@@ -10,9 +10,9 @@ class MockDataService {
     ];
 
     private packages: import('@/types').ClassPackage[] = [
-        { id: 'p1', title: 'Standard Monthly', fee: 100, frequency: 'Monthly' },
-        { id: 'p2', title: 'Intensive Monthly', fee: 180, frequency: 'Monthly' },
-        { id: 'p3', title: 'Single Session', fee: 25, frequency: 'Session' },
+        { id: 'p1', title: 'Standard Monthly', fee: 100, frequency: 'Monthly', validityPeriod: '6 Months' },
+        { id: 'p2', title: 'Intensive Monthly', fee: 180, frequency: 'Monthly', validityPeriod: '6 Months' },
+        { id: 'p3', title: 'Single Session', fee: 25, frequency: 'Session', validityPeriod: 'Per Session' },
     ];
 
     private staff: import('@/types').Staff[] = [
@@ -213,9 +213,17 @@ class MockDataService {
                     // Check if payment for current month already exists
                     const existingPayment = subject.payments.find(p => p.month === currentMonth);
                     if (!existingPayment) {
+                        let billAmount = pkg.fee;
+
+                        // SRS 3.4/3.5: Session-based billing
+                        if (pkg.frequency === 'Session') {
+                            const monthAttendance = subject.attendance.filter(a => a.date.startsWith(currentMonth) && a.present).length;
+                            billAmount = monthAttendance * pkg.fee;
+                        }
+
                         subject.payments.push({
                             month: currentMonth,
-                            amount: pkg.fee,
+                            amount: billAmount,
                             status: 'Pending'
                         });
                     }
@@ -489,7 +497,7 @@ class MockDataService {
         });
     }
 
-    async markAttendance(studentId: string, subjectName: string, date: string, present: boolean): Promise<void> {
+    async markAttendance(studentId: string, subjectName: string, date: string, present: boolean, triggeredBy: string = 'Staff'): Promise<void> {
         return new Promise((resolve) => {
             setTimeout(() => {
                 const student = this.students.find(s => s.id === studentId);
@@ -498,9 +506,14 @@ class MockDataService {
                     if (subject) {
                         const record = subject.attendance.find(a => a.date === date);
                         if (record) {
+                            const oldStatus = record.present ? 'Present' : 'Absent';
+                            const newStatus = present ? 'Present' : 'Absent';
                             record.present = present;
+                            // SRS 3.4: Audit log for attendance edits
+                            this.logAction(`Updated attendance for ${student.fullName} (${subjectName}) on ${date}: ${oldStatus} -> ${newStatus}`, triggeredBy, 'Attendance');
                         } else {
                             subject.attendance.push({ date, present });
+                            this.logAction(`Marked attendance for ${student.fullName} (${subjectName}) on ${date}: ${present ? 'Present' : 'Absent'}`, triggeredBy, 'Attendance');
                         }
                     }
                 }
