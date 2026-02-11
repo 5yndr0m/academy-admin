@@ -56,20 +56,22 @@ export default function FinancePage() {
             </div>
 
             <Tabs defaultValue="payroll" className="space-y-4">
-                <TabsList className="bg-muted/60 p-1">
-                    <TabsTrigger value="payroll" className="flex items-center gap-2">
-                        <Banknote className="h-4 w-4" /> Payroll & Statutory
-                    </TabsTrigger>
-                    <TabsTrigger value="packages" className="flex items-center gap-2">
-                        <CreditCard className="h-4 w-4" /> Class Packages
-                    </TabsTrigger>
-                    <TabsTrigger value="payouts" className="flex items-center gap-2">
-                        <Wallet className="h-4 w-4" /> Teacher Payouts
-                    </TabsTrigger>
-                    <TabsTrigger value="reports" className="flex items-center gap-2">
-                        <BarChart className="h-4 w-4" /> Revenue Reports
-                    </TabsTrigger>
-                </TabsList>
+                <div className="w-full overflow-x-auto pb-1 scrollbar-hide">
+                    <TabsList className="bg-muted/60 p-1 inline-flex w-full justify-start md:w-fit">
+                        <TabsTrigger value="payroll" className="flex items-center gap-2 whitespace-nowrap">
+                            <Banknote className="h-4 w-4" /> Payroll & Statutory
+                        </TabsTrigger>
+                        <TabsTrigger value="packages" className="flex items-center gap-2 whitespace-nowrap">
+                            <CreditCard className="h-4 w-4" /> Class Packages
+                        </TabsTrigger>
+                        <TabsTrigger value="payouts" className="flex items-center gap-2 whitespace-nowrap">
+                            <Wallet className="h-4 w-4" /> Teacher Payouts
+                        </TabsTrigger>
+                        <TabsTrigger value="reports" className="flex items-center gap-2 whitespace-nowrap">
+                            <BarChart className="h-4 w-4" /> Revenue Reports
+                        </TabsTrigger>
+                    </TabsList>
+                </div>
 
                 <TabsContent value="payroll" className="space-y-4">
                     <div className="bg-card border rounded-lg p-6">

@@ -36,17 +36,19 @@ export default function OperationsPage() {
             </div>
 
             <Tabs defaultValue="staff" className="space-y-4">
-                <TabsList className="bg-muted/60 p-1">
-                    <TabsTrigger value="staff" className="flex items-center gap-2">
-                        <Users className="h-4 w-4" /> Staff Management
-                    </TabsTrigger>
-                    <TabsTrigger value="attendance" className="flex items-center gap-2">
-                        <BarChart3 className="h-4 w-4" /> Attendance Insights
-                    </TabsTrigger>
-                    <TabsTrigger value="settings" className="flex items-center gap-2">
-                        <Settings className="h-4 w-4" /> System Settings
-                    </TabsTrigger>
-                </TabsList>
+                <div className="w-full overflow-x-auto pb-1 scrollbar-hide">
+                    <TabsList className="bg-muted/60 p-1 inline-flex w-full justify-start md:w-fit">
+                        <TabsTrigger value="staff" className="flex items-center gap-2 whitespace-nowrap">
+                            <Users className="h-4 w-4" /> Staff Management
+                        </TabsTrigger>
+                        <TabsTrigger value="attendance" className="flex items-center gap-2 whitespace-nowrap">
+                            <BarChart3 className="h-4 w-4" /> Attendance Insights
+                        </TabsTrigger>
+                        <TabsTrigger value="settings" className="flex items-center gap-2 whitespace-nowrap">
+                            <Settings className="h-4 w-4" /> System Settings
+                        </TabsTrigger>
+                    </TabsList>
+                </div>
 
                 <TabsContent value="staff" className="space-y-4">
                     <StaffList />
