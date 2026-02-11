@@ -32,6 +32,7 @@ export function PayrollTable({ staff }: PayrollTableProps) {
                         <TableHead className="font-bold">EPF (8%) Employee</TableHead>
                         <TableHead className="font-bold">EPF (12%) Employer</TableHead>
                         <TableHead className="font-bold">ETF (3%) Employer</TableHead>
+                        <TableHead className="font-bold">Adjustments</TableHead>
                         <TableHead className="font-bold text-right">Net Salary</TableHead>
                     </TableRow>
                 </TableHeader>
@@ -40,7 +41,9 @@ export function PayrollTable({ staff }: PayrollTableProps) {
                         const epfEmployee = member.basicSalary * EPF_EMPLOYEE_RATE;
                         const epfEmployer = member.basicSalary * EPF_EMPLOYER_RATE;
                         const etfEmployer = member.basicSalary * ETF_RATE;
-                        const netSalary = member.basicSalary - epfEmployee;
+                        // Mock adjustment logic for SRS 3.6
+                        const adjustment = member.id === 'st2' ? 150 : 0;
+                        const netSalary = member.basicSalary - epfEmployee + adjustment;
 
                         return (
                             <TableRow key={member.id}>
@@ -49,6 +52,11 @@ export function PayrollTable({ staff }: PayrollTableProps) {
                                 <TableCell className="text-red-600">-${epfEmployee.toLocaleString()}</TableCell>
                                 <TableCell className="text-blue-600">+${epfEmployer.toLocaleString()}</TableCell>
                                 <TableCell className="text-indigo-600">+${etfEmployer.toLocaleString()}</TableCell>
+                                <TableCell>
+                                    <Badge variant="outline" className={adjustment > 0 ? "text-green-600 border-green-200" : "text-muted-foreground"}>
+                                        {adjustment > 0 ? `+$${adjustment}` : '$0'}
+                                    </Badge>
+                                </TableCell>
                                 <TableCell className="text-right font-bold text-green-600">
                                     ${netSalary.toLocaleString()}
                                 </TableCell>

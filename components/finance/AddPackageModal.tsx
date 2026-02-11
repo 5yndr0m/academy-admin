@@ -29,10 +29,16 @@ interface AddPackageModalProps {
 
 export function AddPackageModal({ onAdd }: AddPackageModalProps) {
     const [open, setOpen] = useState(false);
-    const [formData, setFormData] = useState({
+    const [formData, setFormData] = useState<{
+        title: string;
+        fee: string;
+        frequency: BillingFrequency;
+        validityPeriod: string;
+    }>({
         title: '',
         fee: '',
-        frequency: 'Monthly' as BillingFrequency
+        frequency: 'Monthly' as BillingFrequency,
+        validityPeriod: ''
     });
 
     const handleSubmit = (e: React.FormEvent) => {
@@ -43,7 +49,7 @@ export function AddPackageModal({ onAdd }: AddPackageModalProps) {
             fee: Number(formData.fee)
         });
         setOpen(false);
-        setFormData({ title: '', fee: '', frequency: 'Monthly' });
+        setFormData({ title: '', fee: '', frequency: 'Monthly', validityPeriod: '' });
     };
 
     return (
@@ -99,6 +105,15 @@ export function AddPackageModal({ onAdd }: AddPackageModalProps) {
                                     required
                                 />
                             </div>
+                        </div>
+                        <div className="grid gap-2">
+                            <Label htmlFor="validity">Validity Period (SRS 3.3)</Label>
+                            <Input
+                                id="validity"
+                                placeholder="6 Months"
+                                value={formData.validityPeriod || ''}
+                                onChange={(e) => setFormData({ ...formData, validityPeriod: e.target.value })}
+                            />
                         </div>
                     </div>
                     <DialogFooter>

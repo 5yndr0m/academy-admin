@@ -78,10 +78,15 @@ export function FeePackageList() {
                                     </div>
                                 </TableCell>
                                 <TableCell>
-                                    <Badge variant="outline" className="flex w-fit items-center gap-1">
-                                        <CalendarRange className="h-3 w-3" />
-                                        {pkg.frequency}
-                                    </Badge>
+                                    <div className="flex flex-col gap-1">
+                                        <Badge variant="outline" className="flex w-fit items-center gap-1">
+                                            <CalendarRange className="h-3 w-3" />
+                                            {pkg.frequency}
+                                        </Badge>
+                                        {pkg.validityPeriod && (
+                                            <span className="text-[10px] text-muted-foreground font-mono px-1">Valid: {pkg.validityPeriod}</span>
+                                        )}
+                                    </div>
                                 </TableCell>
                                 <TableCell className="text-right">
                                     <Button variant="ghost" size="sm">Edit</Button>
