@@ -45,10 +45,16 @@ export function StudentDetailsModal({ studentId, trigger, onUpdate }: StudentDet
     const [loading, setLoading] = useState(false);
     const [open, setOpen] = useState(false);
 
+    const [packages, setPackages] = useState<import('@/types').ClassPackage[]>([]);
+
     const loadStudent = async () => {
         setLoading(true);
-        const data = await mockDataService.getStudentById(studentId);
-        if (data) setStudent(data);
+        const [studentData, packageData] = await Promise.all([
+            mockDataService.getStudentById(studentId),
+            mockDataService.getPackages()
+        ]);
+        if (studentData) setStudent(studentData);
+        setPackages(packageData);
         setLoading(false);
     };
 
@@ -206,21 +212,36 @@ export function StudentDetailsModal({ studentId, trigger, onUpdate }: StudentDet
                                 </TabsContent>
 
                                 <TabsContent value="academic" className="mt-4 grid gap-4 sm:grid-cols-2">
-                                    {student.enrolledSubjects.map((sub) => (
-                                        <div key={sub.subjectName} className="border rounded-lg p-4 bg-muted/10 space-y-2">
-                                            <div className="flex items-center justify-between">
-                                                <h4 className="font-bold">{sub.subjectName}</h4>
-                                                <Badge variant="secondary" className="text-[10px]">{sub.packageId}</Badge>
+                                    {student.enrolledSubjects.map((sub) => {
+                                        // SRS 3.3: Show validity period
+                                        const pkg = packages.find((p: import('@/types').ClassPackage) => p.id === sub.packageId);
+                                        return (
+                                            <div key={sub.subjectName} className="border rounded-lg p-4 bg-muted/10 space-y-2">
+                                                <div className="flex items-center justify-between">
+                                                    <h4 className="font-bold">{sub.subjectName}</h4>
+                                                    <Badge variant="secondary" className="text-[10px]">{sub.packageId}</Badge>
+                                                </div>
+                                                <div className="flex flex-col gap-1">
+                                                    <div className="flex items-center justify-between text-[10px] text-muted-foreground uppercase font-bold font-mono">
+                                                        <span>Billing Rate</span>
+                                                        <span>{pkg?.frequency}</span>
+                                                    </div>
+                                                    <div className="flex items-center justify-between text-[10px] text-muted-foreground uppercase font-bold font-mono">
+                                                        <span>Validity</span>
+                                                        <span className="text-primary">{pkg?.validityPeriod || 'Not Set'}</span>
+                                                    </div>
+                                                </div>
+                                                <div className="h-4" /> {/* Spacer */}
+                                                <div className="flex items-center justify-between text-xs text-muted-foreground">
+                                                    <span>Attendance Rate</span>
+                                                    <span className="font-bold text-green-600">92%</span>
+                                                </div>
+                                                <div className="h-1.5 w-full bg-muted rounded-full overflow-hidden">
+                                                    <div className="h-full bg-green-500 w-[92%]" />
+                                                </div>
                                             </div>
-                                            <div className="flex items-center justify-between text-xs text-muted-foreground">
-                                                <span>Attendance Rate</span>
-                                                <span className="font-bold text-green-600">92%</span>
-                                            </div>
-                                            <div className="h-1.5 w-full bg-muted rounded-full overflow-hidden">
-                                                <div className="h-full bg-green-500 w-[92%]" />
-                                            </div>
-                                        </div>
-                                    ))}
+                                        );
+                                    })}
                                 </TabsContent>
                             </Tabs>
                         </div>
