@@ -22,6 +22,14 @@ import { Staff } from '@/types';
 import { mockDataService } from '@/lib/data';
 import { Plus, UserCog, Mail, Phone, ShieldCheck } from 'lucide-react';
 import { AddStaffModal } from './AddStaffModal';
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuLabel,
+    DropdownMenuSeparator,
+    DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 export function StaffList() {
     const [staffMembers, setStaffMembers] = useState<Staff[]>([]);
@@ -93,9 +101,24 @@ export function StaffList() {
                                     </Badge>
                                 </TableCell>
                                 <TableCell className="text-right">
-                                    <Button variant="ghost" size="icon">
-                                        <UserCog className="h-4 w-4" />
-                                    </Button>
+                                    <DropdownMenu>
+                                        <DropdownMenuTrigger asChild>
+                                            <Button variant="ghost" size="icon">
+                                                <UserCog className="h-4 w-4" />
+                                            </Button>
+                                        </DropdownMenuTrigger>
+                                        <DropdownMenuContent align="end">
+                                            <DropdownMenuLabel>Staff Actions</DropdownMenuLabel>
+                                            <DropdownMenuSeparator />
+                                            <DropdownMenuItem onClick={() => {
+                                                const updated = staffMembers.map(s => s.id === member.id ? { ...s, status: s.status === 'Active' ? 'Inactive' : 'Active' } : s);
+                                                setStaffMembers(updated as Staff[]);
+                                                mockDataService.logAction(`${member.status === 'Active' ? 'Deactivated' : 'Activated'} staff member: ${member.fullName}`, 'admin', 'Staff');
+                                            }}>
+                                                {member.status === 'Active' ? 'Deactivate Account' : 'Activate Account'}
+                                            </DropdownMenuItem>
+                                        </DropdownMenuContent>
+                                    </DropdownMenu>
                                 </TableCell>
                             </TableRow>
                         ))}
