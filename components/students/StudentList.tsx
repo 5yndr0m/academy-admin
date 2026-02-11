@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { Loader2 } from 'lucide-react';
 import {
     Table,
     TableBody,
@@ -12,9 +13,8 @@ import {
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { mockDataService } from '@/lib/data';
+import { StudentDetailsModal } from './StudentDetailsModal';
 import { Student } from '@/types';
-import { Loader2 } from 'lucide-react';
-import { StudentDetailsSheet } from './StudentDetailsSheet';
 
 export function StudentList() {
     const [students, setStudents] = useState<Student[]>([]);
@@ -68,7 +68,7 @@ export function StudentList() {
                                 </TableCell>
                                 <TableCell>
                                     <div className="flex flex-wrap gap-1">
-                                        {student.enrolledSubjects.map(sub => (
+                                        {student.enrolledSubjects.map((sub: any) => (
                                             <Badge key={sub.subjectName} variant="secondary" className="font-normal text-xs">
                                                 {sub.subjectName}
                                             </Badge>
@@ -76,8 +76,8 @@ export function StudentList() {
                                     </div>
                                 </TableCell>
                                 <TableCell className="text-right">
-                                    <StudentDetailsSheet
-                                        student={student}
+                                    <StudentDetailsModal
+                                        studentId={student.id}
                                         onUpdate={loadData}
                                     />
                                 </TableCell>
