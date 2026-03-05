@@ -7,7 +7,7 @@ import { UserRole } from '@/types';
 interface AuthContextType {
     user: string | null;
     role: UserRole | null;
-    login: (user: string) => void;
+    login: (data: { token: string; user: string; role: UserRole }) => void;
     logout: () => void;
 }
 
@@ -36,7 +36,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         localStorage.setItem('auth_token', data.token);
         localStorage.setItem('academy_user', data.user);
         localStorage.setItem('academy_role', data.role);
-        
+
         setUser(data.user);
         setRole(data.role);
         router.push('/');
