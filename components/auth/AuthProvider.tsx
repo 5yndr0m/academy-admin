@@ -21,24 +21,31 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     useEffect(() => {
         const storedUser = localStorage.getItem('academy_user');
-        if (storedUser) {
+        const storedRole = localStorage.getItem('academy_role') as UserRole | null;
+        const storedToken = localStorage.getItem('auth_token');
+
+        if (storedUser && storedRole && storedToken) {
             setUser(storedUser);
-            // Mock role derivation: 'admin' username gets Admin role
-            setRole(storedUser.toLowerCase().includes('admin') ? 'Admin' : 'Staff');
+            setRole(storedRole);
         } else if (pathname !== '/login') {
             router.push('/login');
         }
     }, [pathname, router]);
 
-    const login = (username: string) => {
-        localStorage.setItem('academy_user', username);
-        setUser(username);
-        setRole(username.toLowerCase().includes('admin') ? 'Admin' : 'Staff');
+    const login = (data: { token: string; user: string; role: UserRole }) => {
+        localStorage.setItem('auth_token', data.token);
+        localStorage.setItem('academy_user', data.user);
+        localStorage.setItem('academy_role', data.role);
+        
+        setUser(data.user);
+        setRole(data.role);
         router.push('/');
     };
 
     const logout = () => {
+        localStorage.removeItem('auth_token');
         localStorage.removeItem('academy_user');
+        localStorage.removeItem('academy_role');
         setUser(null);
         setRole(null);
         router.push('/login');
