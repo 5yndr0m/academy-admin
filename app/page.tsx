@@ -1,98 +1,90 @@
-'use client';
+"use client";
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState } from "react";
 import { StatsCards } from "@/components/dashboard/StatsCards";
 import { UpcomingClasses } from "@/components/dashboard/UpcomingClasses";
 import { ClassroomStatusGrid } from "@/components/dashboard/ClassroomStatusGrid";
 import { ActivityFeed } from "@/components/dashboard/ActivityFeed";
-import { mockDataService } from '@/lib/data';
-import { Classroom } from '@/types';
-import { Loader2 } from 'lucide-react';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { WeekTimetable } from "@/components/dashboard/WeekTimetable";
 import { DashboardFinanceSummary } from "@/components/dashboard/DashboardFinanceSummary";
-import { useAuth } from '@/components/auth/AuthProvider';
+import { dashboardService } from "@/lib/data";
+import { DashboardData } from "@/types";
+import { Loader2 } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useAuth } from "@/components/auth/AuthProvider";
 
 export default function Home() {
-    const [stats, setStats] = useState({
-        students: 0,
-        teachers: 0,
-        classroomsTotal: 0,
-        classroomsInUse: 0,
-        monthlyCollections: 0,
-        totalOutstanding: 0
-    });
-    const [schedule, setSchedule] = useState<any[]>([]);
-    const [classrooms, setClassrooms] = useState<Classroom[]>([]);
-    const [loading, setLoading] = useState(true);
+  const [data, setData] = useState<DashboardData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const { role } = useAuth();
 
-    useEffect(() => {
-        const loadDashboardData = async () => {
-            setLoading(true);
-            const [statsData, scheduleData, classroomsData] = await Promise.all([
-                mockDataService.getDashboardStats(),
-                mockDataService.getTodaySchedule(),
-                mockDataService.getClassrooms(),
-            ]);
+  useEffect(() => {
+    dashboardService
+      .get()
+      .then((d) => {
+        console.log("dashboard response:", JSON.stringify(d, null, 2));
+        setData(d);
+      })
+      .catch((err) => setError(err.message))
+      .finally(() => setLoading(false));
+  }, []);
 
-            // Augment stats with mock financial data
-            setStats({
-                ...statsData,
-                monthlyCollections: 8520,
-                totalOutstanding: 2150
-            });
-            setSchedule(scheduleData);
-            setClassrooms(classroomsData);
-            setLoading(false);
-        };
-
-        loadDashboardData();
-    }, []);
-
-    const { role } = useAuth();
-
-    if (loading) {
-        return (
-            <div className="flex h-full items-center justify-center p-8">
-                <Loader2 className="h-8 w-8 animate-spin text-slate-400" />
-            </div>
-        );
-    }
-
+  if (loading) {
     return (
-        <div className="space-y-6">
-            <StatsCards stats={stats} />
-
-            <Tabs defaultValue="overview" className="space-y-4">
-                <div className="w-full overflow-x-auto pb-1 scrollbar-hide">
-                    <TabsList className="bg-muted/60 p-1 inline-flex w-full justify-start md:w-fit whitespace-nowrap">
-                        <TabsTrigger value="overview">Overview</TabsTrigger>
-                        <TabsTrigger value="week">Week Schedule</TabsTrigger>
-                        {role === 'Admin' && (
-                            <TabsTrigger value="financial">Financial Summary</TabsTrigger>
-                        )}
-                    </TabsList>
-                </div>
-                <TabsContent value="overview" className="space-y-4">
-                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                        <div className="lg:col-span-2 space-y-6">
-                            <UpcomingClasses schedule={schedule} />
-                            <ClassroomStatusGrid classrooms={classrooms} />
-                        </div>
-                        <div className="lg:col-span-1">
-                            <ActivityFeed />
-                        </div>
-                    </div>
-                </TabsContent>
-                <TabsContent value="week">
-                    <WeekTimetable />
-                </TabsContent>
-                {role === 'Admin' && (
-                    <TabsContent value="financial">
-                        <DashboardFinanceSummary />
-                    </TabsContent>
-                )}
-            </Tabs>
-        </div>
+      <div className="flex h-full items-center justify-center p-8">
+        <Loader2 className="h-8 w-8 animate-spin text-slate-400" />
+      </div>
     );
+  }
+
+  if (error || !data) {
+    return (
+      <div className="flex h-full items-center justify-center p-8">
+        <p className="text-sm text-destructive">
+          Failed to load dashboard: {error}
+        </p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6">
+      <StatsCards counts={data.counts} financial={data.financial_summary} />
+
+      <Tabs defaultValue="overview" className="space-y-4">
+        <div className="w-full overflow-x-auto pb-1 scrollbar-hide">
+          <TabsList className="bg-muted/60 p-1 inline-flex w-full justify-start md:w-fit whitespace-nowrap">
+            <TabsTrigger value="overview">Overview</TabsTrigger>
+            <TabsTrigger value="week">Week Schedule</TabsTrigger>
+            {role === "ADMIN" && (
+              <TabsTrigger value="financial">Financial Summary</TabsTrigger>
+            )}
+          </TabsList>
+        </div>
+
+        <TabsContent value="overview" className="space-y-4">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-2 space-y-6">
+              <UpcomingClasses sessions={data.today_sessions} />
+              <ClassroomStatusGrid status={data.classroom_status ?? []} />
+            </div>
+            <div className="lg:col-span-1">
+              <ActivityFeed logs={data.recent_audit_logs} />
+            </div>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="week">
+          <WeekTimetable weeklySchedule={data.weekly_schedule} />
+        </TabsContent>
+
+        {role === "ADMIN" && (
+          <TabsContent value="financial">
+            <DashboardFinanceSummary financial={data.financial_summary} />
+          </TabsContent>
+        )}
+      </Tabs>
+    </div>
+  );
 }
