@@ -1,5 +1,3 @@
-// ─── Auth ─────────────────────────────────────────────────────────────────────
-
 export type UserRole = "ADMIN" | "STAFF"; // backend uses uppercase
 
 export interface LoginResponse {
@@ -7,8 +5,6 @@ export interface LoginResponse {
   role: UserRole;
   username: string; // added to backend LoginResponse DTO
 }
-
-// ─── Users ────────────────────────────────────────────────────────────────────
 
 export interface User {
   id: string;
@@ -23,8 +19,6 @@ export interface User {
   updated_at: string;
 }
 
-// ─── Subjects ─────────────────────────────────────────────────────────────────
-
 export interface Subject {
   id: string;
   name: string;
@@ -32,8 +26,6 @@ export interface Subject {
   created_at: string;
   updated_at: string;
 }
-
-// ─── Teachers ─────────────────────────────────────────────────────────────────
 
 export interface Teacher {
   id: string;
@@ -45,8 +37,6 @@ export interface Teacher {
   subjects?: Subject[];
 }
 
-// ─── Classrooms ───────────────────────────────────────────────────────────────
-
 export interface Classroom {
   id: string;
   name: string;
@@ -56,8 +46,6 @@ export interface Classroom {
   created_at: string;
   updated_at: string;
 }
-
-// ─── Classes ──────────────────────────────────────────────────────────────────
 
 export interface Class {
   id: string;
@@ -74,8 +62,6 @@ export interface Class {
   subject?: Subject;
 }
 
-// ─── Schedules ────────────────────────────────────────────────────────────────
-
 export interface ClassSchedule {
   id: string;
   day_of_week: number; // 0=Sun, 1=Mon ... 6=Sat
@@ -89,8 +75,6 @@ export interface ClassSchedule {
   class?: Class;
   classroom?: Classroom;
 }
-
-// ─── Sessions ─────────────────────────────────────────────────────────────────
 
 export interface ClassSession {
   id: string;
@@ -106,8 +90,6 @@ export interface ClassSession {
   class?: Class;
   classroom?: Classroom;
 }
-
-// ─── Students ─────────────────────────────────────────────────────────────────
 
 export interface Student {
   id: string;
@@ -129,8 +111,6 @@ export interface Student {
   updated_at: string;
 }
 
-// ─── Enrollments ──────────────────────────────────────────────────────────────
-
 export type EnrollmentStatus = "ENROLLED" | "DROPPED";
 
 export interface Enrollment {
@@ -145,8 +125,6 @@ export interface Enrollment {
   student?: Student;
   class?: Class;
 }
-
-// ─── Attendance ───────────────────────────────────────────────────────────────
 
 export type AttendanceStatus = "PRESENT" | "ABSENT" | "LATE";
 
@@ -177,8 +155,6 @@ export interface SessionWithAttendance {
   attendance_status: AttendanceStatus | "";
 }
 
-// ─── Invoices ─────────────────────────────────────────────────────────────────
-
 export type InvoiceType =
   | "STUDENT_PAYMENT"
   | "TEACHER_PAYOUT"
@@ -204,8 +180,6 @@ export interface Invoice {
   class?: Class;
 }
 
-// ─── Expenses ─────────────────────────────────────────────────────────────────
-
 export type ExpenseCategory =
   | "UTILITIES"
   | "MAINTENANCE"
@@ -224,8 +198,6 @@ export interface Expense {
   updated_at: string;
 }
 
-// ─── Notifications ────────────────────────────────────────────────────────────
-
 export type NotificationChannel = "WHATSAPP" | "EMAIL";
 export type NotificationStatus = "PENDING" | "SENT" | "FAILED";
 
@@ -241,8 +213,6 @@ export interface NotificationLog {
   sent_at: string;
   student?: Student;
 }
-
-// ─── Reports ──────────────────────────────────────────────────────────────────
 
 export interface MonthlyFinancialSummary {
   id: string;
@@ -262,11 +232,11 @@ export interface MonthlyReport {
   total_staff_commissions: number;
   total_expenses: number;
   net_income: number;
-  pending_invoices_count: number;
-  pending_invoices_amount: number;
+  pending_invoices: {
+    count: number;
+    amount: number;
+  };
 }
-
-// ─── Templates ────────────────────────────────────────────────────────────────
 
 export type TemplateType = "INVOICE" | "REPORT" | "EMAIL" | "WHATSAPP";
 
@@ -282,14 +252,13 @@ export interface Template {
   updated_at: string;
 }
 
-// ─── Dashboard ────────────────────────────────────────────────────────────────
-
 export interface DashboardData {
   today_sessions: ClassSession[];
-  classroom_occupancy: ClassroomOccupancy[];
+  classroom_status: ClassroomStatus[];
   weekly_schedule: WeeklySchedule;
   financial_summary: MonthlyReport | null;
   recent_audit_logs: AuditLog[];
+  today: string;
   counts: {
     students: number;
     teachers: number;
@@ -297,17 +266,20 @@ export interface DashboardData {
   };
 }
 
-export interface ClassroomOccupancy {
-  classroom: Classroom;
+export interface ClassroomStatus {
+  id: string;
+  name: string;
+  capacity: number;
+  is_usable: boolean;
   is_occupied: boolean;
-  current_session?: ClassSession;
+  created_by: string;
+  created_at: string;
+  updated_at: string;
 }
 
 export type WeeklySchedule = {
   [day: string]: ClassSchedule[]; // day = "Sunday" | "Monday" ... "Saturday"
 };
-
-// ─── Audit Logs ───────────────────────────────────────────────────────────────
 
 export interface AuditLog {
   id: string;
@@ -319,8 +291,6 @@ export interface AuditLog {
   ip_address: string;
   created_at: string;
 }
-
-// ─── Search ───────────────────────────────────────────────────────────────────
 
 export interface SearchResult<T> {
   results: T[];
