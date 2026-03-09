@@ -14,8 +14,8 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { LockKeyhole, Loader2 } from "lucide-react";
-import { apiClient } from '@/lib/api-client';
-import { UserRole } from '@/types';
+import { authService } from "@/lib/data";
+import { UserRole } from "@/types";
 
 export default function LoginPage() {
   const [username, setUsername] = useState("");
@@ -26,17 +26,18 @@ export default function LoginPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
+    setError("");
     setIsLoading(true);
 
     try {
-      const response = await apiClient.post<{ token: string; user: string; role: UserRole }>('/auth/login', {
-        username,
-        password
+      const response = await authService.login(username, password);
+      login({
+        token: response.token,
+        username: response.username,
+        role: response.role as UserRole,
       });
-      login(response);
-    } catch (err: any) {
-      setError(err.message || 'Invalid credentials');
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Invalid credentials");
     } finally {
       setIsLoading(false);
     }
@@ -70,9 +71,7 @@ export default function LoginPage() {
               />
             </div>
             <div className="space-y-2">
-              <div className="flex items-center justify-between">
-                <Label htmlFor="password">Password</Label>
-              </div>
+              <Label htmlFor="password">Password</Label>
               <Input
                 id="password"
                 type="password"
@@ -95,7 +94,7 @@ export default function LoginPage() {
                   Signing In...
                 </>
               ) : (
-                'Sign In'
+                "Sign In"
               )}
             </Button>
           </CardFooter>
