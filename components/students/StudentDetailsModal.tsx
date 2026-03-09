@@ -1,307 +1,511 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect } from "react";
 import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogHeader,
-    DialogTitle,
-    DialogTrigger,
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogDescription,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
 } from "@/components/ui/table";
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Student, CommunicationLog } from '@/types';
-import { mockDataService } from '@/lib/data';
-import { useAuth } from '@/components/auth/AuthProvider';
-import { Eye, CreditCard, MessageSquare, History, User, Phone, Mail, BookOpen, BadgeDollarSign } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Student, Enrollment, Invoice, NotificationLog } from "@/types";
+import {
+  studentService,
+  enrollmentService,
+  invoiceService,
+  notificationService,
+} from "@/lib/data";
+import { useAuth } from "@/components/auth/AuthProvider";
+import {
+  Eye,
+  Loader2,
+  Phone,
+  User,
+  MessageSquare,
+  History,
+  BookOpen,
+  CreditCard,
+  BadgeDollarSign,
+  CheckCircle2,
+} from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface StudentDetailsModalProps {
-    studentId: string;
-    trigger?: React.ReactNode;
-    onUpdate?: () => void;
+  studentId: string;
+  trigger?: React.ReactNode;
+  onUpdate?: () => void;
 }
 
-export function StudentDetailsModal({ studentId, trigger, onUpdate }: StudentDetailsModalProps) {
-    const { role } = useAuth();
-    const [student, setStudent] = useState<Student | null>(null);
-    const [loading, setLoading] = useState(false);
-    const [open, setOpen] = useState(false);
+export function StudentDetailsModal({
+  studentId,
+  trigger,
+  onUpdate,
+}: StudentDetailsModalProps) {
+  const { role } = useAuth();
+  const [open, setOpen] = useState(false);
+  const [student, setStudent] = useState<Student | null>(null);
+  const [enrollments, setEnrollments] = useState<Enrollment[]>([]);
+  const [invoices, setInvoices] = useState<Invoice[]>([]);
+  const [notifs, setNotifs] = useState<NotificationLog[]>([]);
+  const [loading, setLoading] = useState(false);
 
-    const [packages, setPackages] = useState<import('@/types').ClassPackage[]>([]);
+  const load = async () => {
+    setLoading(true);
+    try {
+      const [s, e, i, n] = await Promise.all([
+        studentService.getById(studentId),
+        enrollmentService.getByStudent(studentId),
+        invoiceService.getByStudent(studentId),
+        notificationService.getByStudent(studentId),
+      ]);
+      setStudent(s);
+      setEnrollments(e);
+      setInvoices(i);
+      setNotifs(n);
+    } catch {
+      /* show partial data */
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    const loadStudent = async () => {
-        setLoading(true);
-        const [studentData, packageData] = await Promise.all([
-            mockDataService.getStudentById(studentId),
-            mockDataService.getPackages()
-        ]);
-        if (studentData) setStudent(studentData);
-        setPackages(packageData);
-        setLoading(false);
-    };
+  useEffect(() => {
+    if (open) load();
+  }, [open, studentId]);
 
-    useEffect(() => {
-        if (open) {
-            loadStudent();
-        }
-    }, [open, studentId]);
+  const handleInvoiceStatus = async (invoiceId: string, status: string) => {
+    try {
+      await invoiceService.updateStatus(invoiceId, status);
+      setInvoices((prev) =>
+        prev.map((inv) => (inv.id === invoiceId ? { ...inv, status } : inv)),
+      );
+      onUpdate?.();
+    } catch {
+      /* silently fail */
+    }
+  };
 
-    const handlePaymentUpdate = async (subjectName: string, month: string, status: 'Paid' | 'Pending' | 'Overdue') => {
-        await mockDataService.updateStudentPayment(studentId, subjectName, month, status);
-        loadStudent();
-        if (onUpdate) onUpdate();
-    };
+  const handleEnrollStatus = async (enrollId: string, status: string) => {
+    try {
+      await enrollmentService.updateStatus(enrollId, status);
+      setEnrollments((prev) =>
+        prev.map((e) => (e.id === enrollId ? { ...e, status } : e)),
+      );
+    } catch {
+      /* silently fail */
+    }
+  };
 
-    return (
-        <Dialog open={open} onOpenChange={setOpen}>
-            <DialogTrigger asChild>
-                {trigger || (
-                    <Button variant="ghost" size="icon">
-                        <Eye className="h-4 w-4" />
-                    </Button>
-                )}
-            </DialogTrigger>
-            <DialogContent className="max-w-5xl h-[90vh] flex flex-col p-0 overflow-hidden rounded-xl">
-                <DialogHeader className="p-6 pb-0">
-                    <div className="flex items-center justify-between gap-4">
-                        <div className="flex items-center gap-4">
-                            <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center text-primary font-bold text-xl">
-                                {student?.fullName.charAt(0)}
-                            </div>
-                            <div>
-                                <DialogTitle className="text-2xl font-bold">{student?.fullName || 'Loading...'}</DialogTitle>
-                                <DialogDescription className="text-xs font-mono">Student ID: {studentId}</DialogDescription>
-                            </div>
-                        </div>
-                        {role === 'Admin' && student && (
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                className="h-8 text-xs gap-2"
-                                onClick={async () => {
-                                    await mockDataService.generateMonthlyBills(student.id);
-                                    loadStudent();
-                                    alert('Billing notification triggered successfully.');
-                                }}
-                            >
-                                <BadgeDollarSign className="h-3.5 w-3.5" />
-                                Generate Bill
-                            </Button>
-                        )}
-                    </div>
-                </DialogHeader>
+  const fmt = (n: number) => `LKR ${n.toLocaleString()}`;
+  const displayName = student?.full_name ?? "...";
 
-                <div className="flex-1 overflow-y-auto p-6 pt-4">
-                    {!student && loading ? (
-                        <div className="h-full flex items-center justify-center">
-                            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
-                        </div>
-                    ) : student ? (
-                        <div className="space-y-6">
-                            {/* Contact Grid */}
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                                <div className="border rounded-lg p-3 space-y-1 bg-muted/20">
-                                    <p className="text-[10px] uppercase font-bold text-muted-foreground flex items-center gap-1.5 font-mono">
-                                        <Phone className="h-3 w-3" /> Student Contact
-                                    </p>
-                                    <p className="font-medium text-sm">{student.contactNumber}</p>
-                                </div>
-                                <div className="border rounded-lg p-3 space-y-1 bg-muted/20">
-                                    <p className="text-[10px] uppercase font-bold text-muted-foreground flex items-center gap-1.5 font-mono">
-                                        <User className="h-3 w-3" /> Guardian
-                                    </p>
-                                    <p className="font-medium text-sm">{student.guardianName}</p>
-                                </div>
-                                <div className="border rounded-lg p-3 space-y-1 bg-muted/20">
-                                    <p className="text-[10px] uppercase font-bold text-muted-foreground flex items-center gap-1.5 font-mono">
-                                        <MessageSquare className="h-3 w-3" /> Guardian Contact
-                                    </p>
-                                    <p className="font-medium text-sm">{student.guardianContact}</p>
-                                </div>
-                            </div>
+  return (
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        {trigger ?? (
+          <Button variant="ghost" size="icon">
+            <Eye className="h-4 w-4" />
+          </Button>
+        )}
+      </DialogTrigger>
 
-                            <Tabs defaultValue="payments" className="w-full">
-                                <div className="overflow-x-auto pb-1 scrollbar-hide">
-                                    <TabsList className="bg-muted/50 p-1 w-full justify-start md:w-auto">
-                                        <TabsTrigger value="payments" className="flex items-center gap-2 text-xs">
-                                            <CreditCard className="h-3.5 w-3.5" /> Financial Records
-                                        </TabsTrigger>
-                                        <TabsTrigger value="communications" className="flex items-center gap-2 text-xs">
-                                            <Mail className="h-3.5 w-3.5" /> Comms Log
-                                        </TabsTrigger>
-                                        <TabsTrigger value="academic" className="flex items-center gap-2 text-xs">
-                                            <BookOpen className="h-3.5 w-3.5" /> Enrolled Subjects
-                                        </TabsTrigger>
-                                    </TabsList>
-                                </div>
-
-                                <TabsContent value="payments" className="mt-4 space-y-6">
-                                    {student.enrolledSubjects.map((sub) => (
-                                        <div key={sub.subjectName} className="border rounded-xl bg-card overflow-hidden">
-                                            <div className="bg-muted/30 px-4 py-2 border-b flex items-center justify-between">
-                                                <h4 className="font-bold text-sm tracking-tight">{sub.subjectName}</h4>
-                                                <Badge variant="outline" className="text-[9px] uppercase font-bold bg-background">{sub.packageId}</Badge>
-                                            </div>
-                                            <Table>
-                                                <TableHeader>
-                                                    <TableRow className="h-10">
-                                                        <TableHead className="font-bold text-xs">Month</TableHead>
-                                                        <TableHead className="font-bold text-xs">Amount Due</TableHead>
-                                                        <TableHead className="text-right font-bold text-xs">Status</TableHead>
-                                                    </TableRow>
-                                                </TableHeader>
-                                                <TableBody>
-                                                    {sub.payments.map((p) => (
-                                                        <TableRow key={p.month} className="h-12">
-                                                            <TableCell className="text-xs font-medium">{p.month}</TableCell>
-                                                            <TableCell className="text-xs font-bold">${p.amount}</TableCell>
-                                                            <TableCell className="text-right">
-                                                                <Select
-                                                                    defaultValue={p.status}
-                                                                    onValueChange={(val: any) => handlePaymentUpdate(sub.subjectName, p.month, val)}
-                                                                    disabled={role !== 'Admin'}
-                                                                >
-                                                                    <SelectTrigger className={cn(
-                                                                        "h-7 w-[100px] ml-auto text-[10px] font-bold",
-                                                                        p.status === 'Paid' ? "text-green-700 bg-green-50 border-green-200" :
-                                                                            p.status === 'Overdue' ? "text-red-700 bg-red-50 border-red-200" :
-                                                                                "text-amber-700 bg-amber-50 border-amber-200"
-                                                                    )}>
-                                                                        <SelectValue />
-                                                                    </SelectTrigger>
-                                                                    <SelectContent>
-                                                                        <SelectItem value="Paid" className="text-xs text-green-700">PAID</SelectItem>
-                                                                        <SelectItem value="Pending" className="text-xs text-amber-700">PENDING</SelectItem>
-                                                                        <SelectItem value="Overdue" className="text-xs text-red-700">OVERDUE</SelectItem>
-                                                                    </SelectContent>
-                                                                </Select>
-                                                            </TableCell>
-                                                        </TableRow>
-                                                    ))}
-                                                    {sub.payments.length === 0 && (
-                                                        <TableRow>
-                                                            <TableCell colSpan={3} className="text-center py-4 text-xs text-muted-foreground">No payments recorded</TableCell>
-                                                        </TableRow>
-                                                    )}
-                                                </TableBody>
-                                            </Table>
-                                        </div>
-                                    ))}
-                                </TabsContent>
-
-                                <TabsContent value="communications" className="mt-4">
-                                    <CommsHistory studentId={studentId} />
-                                </TabsContent>
-
-                                <TabsContent value="academic" className="mt-4 grid gap-4 sm:grid-cols-2">
-                                    {student.enrolledSubjects.map((sub) => {
-                                        // SRS 3.3: Show validity period
-                                        const pkg = packages.find((p: import('@/types').ClassPackage) => p.id === sub.packageId);
-                                        return (
-                                            <div key={sub.subjectName} className="border rounded-lg p-4 bg-muted/10 space-y-2">
-                                                <div className="flex items-center justify-between">
-                                                    <h4 className="font-bold">{sub.subjectName}</h4>
-                                                    <Badge variant="secondary" className="text-[10px]">{sub.packageId}</Badge>
-                                                </div>
-                                                <div className="flex flex-col gap-1">
-                                                    <div className="flex items-center justify-between text-[10px] text-muted-foreground uppercase font-bold font-mono">
-                                                        <span>Billing Rate</span>
-                                                        <span>{pkg?.frequency}</span>
-                                                    </div>
-                                                    <div className="flex items-center justify-between text-[10px] text-muted-foreground uppercase font-bold font-mono">
-                                                        <span>Validity</span>
-                                                        <span className="text-primary">{pkg?.validityPeriod || 'Not Set'}</span>
-                                                    </div>
-                                                </div>
-                                                <div className="h-4" /> {/* Spacer */}
-                                                <div className="flex items-center justify-between text-xs text-muted-foreground">
-                                                    <span>Attendance Rate</span>
-                                                    <span className="font-bold text-green-600">92%</span>
-                                                </div>
-                                                <div className="h-1.5 w-full bg-muted rounded-full overflow-hidden">
-                                                    <div className="h-full bg-green-500 w-[92%]" />
-                                                </div>
-                                            </div>
-                                        );
-                                    })}
-                                </TabsContent>
-                            </Tabs>
-                        </div>
-                    ) : (
-                        <div className="h-full flex flex-col items-center justify-center text-muted-foreground space-y-2">
-                            <User className="h-12 w-12 opacity-10" />
-                            <p>Student details could not be found.</p>
-                        </div>
-                    )}
-                </div>
-            </DialogContent>
-        </Dialog>
-    );
-}
-
-function CommsHistory({ studentId }: { studentId: string }) {
-    const [logs, setLogs] = useState<CommunicationLog[]>([]);
-
-    useEffect(() => {
-        const load = async () => {
-            const data = await mockDataService.getCommunicationLogs(studentId);
-            setLogs(data);
-        };
-        load();
-    }, [studentId]);
-
-    return (
-        <div className="space-y-3">
-            {logs.map(log => (
-                <div key={log.id} className="text-xs border rounded-lg p-4 bg-muted/10 hover:bg-muted/30 transition-colors flex items-start justify-between">
-                    <div className="space-y-2">
-                        <div className="flex items-center gap-2">
-                            <Badge
-                                variant="outline"
-                                className={cn(
-                                    "text-[9px] h-4 py-0 uppercase font-bold",
-                                    log.type === 'SMS' ? "bg-blue-50 text-blue-700" : "bg-purple-50 text-purple-700"
-                                )}
-                            >
-                                {log.type}
-                            </Badge>
-                            <span className="font-bold text-sm">{log.subject}</span>
-                        </div>
-                        <p className="text-muted-foreground font-mono text-[10px]">{log.recipient}</p>
-                    </div>
-                    <div className="flex flex-col items-end gap-1.5">
-                        <span className="text-[10px] text-muted-foreground flex items-center gap-1">
-                            <History className="h-3 w-3" />
-                            {new Date(log.timestamp).toLocaleDateString()}
-                        </span>
-                        <Badge variant="outline" className="text-[9px] h-4 px-2 border-green-200 text-green-700 bg-green-50 font-bold">DELIVERED</Badge>
-                    </div>
-                </div>
-            ))}
-            {logs.length === 0 && (
-                <div className="flex flex-col items-center justify-center py-12 text-muted-foreground gap-2">
-                    <MessageSquare className="h-8 w-8 opacity-10" />
-                    <p className="italic text-xs font-mono">No notifications sent yet.</p>
-                </div>
+      <DialogContent className="max-w-4xl h-[88vh] flex flex-col p-0 overflow-hidden rounded-xl">
+        {/* Header */}
+        <DialogHeader className="px-6 pt-6 pb-0 flex-shrink-0">
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-4">
+              <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center text-primary font-bold text-xl">
+                {displayName.charAt(0).toUpperCase()}
+              </div>
+              <div>
+                <DialogTitle className="text-xl font-bold">
+                  {displayName}
+                </DialogTitle>
+                <DialogDescription className="text-xs font-mono">
+                  {student?.admission_no
+                    ? `Adm. ${student.admission_no}`
+                    : `ID: ${studentId}`}
+                </DialogDescription>
+              </div>
+            </div>
+            {role === "ADMIN" && student && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="h-8 text-xs gap-2"
+                onClick={async () => {
+                  await invoiceService.generateMonthly(
+                    new Date().toISOString().slice(0, 7),
+                  );
+                  load();
+                }}
+              >
+                <BadgeDollarSign className="h-3.5 w-3.5" />
+                Generate Bill
+              </Button>
             )}
+          </div>
+        </DialogHeader>
+
+        {/* Body */}
+        <div className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
+          {loading ? (
+            <div className="flex justify-center py-16">
+              <Loader2 className="h-8 w-8 animate-spin text-slate-400" />
+            </div>
+          ) : student ? (
+            <>
+              {/* Contact cards */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <InfoCard
+                  icon={<Phone className="h-3 w-3" />}
+                  label="Student"
+                  value={student.contact_number}
+                />
+                <InfoCard
+                  icon={<User className="h-3 w-3" />}
+                  label="Guardian"
+                  value={student.guardian_name}
+                />
+                <InfoCard
+                  icon={<Phone className="h-3 w-3" />}
+                  label="Guardian Contact"
+                  value={student.guardian_contact}
+                />
+                <InfoCard
+                  icon={<CheckCircle2 className="h-3 w-3" />}
+                  label="Admission Fee"
+                  value={student.admission_fee_paid ? "Paid" : "Unpaid"}
+                  valueClass={
+                    student.admission_fee_paid
+                      ? "text-green-700"
+                      : "text-amber-600"
+                  }
+                />
+              </div>
+
+              <Tabs defaultValue="enrollments">
+                <TabsList>
+                  <TabsTrigger value="enrollments">
+                    <BookOpen className="mr-1.5 h-3.5 w-3.5" />
+                    Enrollments ({enrollments.length})
+                  </TabsTrigger>
+                  <TabsTrigger value="invoices">
+                    <CreditCard className="mr-1.5 h-3.5 w-3.5" />
+                    Invoices ({invoices.length})
+                  </TabsTrigger>
+                  <TabsTrigger value="notifications">
+                    <MessageSquare className="mr-1.5 h-3.5 w-3.5" />
+                    Notifications ({notifs.length})
+                  </TabsTrigger>
+                </TabsList>
+
+                {/* ── Enrollments ── */}
+                <TabsContent value="enrollments" className="mt-4">
+                  {enrollments.length === 0 ? (
+                    <EmptyState
+                      icon={<BookOpen />}
+                      text="Not enrolled in any classes yet."
+                    />
+                  ) : (
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Class</TableHead>
+                          <TableHead>Teacher</TableHead>
+                          <TableHead>Monthly Fee</TableHead>
+                          <TableHead>Enrolled</TableHead>
+                          <TableHead className="text-right">Status</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {enrollments.map((enr) => (
+                          <TableRow key={enr.id}>
+                            <TableCell className="font-medium text-sm">
+                              {enr.class?.name ?? "—"}
+                            </TableCell>
+                            <TableCell className="text-sm text-muted-foreground">
+                              {enr.class?.teacher?.full_name ??
+                                (enr.class?.teacher as any)?.fullname ??
+                                "—"}
+                            </TableCell>
+                            <TableCell className="font-mono text-sm">
+                              {enr.class
+                                ? fmt(enr.class.base_monthly_fee)
+                                : "—"}
+                            </TableCell>
+                            <TableCell className="text-xs text-muted-foreground">
+                              {enr.enrollment_date
+                                ? new Date(
+                                    enr.enrollment_date,
+                                  ).toLocaleDateString()
+                                : new Date(enr.created_at).toLocaleDateString()}
+                            </TableCell>
+                            <TableCell className="text-right">
+                              {role === "ADMIN" ? (
+                                <Select
+                                  value={enr.status}
+                                  onValueChange={(v) =>
+                                    handleEnrollStatus(enr.id, v)
+                                  }
+                                >
+                                  <SelectTrigger
+                                    className={cn(
+                                      "h-7 w-[110px] ml-auto text-[10px] font-bold",
+                                      enr.status === "ACTIVE"
+                                        ? "text-green-700 bg-green-50 border-green-200"
+                                        : enr.status === "COMPLETED"
+                                          ? "text-blue-700 bg-blue-50 border-blue-200"
+                                          : "text-amber-700 bg-amber-50 border-amber-200",
+                                    )}
+                                  >
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="ACTIVE">
+                                      ACTIVE
+                                    </SelectItem>
+                                    <SelectItem value="INACTIVE">
+                                      INACTIVE
+                                    </SelectItem>
+                                    <SelectItem value="COMPLETED">
+                                      COMPLETED
+                                    </SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              ) : (
+                                <StatusBadge status={enr.status} />
+                              )}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  )}
+                </TabsContent>
+
+                {/* ── Invoices ── */}
+                <TabsContent value="invoices" className="mt-4">
+                  {invoices.length === 0 ? (
+                    <EmptyState
+                      icon={<CreditCard />}
+                      text="No invoices generated yet."
+                    />
+                  ) : (
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Month</TableHead>
+                          <TableHead>Type</TableHead>
+                          <TableHead>Amount</TableHead>
+                          <TableHead>Due</TableHead>
+                          <TableHead className="text-right">Status</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {invoices.map((inv) => (
+                          <TableRow key={inv.id}>
+                            <TableCell className="font-mono text-sm">
+                              {inv.billing_month}
+                            </TableCell>
+                            <TableCell>
+                              <Badge
+                                variant="outline"
+                                className="text-[10px] font-normal"
+                              >
+                                {inv.invoice_type}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="font-mono font-medium text-sm">
+                              {fmt(inv.amount)}
+                            </TableCell>
+                            <TableCell className="text-xs text-muted-foreground">
+                              {inv.due_date
+                                ? new Date(inv.due_date).toLocaleDateString()
+                                : "—"}
+                            </TableCell>
+                            <TableCell className="text-right">
+                              {role === "ADMIN" ? (
+                                <Select
+                                  value={inv.status}
+                                  onValueChange={(v) =>
+                                    handleInvoiceStatus(inv.id, v)
+                                  }
+                                >
+                                  <SelectTrigger
+                                    className={cn(
+                                      "h-7 w-[110px] ml-auto text-[10px] font-bold",
+                                      inv.status === "PAID"
+                                        ? "text-green-700 bg-green-50 border-green-200"
+                                        : inv.status === "OVERDUE"
+                                          ? "text-red-700 bg-red-50 border-red-200"
+                                          : "text-amber-700 bg-amber-50 border-amber-200",
+                                    )}
+                                  >
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="PENDING">
+                                      PENDING
+                                    </SelectItem>
+                                    <SelectItem value="PAID">PAID</SelectItem>
+                                    <SelectItem value="OVERDUE">
+                                      OVERDUE
+                                    </SelectItem>
+                                    <SelectItem value="CANCELLED">
+                                      CANCELLED
+                                    </SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              ) : (
+                                <StatusBadge status={inv.status} />
+                              )}
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  )}
+                </TabsContent>
+
+                {/* ── Notifications ── */}
+                <TabsContent value="notifications" className="mt-4 space-y-2">
+                  {notifs.length === 0 ? (
+                    <EmptyState
+                      icon={<MessageSquare />}
+                      text="No notifications sent yet."
+                    />
+                  ) : (
+                    notifs.map((n) => (
+                      <div
+                        key={n.id}
+                        className="flex items-start justify-between p-4 rounded-lg border bg-muted/10 hover:bg-muted/20 transition-colors"
+                      >
+                        <div className="space-y-1.5">
+                          <div className="flex items-center gap-2">
+                            <Badge
+                              variant="outline"
+                              className={cn(
+                                "text-[9px] h-4 uppercase font-bold",
+                                n.channel === "WHATSAPP"
+                                  ? "bg-green-50 text-green-700"
+                                  : n.channel === "SMS"
+                                    ? "bg-blue-50 text-blue-700"
+                                    : "bg-purple-50 text-purple-700",
+                              )}
+                            >
+                              {n.channel}
+                            </Badge>
+                            <span className="text-sm font-medium">
+                              {n.message_type}
+                            </span>
+                          </div>
+                          <p className="text-xs text-muted-foreground">
+                            {n.recipient}
+                          </p>
+                        </div>
+                        <div className="flex flex-col items-end gap-1">
+                          <span className="text-[10px] text-muted-foreground flex items-center gap-1">
+                            <History className="h-3 w-3" />
+                            {new Date(
+                              n.sent_at ?? n.created_at,
+                            ).toLocaleDateString()}
+                          </span>
+                          <Badge
+                            variant="outline"
+                            className={cn(
+                              "text-[9px] h-4 px-2 font-bold",
+                              n.status === "SENT"
+                                ? "border-green-200 text-green-700 bg-green-50"
+                                : n.status === "FAILED"
+                                  ? "border-red-200 text-red-700 bg-red-50"
+                                  : "border-amber-200 text-amber-700 bg-amber-50",
+                            )}
+                          >
+                            {n.status}
+                          </Badge>
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </TabsContent>
+              </Tabs>
+            </>
+          ) : (
+            <div className="flex flex-col items-center justify-center py-16 text-muted-foreground gap-2">
+              <User className="h-12 w-12 opacity-10" />
+              <p className="text-sm">Student not found.</p>
+            </div>
+          )}
         </div>
-    );
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+function InfoCard({
+  icon,
+  label,
+  value,
+  valueClass,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: string;
+  valueClass?: string;
+}) {
+  return (
+    <div className="border rounded-lg p-3 space-y-1 bg-muted/20">
+      <p className="text-[10px] uppercase font-bold text-muted-foreground flex items-center gap-1.5 font-mono">
+        {icon} {label}
+      </p>
+      <p className={cn("font-medium text-sm", valueClass)}>{value}</p>
+    </div>
+  );
+}
+
+function StatusBadge({ status }: { status: string }) {
+  return (
+    <Badge
+      variant="outline"
+      className={cn(
+        "text-[10px] font-bold",
+        status === "ACTIVE" || status === "PAID"
+          ? "text-green-700 bg-green-50 border-green-200"
+          : status === "OVERDUE" || status === "FAILED"
+            ? "text-red-700 bg-red-50 border-red-200"
+            : "text-amber-700 bg-amber-50 border-amber-200",
+      )}
+    >
+      {status}
+    </Badge>
+  );
+}
+
+function EmptyState({ icon, text }: { icon: React.ReactNode; text: string }) {
+  return (
+    <div className="flex flex-col items-center justify-center py-12 text-muted-foreground gap-2">
+      <div className="h-8 w-8 opacity-10">{icon}</div>
+      <p className="text-xs font-mono italic">{text}</p>
+    </div>
+  );
 }
