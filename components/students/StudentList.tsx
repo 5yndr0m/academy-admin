@@ -141,8 +141,8 @@ export function StudentList() {
                       variant="outline"
                       className={
                         student.admission_fee_paid
-                          ? "bg-green-50 text-green-700 border-green-200 text-[10px]"
-                          : "bg-amber-50 text-amber-700 border-amber-200 text-[10px]"
+                          ? "bg-green-100 text-green-800 border-green-200 dark:bg-green-900 dark:text-green-100 dark:border-green-700 text-[10px]"
+                          : "bg-amber-100 text-amber-800 border-amber-200 dark:bg-amber-900 dark:text-amber-200 dark:border-amber-700 text-[10px]"
                       }
                     >
                       {student.admission_fee_paid ? "Paid" : "Unpaid"}
