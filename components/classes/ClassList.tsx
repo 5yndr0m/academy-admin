@@ -38,12 +38,16 @@ import {
 import { classService, teacherService, subjectService } from "@/lib/data";
 import { Class, Teacher, Subject } from "@/types";
 import { AddClassDialog } from "./AddClassDialog";
-import { Loader2, Pencil } from "lucide-react";
+import { Loader2, Pencil, Search, RefreshCw } from "lucide-react";
 
 export function ClassList() {
   const [classes, setClasses] = useState<Class[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Search state
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searching, setSearching] = useState(false);
 
   // Edit dialog
   const [editing, setEditing] = useState<Class | null>(null);
@@ -58,22 +62,40 @@ export function ClassList() {
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [dropdownReady, setDropdownReady] = useState(false);
 
-  const load = useCallback(async () => {
-    setLoading(true);
+  const load = useCallback(async (search?: string) => {
+    if (search !== undefined) {
+      setSearching(true);
+    } else {
+      setLoading(true);
+    }
     setError(null);
     try {
-      const data = await classService.getAll();
+      const data = await classService.getAll(search);
       setClasses(data);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Failed to load classes");
     } finally {
       setLoading(false);
+      setSearching(false);
     }
   }, []);
 
   useEffect(() => {
     load();
   }, [load]);
+
+  // Handle search with debounce
+  useEffect(() => {
+    const delayedSearch = setTimeout(() => {
+      if (searchQuery.trim()) {
+        load(searchQuery.trim());
+      } else {
+        load();
+      }
+    }, 300);
+
+    return () => clearTimeout(delayedSearch);
+  }, [searchQuery, load]);
 
   const handleToggle = async (cls: Class) => {
     setClasses((prev) =>
@@ -157,18 +179,66 @@ export function ClassList() {
       <Card>
         <CardHeader className="flex flex-row items-center justify-between">
           <div>
-            <CardTitle>All Classes</CardTitle>
+            <CardTitle className="flex items-center gap-2">
+              All Classes
+              {classes.length > 0 && (
+                <span className="text-sm font-normal text-muted-foreground">
+                  ({classes.length})
+                </span>
+              )}
+            </CardTitle>
             <CardDescription>
-              Manage classes, fees, and teacher payout agreements.
+              Manage classes and their instructors, fees, and status.
+              {searchQuery && (
+                <span className="block text-xs mt-1 text-muted-foreground">
+                  Found {classes.length} class{classes.length === 1 ? "" : "es"}
+                </span>
+              )}
             </CardDescription>
           </div>
-          <AddClassDialog onAdded={load} />
+          <div className="flex items-center gap-2">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search classes..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-64 pl-9 pr-3"
+              />
+              {searching && (
+                <Loader2 className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 animate-spin text-muted-foreground" />
+              )}
+            </div>
+            {searchQuery && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setSearchQuery("")}
+                className="h-9 px-2 text-muted-foreground hover:text-foreground"
+                title="Clear search"
+              >
+                ×
+              </Button>
+            )}
+            <AddClassDialog onAdded={load} />
+          </div>
         </CardHeader>
         <CardContent>
           {classes.length === 0 ? (
-            <p className="text-sm text-muted-foreground text-center py-8">
-              No classes created yet.
-            </p>
+            <div className="text-center py-12 bg-muted/20 rounded-lg border border-dashed">
+              <div className="h-12 w-12 text-muted-foreground mx-auto mb-4 opacity-50 flex items-center justify-center">
+                📚
+              </div>
+              <h3 className="font-medium text-lg mb-2 text-foreground">
+                {searchQuery ? "No matching classes" : "No classes yet"}
+              </h3>
+              <p className="text-sm text-muted-foreground mb-4">
+                {searchQuery
+                  ? `No classes found matching "${searchQuery}". Try a different search term.`
+                  : "Create your first class to get started."}
+              </p>
+              {!searchQuery && <AddClassDialog onAdded={load} />}
+            </div>
           ) : (
             <Table>
               <TableHeader>

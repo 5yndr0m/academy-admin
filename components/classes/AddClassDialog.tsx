@@ -39,7 +39,9 @@ export function AddClassDialog({ onAdded }: { onAdded?: () => void }) {
   // Dropdown data
   const [teachers, setTeachers] = useState<Teacher[]>([]);
   const [subjects, setSubjects] = useState<Subject[]>([]);
+  const [teacherSubjects, setTeacherSubjects] = useState<Subject[]>([]);
   const [dataLoading, setDataLoading] = useState(false);
+  const [loadingTeacherSubjects, setLoadingTeacherSubjects] = useState(false);
 
   useEffect(() => {
     if (!open) return;
@@ -53,12 +55,38 @@ export function AddClassDialog({ onAdded }: { onAdded?: () => void }) {
       .finally(() => setDataLoading(false));
   }, [open]);
 
+  // Load teacher's subjects when teacher is selected
+  useEffect(() => {
+    if (!teacherId) {
+      setTeacherSubjects([]);
+      setSubjectId(""); // Reset subject selection
+      return;
+    }
+
+    setLoadingTeacherSubjects(true);
+    teacherService
+      .getById(teacherId)
+      .then((response) => {
+        setTeacherSubjects(response.subjects);
+        // Reset subject if it's not in teacher's subjects
+        if (subjectId && !response.subjects.some((s) => s.id === subjectId)) {
+          setSubjectId("");
+        }
+      })
+      .catch(() => {
+        setTeacherSubjects([]);
+        setSubjectId("");
+      })
+      .finally(() => setLoadingTeacherSubjects(false));
+  }, [teacherId, subjectId]);
+
   const reset = () => {
     setName("");
     setTeacherId("");
     setSubjectId("");
     setBaseFee("");
     setPayoutPercentage("");
+    setTeacherSubjects([]);
     setError(null);
   };
 
@@ -179,17 +207,36 @@ export function AddClassDialog({ onAdded }: { onAdded?: () => void }) {
                       value={subjectId}
                       onValueChange={setSubjectId}
                       required
+                      disabled={!teacherId || loadingTeacherSubjects}
                     >
                       <SelectTrigger>
-                        <SelectValue placeholder="Select subject" />
+                        <SelectValue
+                          placeholder={
+                            !teacherId
+                              ? "Select teacher first"
+                              : loadingTeacherSubjects
+                                ? "Loading subjects..."
+                                : teacherSubjects.length === 0
+                                  ? "Teacher has no subjects"
+                                  : "Select subject"
+                          }
+                        />
                       </SelectTrigger>
                       <SelectContent>
-                        {subjects.length === 0 ? (
+                        {!teacherId ? (
                           <SelectItem value="_" disabled>
-                            No subjects found
+                            Please select a teacher first
+                          </SelectItem>
+                        ) : loadingTeacherSubjects ? (
+                          <SelectItem value="_" disabled>
+                            Loading teacher's subjects...
+                          </SelectItem>
+                        ) : teacherSubjects.length === 0 ? (
+                          <SelectItem value="_" disabled>
+                            This teacher has no registered subjects
                           </SelectItem>
                         ) : (
-                          subjects.map((s) => (
+                          teacherSubjects.map((s) => (
                             <SelectItem key={s.id} value={s.id}>
                               {s.name}
                             </SelectItem>
@@ -197,6 +244,14 @@ export function AddClassDialog({ onAdded }: { onAdded?: () => void }) {
                         )}
                       </SelectContent>
                     </Select>
+                    {teacherId &&
+                      teacherSubjects.length === 0 &&
+                      !loadingTeacherSubjects && (
+                        <p className="text-xs text-muted-foreground mt-1">
+                          This teacher needs subjects assigned. Go to Teachers →
+                          Edit to add subjects.
+                        </p>
+                      )}
                   </div>
                 </div>
 
