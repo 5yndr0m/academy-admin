@@ -51,7 +51,7 @@ export function StudentList() {
   const filtered = students.filter((s) => {
     const q = search.toLowerCase();
     return (
-      s.full_name.toLowerCase().includes(q) ||
+      (s.full_name ?? (s as any).fullname ?? "").toLowerCase().includes(q) ||
       s.admission_no?.toLowerCase().includes(q) ||
       s.contact_number?.toLowerCase().includes(q) ||
       s.guardian_name?.toLowerCase().includes(q)
@@ -124,7 +124,7 @@ export function StudentList() {
                   </TableCell>
                   <TableCell>
                     <div className="font-medium text-sm">
-                      {student.full_name}
+                      {student.full_name ?? (student as any).fullname}
                     </div>
                     <div className="text-xs text-muted-foreground">
                       {student.contact_number}
