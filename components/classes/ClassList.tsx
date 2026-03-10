@@ -300,7 +300,7 @@ export function ClassList() {
                             }
                             className={
                               cls.status === "ACTIVE"
-                                ? "bg-green-100 text-green-700 text-[10px]"
+                                ? "bg-green-100 text-green-800 border-green-200 dark:bg-green-900 dark:text-green-100 dark:border-green-700 text-[10px]"
                                 : "text-[10px] text-muted-foreground"
                             }
                           >
