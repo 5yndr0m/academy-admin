@@ -167,7 +167,7 @@ export function ClassList() {
     return (
       <div className="flex flex-col items-center gap-3 p-8">
         <p className="text-sm text-destructive">{error}</p>
-        <Button variant="outline" size="sm" onClick={load}>
+        <Button variant="outline" size="sm" onClick={() => load()}>
           Retry
         </Button>
       </div>
