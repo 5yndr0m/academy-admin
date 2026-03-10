@@ -293,12 +293,11 @@ export function StaffList() {
     <Card>
       <CardHeader className="flex flex-row items-center justify-between">
         <div>
-          <CardTitle>Staff &amp; Administrators</CardTitle>
+          <CardTitle>Staff Commission Management</CardTitle>
           <CardDescription>
-            Manage system users, roles, and account access.
+            View and manage staff commission rates for financial calculations.
           </CardDescription>
         </div>
-        <AddStaffDialog onAdded={load} />
       </CardHeader>
       <CardContent>
         {error && (
@@ -310,9 +309,9 @@ export function StaffList() {
               <TableHead>Name</TableHead>
               <TableHead>Role</TableHead>
               <TableHead>Contact</TableHead>
-              <TableHead>Commission</TableHead>
+              <TableHead>Commission Rate</TableHead>
               <TableHead>Status</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
+              <TableHead className="text-right">Financial Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -322,68 +321,71 @@ export function StaffList() {
                   colSpan={6}
                   className="text-center py-8 text-muted-foreground"
                 >
-                  No staff members found.
+                  No staff commission data found.
                 </TableCell>
               </TableRow>
             ) : (
-              users.map((u) => (
-                <TableRow key={u.id}>
-                  <TableCell className="font-medium">
-                    <div>
-                      <p className="font-medium text-sm">{u.name}</p>
-                      <p className="text-xs text-muted-foreground flex items-center gap-1">
-                        <Mail className="h-3 w-3" /> {u.email}
-                      </p>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <Badge
-                      variant={u.role === "ADMIN" ? "default" : "secondary"}
-                      className="flex w-fit items-center gap-1"
-                    >
-                      <ShieldCheck className="h-3 w-3" />
-                      {u.role}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>
-                    <span className="text-xs flex items-center gap-1">
-                      <Phone className="h-3 w-3" /> {u.contact_number}
-                    </span>
-                  </TableCell>
-                  <TableCell className="text-sm">
-                    {u.commission_percentage != null ? (
-                      `${u.commission_percentage}%`
-                    ) : (
-                      <span className="text-muted-foreground">—</span>
-                    )}
-                  </TableCell>
-                  <TableCell>
-                    <Badge
-                      variant={
-                        u.status === "ACTIVE" ? "outline" : "destructive"
-                      }
-                    >
-                      {u.status === "ACTIVE" ? "Active" : "Inactive"}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      disabled={togglingId === u.id}
-                      onClick={() => handleToggle(u.id)}
-                    >
-                      {togglingId === u.id ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : u.status === "ACTIVE" ? (
-                        "Deactivate"
+              users
+                .filter(
+                  (u) => u.commission_percentage != null || u.role === "STAFF",
+                )
+                .map((u) => (
+                  <TableRow key={u.id}>
+                    <TableCell className="font-medium">
+                      <div>
+                        <p className="font-medium text-sm">{u.name}</p>
+                        <p className="text-xs text-muted-foreground flex items-center gap-1">
+                          <Mail className="h-3 w-3" /> {u.email}
+                        </p>
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <Badge
+                        variant={u.role === "ADMIN" ? "default" : "secondary"}
+                        className="flex w-fit items-center gap-1"
+                      >
+                        <ShieldCheck className="h-3 w-3" />
+                        {u.role}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                      <span className="text-xs flex items-center gap-1">
+                        <Phone className="h-3 w-3" /> {u.contact_number}
+                      </span>
+                    </TableCell>
+                    <TableCell className="text-sm">
+                      {u.commission_percentage != null ? (
+                        <Badge
+                          variant="outline"
+                          className="text-green-600 border-green-300"
+                        >
+                          {u.commission_percentage}%
+                        </Badge>
                       ) : (
-                        "Activate"
+                        <span className="text-muted-foreground">Not set</span>
                       )}
-                    </Button>
-                  </TableCell>
-                </TableRow>
-              ))
+                    </TableCell>
+                    <TableCell>
+                      <Badge
+                        variant={
+                          u.status === "ACTIVE" ? "outline" : "destructive"
+                        }
+                      >
+                        {u.status === "ACTIVE" ? "Earning" : "Inactive"}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        disabled={u.commission_percentage == null}
+                        className="text-xs"
+                      >
+                        View Earnings
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))
             )}
           </TableBody>
         </Table>

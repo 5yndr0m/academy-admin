@@ -210,15 +210,15 @@ export function StudentInvoiceTable() {
             key={label}
             className={
               color === "green"
-                ? "border-green-200 bg-green-50"
+                ? "border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-950/30"
                 : color === "amber"
-                  ? "border-amber-200 bg-amber-50"
+                  ? "border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/30"
                   : ""
             }
           >
             <CardContent className="pt-4 pb-3 text-center">
               <p
-                className={`text-2xl font-bold ${color === "green" ? "text-green-700" : color === "amber" ? "text-amber-700" : ""}`}
+                className={`text-2xl font-bold ${color === "green" ? "text-green-700 dark:text-green-300" : color === "amber" ? "text-amber-700 dark:text-amber-300" : ""}`}
               >
                 {value}
               </p>

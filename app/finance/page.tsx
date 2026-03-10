@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { ShieldAlert, Banknote, Users, Wallet, BarChart } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { StaffList } from "@/components/finance/StaffList";
+import { StaffPayoutsTable } from "@/components/finance/StaffPayoutsTable";
 import { TeacherPayoutTable } from "@/components/finance/TeacherPayoutTable";
 import { StudentInvoiceTable } from "@/components/finance/StudentInvoiceTable";
 import { MonthlyReportView } from "@/components/finance/MonthlyReportView";
@@ -25,8 +25,8 @@ export default function FinancePage() {
         <div>
           <h2 className="text-3xl font-bold tracking-tight">Financial Hub</h2>
           <p className="text-muted-foreground">
-            Staff, teacher payouts, student invoices, and monthly revenue
-            reports.
+            Staff payouts, teacher payouts, student invoices, and monthly
+            revenue reports.
           </p>
         </div>
       </div>
@@ -57,7 +57,8 @@ export default function FinancePage() {
       <div>
         <h2 className="text-3xl font-bold tracking-tight">Financial Hub</h2>
         <p className="text-muted-foreground">
-          Staff, teacher payouts, student invoices, and monthly revenue reports.
+          Staff payouts, teacher payouts, student invoices, and monthly revenue
+          reports.
         </p>
       </div>
 
@@ -68,7 +69,7 @@ export default function FinancePage() {
               value="staff"
               className="flex items-center gap-2 whitespace-nowrap"
             >
-              <Users className="h-4 w-4" /> Staff
+              <Users className="h-4 w-4" /> Staff Payouts
             </TabsTrigger>
             <TabsTrigger
               value="payouts"
@@ -92,7 +93,7 @@ export default function FinancePage() {
         </div>
 
         <TabsContent value="staff">
-          <StaffList />
+          <StaffPayoutsTable />
         </TabsContent>
         <TabsContent value="payouts">
           <TeacherPayoutTable />
