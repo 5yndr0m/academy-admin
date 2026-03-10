@@ -18,6 +18,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import {
   Student,
   Enrollment,
@@ -55,6 +58,9 @@ import {
   Clock,
   Hash,
   Receipt,
+  Edit,
+  Save,
+  X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -87,6 +93,23 @@ export function StudentDetailsModal({
   const [invoices, setInvoices] = useState<Invoice[]>([]);
   const [notifs, setNotifs] = useState<NotificationLog[]>([]);
   const [loading, setLoading] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editForm, setEditForm] = useState<{
+    fullname: string;
+    contact_number: string;
+    address: string;
+    guardian_name: string;
+    guardian_contact: string;
+    guardian_email: string;
+  }>({
+    fullname: "",
+    contact_number: "",
+    address: "",
+    guardian_name: "",
+    guardian_contact: "",
+    guardian_email: "",
+  });
+  const [saving, setSaving] = useState(false);
 
   const load = async () => {
     setLoading(true);
@@ -122,6 +145,52 @@ export function StudentDetailsModal({
       );
       onUpdate?.();
     } catch {}
+  };
+
+  const handleEdit = () => {
+    setEditForm({
+      fullname: student?.fullname || "",
+      contact_number: student?.contact_number || "",
+      address: student?.address || "",
+      guardian_name: student?.guardian_name || "",
+      guardian_contact: student?.guardian_contact || "",
+      guardian_email: student?.guardian_email || "",
+    });
+    setIsEditing(true);
+  };
+
+  const handleSave = async () => {
+    if (!student) return;
+    setSaving(true);
+    try {
+      await studentService.update(student.id, {
+        full_name: editForm.fullname,
+        address: editForm.address,
+        contact_number: editForm.contact_number,
+        guardian_name: editForm.guardian_name,
+        guardian_contact: editForm.guardian_contact,
+        guardian_email: editForm.guardian_email,
+      });
+      await load();
+      setIsEditing(false);
+      onUpdate?.();
+    } catch {
+      // Handle error
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleCancel = () => {
+    setIsEditing(false);
+    setEditForm({
+      fullname: "",
+      contact_number: "",
+      address: "",
+      guardian_name: "",
+      guardian_contact: "",
+      guardian_email: "",
+    });
   };
 
   const displayName = student?.fullname ?? "Loading...";
@@ -232,6 +301,40 @@ export function StudentDetailsModal({
                     Generate Bill
                   </Button>
                 )}
+                {role === "ADMIN" && (
+                  <div className="flex gap-2">
+                    {isEditing ? (
+                      <>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={handleCancel}
+                          disabled={saving}
+                        >
+                          <X className="mr-2 h-4 w-4" />
+                          Cancel
+                        </Button>
+                        <Button
+                          size="sm"
+                          onClick={handleSave}
+                          disabled={saving}
+                        >
+                          {saving ? (
+                            <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          ) : (
+                            <Save className="mr-2 h-4 w-4" />
+                          )}
+                          Save Changes
+                        </Button>
+                      </>
+                    ) : (
+                      <Button variant="outline" size="sm" onClick={handleEdit}>
+                        <Edit className="mr-2 h-4 w-4" />
+                        Edit Profile
+                      </Button>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
 
@@ -244,16 +347,55 @@ export function StudentDetailsModal({
                     <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
                       Student
                     </p>
-                    <ProfileRow
-                      icon={<Phone />}
-                      label="Phone"
-                      value={student.contact_number}
-                    />
-                    <ProfileRow
-                      icon={<MapPin />}
-                      label="Address"
-                      value={student.address}
-                    />
+                    {isEditing ? (
+                      <div className="space-y-3">
+                        <div>
+                          <Label htmlFor="student-phone" className="text-xs">
+                            Phone
+                          </Label>
+                          <Input
+                            id="student-phone"
+                            value={editForm.contact_number || ""}
+                            onChange={(e) =>
+                              setEditForm({
+                                ...editForm,
+                                contact_number: e.target.value,
+                              })
+                            }
+                            className="h-8 text-xs"
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="student-address" className="text-xs">
+                            Address
+                          </Label>
+                          <Textarea
+                            id="student-address"
+                            value={editForm.address || ""}
+                            onChange={(e) =>
+                              setEditForm({
+                                ...editForm,
+                                address: e.target.value,
+                              })
+                            }
+                            className="min-h-[60px] text-xs resize-none"
+                          />
+                        </div>
+                      </div>
+                    ) : (
+                      <>
+                        <ProfileRow
+                          icon={<Phone />}
+                          label="Phone"
+                          value={student.contact_number}
+                        />
+                        <ProfileRow
+                          icon={<MapPin />}
+                          label="Address"
+                          value={student.address}
+                        />
+                      </>
+                    )}
                     <ProfileRow
                       icon={<Hash />}
                       label="NIC / Birth Cert"
@@ -272,21 +414,93 @@ export function StudentDetailsModal({
                     <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
                       Guardian
                     </p>
-                    <ProfileRow
-                      icon={<User />}
-                      label="Name"
-                      value={student.guardian_name}
-                    />
-                    <ProfileRow
-                      icon={<Phone />}
-                      label="Contact"
-                      value={student.guardian_contact}
-                    />
-                    <ProfileRow
-                      icon={<Mail />}
-                      label="Email"
-                      value={student.guardian_email}
-                    />
+                    {isEditing ? (
+                      <div className="space-y-3">
+                        <div>
+                          <Label htmlFor="student-name" className="text-xs">
+                            Full Name
+                          </Label>
+                          <Input
+                            id="student-name"
+                            value={editForm.fullname || ""}
+                            onChange={(e) =>
+                              setEditForm({
+                                ...editForm,
+                                fullname: e.target.value,
+                              })
+                            }
+                            className="h-8 text-xs"
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="guardian-name" className="text-xs">
+                            Guardian Name
+                          </Label>
+                          <Input
+                            id="guardian-name"
+                            value={editForm.guardian_name || ""}
+                            onChange={(e) =>
+                              setEditForm({
+                                ...editForm,
+                                guardian_name: e.target.value,
+                              })
+                            }
+                            className="h-8 text-xs"
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="guardian-contact" className="text-xs">
+                            Guardian Contact
+                          </Label>
+                          <Input
+                            id="guardian-contact"
+                            value={editForm.guardian_contact || ""}
+                            onChange={(e) =>
+                              setEditForm({
+                                ...editForm,
+                                guardian_contact: e.target.value,
+                              })
+                            }
+                            className="h-8 text-xs"
+                          />
+                        </div>
+                        <div>
+                          <Label htmlFor="guardian-email" className="text-xs">
+                            Guardian Email
+                          </Label>
+                          <Input
+                            id="guardian-email"
+                            type="email"
+                            value={editForm.guardian_email || ""}
+                            onChange={(e) =>
+                              setEditForm({
+                                ...editForm,
+                                guardian_email: e.target.value,
+                              })
+                            }
+                            className="h-8 text-xs"
+                          />
+                        </div>
+                      </div>
+                    ) : (
+                      <>
+                        <ProfileRow
+                          icon={<User />}
+                          label="Name"
+                          value={student.guardian_name}
+                        />
+                        <ProfileRow
+                          icon={<Phone />}
+                          label="Contact"
+                          value={student.guardian_contact}
+                        />
+                        <ProfileRow
+                          icon={<Mail />}
+                          label="Email"
+                          value={student.guardian_email}
+                        />
+                      </>
+                    )}
                   </section>
 
                   <Separator />
