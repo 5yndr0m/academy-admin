@@ -1,10 +1,11 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Users, ShieldAlert, BarChart3, Settings } from "lucide-react";
+import { Users, ShieldAlert, BarChart3, BookOpen } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { StaffList } from "@/components/finance/StaffList";
 import { AttendanceInsights } from "@/components/operations/AttendanceInsights";
+import { SubjectList } from "@/components/operations/SubjectList";
 import { useAuth } from "@/components/auth/AuthProvider";
 import Link from "next/link";
 
@@ -58,7 +59,8 @@ export default function OperationsPage() {
           Institutional Operations
         </h2>
         <p className="text-muted-foreground">
-          Manage staff members and monitor classroom attendance performance.
+          Manage staff members, academic subjects, and monitor classroom
+          attendance performance.
         </p>
       </div>
 
@@ -78,10 +80,10 @@ export default function OperationsPage() {
               <BarChart3 className="h-4 w-4" /> Attendance Insights
             </TabsTrigger>
             <TabsTrigger
-              value="settings"
+              value="subjects"
               className="flex items-center gap-2 whitespace-nowrap"
             >
-              <Settings className="h-4 w-4" /> System Settings
+              <BookOpen className="h-4 w-4" /> Subjects
             </TabsTrigger>
           </TabsList>
         </div>
@@ -94,12 +96,8 @@ export default function OperationsPage() {
           <AttendanceInsights />
         </TabsContent>
 
-        <TabsContent value="settings">
-          <div className="border rounded-lg p-12 text-center bg-muted/20">
-            <p className="text-muted-foreground italic text-sm">
-              System configuration modules coming soon…
-            </p>
-          </div>
+        <TabsContent value="subjects">
+          <SubjectList />
         </TabsContent>
       </Tabs>
     </div>
