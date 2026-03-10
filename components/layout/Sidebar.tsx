@@ -12,6 +12,7 @@ import {
   Users,
   User,
   CalendarDays,
+  Clock,
   Wallet,
   Settings2,
 } from "lucide-react";
@@ -22,6 +23,7 @@ const navigation = [
   { name: "Classes", href: "/classes", icon: BookOpen },
   { name: "Teachers", href: "/teachers", icon: User },
   { name: "Students", href: "/students", icon: Users },
+  { name: "Sessions", href: "/sessions", icon: Clock },
   { name: "Attendance", href: "/attendance", icon: CalendarDays },
   { name: "Operations", href: "/operations", icon: Settings2 },
   { name: "Finance", href: "/finance", icon: Wallet },

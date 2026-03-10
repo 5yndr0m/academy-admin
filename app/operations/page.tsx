@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { Users, ShieldAlert, BarChart3, BookOpen } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { StaffList } from "@/components/finance/StaffList";
+import { StaffList } from "@/components/operations/StaffList";
 import { AttendanceInsights } from "@/components/operations/AttendanceInsights";
 import { SubjectList } from "@/components/operations/SubjectList";
 import { useAuth } from "@/components/auth/AuthProvider";
