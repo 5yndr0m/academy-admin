@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Calendar } from "@/components/ui/calendar";
 import {
   Popover,
@@ -76,21 +77,42 @@ export function AttendanceManager() {
   const [classes, setClasses] = useState<Class[]>([]);
   const [classId, setClassId] = useState("");
   const [allSessions, setAllSessions] = useState<ClassSession[]>([]);
+  const [activeSessions, setActiveSessions] = useState<ClassSession[]>([]);
   const [sessionId, setSessionId] = useState("");
   const [students, setStudents] = useState<StudentEntry[]>([]);
   const [saving, setSaving] = useState<string | null>(null);
   const [loadingInit, setLoadingInit] = useState(true);
   const [loadingSess, setLoadingSess] = useState(false);
   const [loadingRoll, setLoadingRoll] = useState(false);
+  const [loadingActive, setLoadingActive] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Load active classes once on mount
+  // Load active classes and sessions once on mount
   useEffect(() => {
-    classService
-      .getAll()
-      .then((data) => setClasses(data.filter((c) => c.status === "ACTIVE")))
-      .catch(() => setError("Failed to load classes"))
+    Promise.all([classService.getAll(), sessionService.getActive()])
+      .then(([classData, activeData]) => {
+        setClasses(classData.filter((c) => c.status === "ACTIVE"));
+        setActiveSessions(activeData);
+      })
+      .catch(() => setError("Failed to load initial data"))
       .finally(() => setLoadingInit(false));
+  }, []);
+
+  // Refresh active sessions every 30 seconds
+  useEffect(() => {
+    const interval = setInterval(async () => {
+      try {
+        setLoadingActive(true);
+        const activeData = await sessionService.getActive();
+        setActiveSessions(activeData);
+      } catch {
+        // Silent fail - don't disrupt user experience
+      } finally {
+        setLoadingActive(false);
+      }
+    }, 30000);
+
+    return () => clearInterval(interval);
   }, []);
 
   // Load sessions whenever class changes
@@ -218,6 +240,60 @@ export function AttendanceManager() {
 
   return (
     <div className="space-y-5">
+      {/* Active Sessions Quick Access */}
+      {activeSessions.length > 0 && (
+        <Card className="border-orange-200 dark:border-orange-800 bg-orange-50/50 dark:bg-orange-950/30">
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="h-2 w-2 bg-orange-500 dark:bg-orange-400 rounded-full animate-pulse" />
+                <CardTitle className="text-lg text-orange-800 dark:text-orange-200">
+                  Active Sessions
+                </CardTitle>
+                {loadingActive && (
+                  <Loader2 className="h-4 w-4 animate-spin text-orange-600 dark:text-orange-400" />
+                )}
+              </div>
+              <Badge
+                variant="secondary"
+                className="bg-orange-100 dark:bg-orange-900 text-orange-700 dark:text-orange-300"
+              >
+                {activeSessions.length} ongoing
+              </Badge>
+            </div>
+            <CardDescription className="text-orange-700 dark:text-orange-300">
+              Sessions currently in progress - click to mark attendance
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {activeSessions.map((session) => (
+                <Button
+                  key={session.id}
+                  variant="outline"
+                  className="h-auto p-4 flex flex-col items-start bg-white dark:bg-gray-950 hover:bg-orange-50 dark:hover:bg-orange-950/20 border-orange-200 dark:border-orange-800"
+                  onClick={() => {
+                    setClassId(session.class_id);
+                    setSessionId(session.id);
+                    setDate(parseISO(session.session_date));
+                  }}
+                >
+                  <div className="font-medium text-sm text-orange-800 dark:text-orange-200">
+                    {session.class?.name || "Unknown Class"}
+                  </div>
+                  <div className="text-xs text-orange-600 dark:text-orange-400 mt-1">
+                    {session.start_time} - {session.end_time}
+                  </div>
+                  <div className="text-xs text-muted-foreground">
+                    Room: {session.classroom?.name || "N/A"}
+                  </div>
+                </Button>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Controls */}
       <Card>
         <CardContent className="pt-5">
@@ -346,18 +422,21 @@ export function AttendanceManager() {
               key={label}
               className={cn(
                 "border text-center",
-                color === "green" && "border-green-200 bg-green-50",
-                color === "red" && "border-red-200 bg-red-50",
-                color === "amber" && "border-amber-200 bg-amber-50",
+                color === "green" &&
+                  "border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-950/30",
+                color === "red" &&
+                  "border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-950/30",
+                color === "amber" &&
+                  "border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/30",
               )}
             >
               <CardContent className="pt-4 pb-3">
                 <p
                   className={cn(
                     "text-3xl font-bold",
-                    color === "green" && "text-green-700",
-                    color === "red" && "text-red-700",
-                    color === "amber" && "text-amber-700",
+                    color === "green" && "text-green-700 dark:text-green-300",
+                    color === "red" && "text-red-700 dark:text-red-300",
+                    color === "amber" && "text-amber-700 dark:text-amber-300",
                   )}
                 >
                   {value}
