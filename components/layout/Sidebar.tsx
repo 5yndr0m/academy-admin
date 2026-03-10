@@ -39,7 +39,10 @@ export function Sidebar({ className }: { className?: string }) {
   return (
     <div className={cn("flex flex-col h-full", className)}>
       <div className="p-6">
-        <h1 className="text-2xl font-bold tracking-tight">Academy</h1>
+        <h1 className="text-xl font-bold tracking-tight">Nimal Senanayake</h1>
+        <p className="text-sm font-medium text-muted-foreground">
+          Academy of Performing Arts
+        </p>
         <p className="text-xs text-muted-foreground mt-1">Admin Dashboard</p>
       </div>
 

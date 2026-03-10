@@ -52,8 +52,11 @@ export default function LoginPage() {
               <LockKeyhole className="h-5 w-5 text-primary-foreground" />
             </div>
           </div>
-          <CardTitle className="text-2xl">Academy Admin</CardTitle>
-          <CardDescription>
+          <CardTitle className="text-2xl">Nimal Senanayake</CardTitle>
+          <p className="text-lg font-medium text-muted-foreground">
+            Academy of Performing Arts
+          </p>
+          <CardDescription className="mt-2">
             Enter your credentials to access the system
           </CardDescription>
         </CardHeader>

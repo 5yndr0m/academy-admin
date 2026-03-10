@@ -9,8 +9,9 @@ import { AuthProvider } from "@/components/auth/AuthProvider";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Academy Admin",
-  description: "Educational Management System",
+  title: "Nimal Senanayake Academy of Performing Arts - Admin",
+  description:
+    "Management System for Nimal Senanayake Academy of Performing Arts",
 };
 
 export default function RootLayout({
