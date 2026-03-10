@@ -27,8 +27,6 @@ import type {
   AuditLog,
 } from "@/types";
 
-// ─── Auth ─────────────────────────────────────────────────────────────────────
-
 export const authService = {
   login: (username: string, password: string) =>
     apiClient.post<{ token: string; role: string; username: string }>(
@@ -36,8 +34,6 @@ export const authService = {
       { username, password },
     ),
 };
-
-// ─── Users (Admin only) ───────────────────────────────────────────────────────
 
 export const userService = {
   getAll: () => apiClient.get<User[]>("/admin/users"),
@@ -70,15 +66,11 @@ export const userService = {
     ),
 };
 
-// ─── Subjects ─────────────────────────────────────────────────────────────────
-
 export const subjectService = {
   getAll: () => apiClient.get<Subject[]>("/subjects"),
 
   create: (name: string) => apiClient.post<Subject>("/subjects", { name }),
 };
-
-// ─── Teachers ─────────────────────────────────────────────────────────────────
 
 export const teacherService = {
   getAll: () => apiClient.get<Teacher[]>("/teachers"),
@@ -107,8 +99,6 @@ export const teacherService = {
       `/search/teachers?q=${encodeURIComponent(q)}`,
     ),
 };
-
-// ─── Classrooms ───────────────────────────────────────────────────────────────
 
 export const classroomService = {
   getAll: () => apiClient.get<Classroom[]>("/classrooms"),
@@ -143,8 +133,6 @@ export const classroomService = {
     ),
 };
 
-// ─── Classes ──────────────────────────────────────────────────────────────────
-
 export const classService = {
   getAll: () => apiClient.get<Class[]>("/classes"),
 
@@ -175,8 +163,6 @@ export const classService = {
     ),
 };
 
-// ─── Schedules ────────────────────────────────────────────────────────────────
-
 export const scheduleService = {
   // NOTE: was POST /teachers/${teacherId}/schedule → fixed to POST /schedules
   create: (data: {
@@ -194,8 +180,6 @@ export const scheduleService = {
     apiClient.get<Record<string, ClassSchedule[]>>("/schedules/weekly"),
 };
 
-// ─── Sessions ─────────────────────────────────────────────────────────────────
-
 export const sessionService = {
   create: (data: {
     class_id: string;
@@ -211,8 +195,6 @@ export const sessionService = {
 
   getToday: () => apiClient.get<ClassSession[]>("/sessions/today"),
 };
-
-// ─── Students ─────────────────────────────────────────────────────────────────
 
 export const studentService = {
   getAll: (search?: string) => {
@@ -260,8 +242,6 @@ export const studentService = {
     ),
 };
 
-// ─── Enrollments ──────────────────────────────────────────────────────────────
-
 export const enrollmentService = {
   enroll: (student_id: string, class_id: string) =>
     apiClient.post<Enrollment>("/enrollments", { student_id, class_id }),
@@ -278,21 +258,12 @@ export const enrollmentService = {
     apiClient.get<Enrollment[]>(`/enrollments/class/${classId}`),
 };
 
-// ─── Attendance ───────────────────────────────────────────────────────────────
-
 export const attendanceService = {
-  // NOTE: old markAttendance sent { studentId, subjectName, date, present } →
-  //       new shape: { session_id, student_id, status: 'PRESENT'|'ABSENT'|'LATE' }
-  mark: (
-    session_id: string,
-    student_id: string,
-    status: "PRESENT" | "ABSENT" | "LATE",
-  ) =>
-    apiClient.post<Attendance>("/attendance", {
-      session_id,
-      student_id,
-      status,
-    }),
+  mark: (data: {
+    session_id: string;
+    student_id: string;
+    status: "PRESENT" | "ABSENT" | "LATE";
+  }) => apiClient.post<Attendance>("/attendance", data),
 
   getBySession: (sessionId: string) =>
     apiClient.get<Attendance[]>(`/attendance/session/${sessionId}`),
@@ -312,8 +283,6 @@ export const attendanceService = {
     );
   },
 };
-
-// ─── Invoices ─────────────────────────────────────────────────────────────────
 
 export const invoiceService = {
   getAll: (filters?: {
@@ -358,9 +327,13 @@ export const invoiceService = {
 
   downloadPDF: (id: string) =>
     `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000/api"}/invoices/${id}/pdf`,
-};
 
-// ─── Expenses ─────────────────────────────────────────────────────────────────
+  getByStudent: (studentId: string) =>
+    apiClient.get<Invoice[]>(`/invoices?student_id=${studentId}`),
+
+  updateStatus: (id: string, status: string) =>
+    apiClient.patch<Invoice>(`/invoices/${id}/status`, { status }),
+};
 
 export const expenseService = {
   getAll: (filters?: { month?: string; category?: ExpenseCategory }) => {
@@ -380,8 +353,6 @@ export const expenseService = {
     expense_date: string; // "YYYY-MM-DD"
   }) => apiClient.post<Expense>("/expenses", data),
 };
-
-// ─── Notifications ────────────────────────────────────────────────────────────
 
 export const notificationService = {
   send: (data: {
@@ -407,12 +378,12 @@ export const notificationService = {
       `/notifications${qs ? "?" + qs : ""}`,
     );
   },
+
+  getByStudent: (studentId: string) =>
+    apiClient.get<NotificationLog[]>(`/notifications?student_id=${studentId}`),
 };
 
-// ─── Reports ──────────────────────────────────────────────────────────────────
-
 export const reportService = {
-  // NOTE: was GET /audit-logs → audit logs now come from /dashboard
   getMonthly: (month: string) =>
     apiClient.get<MonthlyReport>(`/reports/monthly?month=${month}`),
 
@@ -424,8 +395,6 @@ export const reportService = {
   downloadPDF: (month: string) =>
     `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000/api"}/reports/monthly/pdf?month=${month}`,
 };
-
-// ─── Templates ────────────────────────────────────────────────────────────────
 
 export const templateService = {
   getAll: (type?: TemplateType) => {
@@ -462,18 +431,9 @@ export const templateService = {
     ),
 };
 
-// ─── Dashboard ────────────────────────────────────────────────────────────────
-
 export const dashboardService = {
-  // NOTE: was GET /dashboard/stats and GET /dashboard/today-schedule →
-  //       both merged into single GET /dashboard
   get: () => apiClient.get<DashboardData>("/dashboard"),
 };
-
-// ─── Audit Logs ───────────────────────────────────────────────────────────────
-// NOTE: no dedicated /audit-logs endpoint — recent logs come from /dashboard
-// Full audit log list is not currently exposed by the API.
-// If needed, add GET /admin/audit-logs to the backend.
 
 export const auditService = {
   getRecent: async (): Promise<AuditLog[]> => {
