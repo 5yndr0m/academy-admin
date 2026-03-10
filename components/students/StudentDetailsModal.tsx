@@ -31,6 +31,8 @@ import {
   invoiceService,
   notificationService,
 } from "@/lib/data";
+import { EnrollStudentDialog } from "./EnrollStudentDialog";
+import { AdmissionFeeDialog } from "./AdmissionFeeDialog";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { StudentFeeHistory } from "./StudentFeeHistory";
 import { VisuallyHidden } from "@/components/ui/visually-hidden";
@@ -48,8 +50,9 @@ import {
   BadgeDollarSign,
   CheckCircle2,
   XCircle,
-  Clock,
+  Plus,
   GraduationCap,
+  Clock,
   Hash,
   Receipt,
 } from "lucide-react";
@@ -287,6 +290,40 @@ export function StudentDetailsModal({
                   </section>
 
                   <Separator />
+
+                  {/* Action Buttons */}
+                  <div className="space-y-3 p-4 bg-muted/30 rounded-lg">
+                    <h3 className="text-sm font-medium flex items-center gap-2">
+                      <Plus className="h-4 w-4" />
+                      Quick Actions
+                    </h3>
+                    <div className="flex flex-wrap gap-2">
+                      {student && (
+                        <>
+                          <EnrollStudentDialog
+                            student={student}
+                            onEnrolled={load}
+                            trigger={
+                              <Button variant="outline" size="sm">
+                                <GraduationCap className="h-4 w-4 mr-2" />
+                                Enroll in Class
+                              </Button>
+                            }
+                          />
+                          <AdmissionFeeDialog
+                            student={student}
+                            onUpdate={load}
+                            trigger={
+                              <Button variant="outline" size="sm">
+                                <CreditCard className="h-4 w-4 mr-2" />
+                                Manage Admission Fee
+                              </Button>
+                            }
+                          />
+                        </>
+                      )}
+                    </div>
+                  </div>
                 </div>
 
                 {/* RIGHT — Tabs */}
@@ -313,6 +350,23 @@ export function StudentDetailsModal({
 
                     {/* Enrollments */}
                     <TabsContent value="enrollments" className="mt-4 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <p className="text-sm text-muted-foreground">
+                          Manage student class enrollments
+                        </p>
+                        {student && (
+                          <EnrollStudentDialog
+                            student={student}
+                            onEnrolled={load}
+                            trigger={
+                              <Button variant="outline" size="sm">
+                                <Plus className="h-4 w-4 mr-1" />
+                                Add Class
+                              </Button>
+                            }
+                          />
+                        )}
+                      </div>
                       {enrollments.length === 0 ? (
                         <EmptyState
                           icon={<BookOpen />}

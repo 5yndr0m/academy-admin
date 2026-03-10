@@ -281,6 +281,16 @@ export const studentService = {
     apiClient.get<SearchResult<Student>>(
       `/search/students?q=${encodeURIComponent(q)}`,
     ),
+
+  updateAdmissionFee: (
+    id: string,
+    data: {
+      admission_fee_paid: boolean;
+      admission_fee_amount?: number;
+      payment_method?: string;
+      notes?: string;
+    },
+  ) => apiClient.patch<Student>(`/students/${id}/admission-fee`, data),
 };
 
 export const studentFeePaymentService = {
@@ -605,6 +615,15 @@ export const invoiceService = {
     total_amount: number;
     notes?: string;
   }) => apiClient.post<Invoice>("/invoices/staff-commission", data),
+
+  createAdmissionInvoice: (data: {
+    student_id: string;
+    amount: number;
+    payment_status: "PAID" | "UNPAID";
+    payment_method?: string;
+    notes?: string;
+    due_date: string;
+  }) => apiClient.post<Invoice>("/invoices/admission", data),
 
   markPaid: (id: string, paid_at?: string) =>
     apiClient.patch(`/invoices/${id}/pay`, paid_at ? { paid_at } : undefined),
