@@ -67,7 +67,10 @@ export const userService = {
 };
 
 export const subjectService = {
-  getAll: () => apiClient.get<Subject[]>("/subjects"),
+  getAll: (search?: string) => {
+    const params = search ? `?search=${encodeURIComponent(search)}` : "";
+    return apiClient.get<Subject[]>(`/subjects${params}`);
+  },
 
   create: (name: string) => apiClient.post<Subject>("/subjects", { name }),
 };
@@ -134,7 +137,10 @@ export const classroomService = {
 };
 
 export const classService = {
-  getAll: () => apiClient.get<Class[]>("/classes"),
+  getAll: (search?: string) => {
+    const params = search ? `?search=${encodeURIComponent(search)}` : "";
+    return apiClient.get<Class[]>(`/classes${params}`);
+  },
 
   getById: (id: string) => apiClient.get<Class>(`/classes/${id}`),
 
