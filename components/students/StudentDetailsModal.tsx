@@ -1,7 +1,12 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogTrigger,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -27,6 +32,8 @@ import {
   notificationService,
 } from "@/lib/data";
 import { useAuth } from "@/components/auth/AuthProvider";
+import { StudentFeeHistory } from "./StudentFeeHistory";
+import { VisuallyHidden } from "@/components/ui/visually-hidden";
 import {
   Eye,
   Loader2,
@@ -44,6 +51,7 @@ import {
   Clock,
   GraduationCap,
   Hash,
+  Receipt,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -143,6 +151,9 @@ export function StudentDetailsModal({
       </DialogTrigger>
 
       <DialogContent className="!max-w-5xl w-[95vw] max-h-[92vh] flex flex-col p-0 overflow-hidden gap-0">
+        <VisuallyHidden>
+          <DialogTitle>Student Details - {displayName}</DialogTitle>
+        </VisuallyHidden>
         {loading ? (
           <div className="flex flex-col items-center justify-center h-64 gap-3">
             <Loader2 className="h-8 w-8 animate-spin text-primary/40" />
@@ -276,39 +287,22 @@ export function StudentDetailsModal({
                   </section>
 
                   <Separator />
-
-                  <section className="space-y-3">
-                    <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
-                      Financial Snapshot
-                    </p>
-                    <SnapCard
-                      label="Total Billed"
-                      value={fmt(totalBilled)}
-                      color="slate"
-                    />
-                    <SnapCard
-                      label="Total Paid"
-                      value={fmt(totalPaid)}
-                      color="green"
-                    />
-                    <SnapCard
-                      label="Outstanding"
-                      value={fmt(totalPending)}
-                      color={totalPending > 0 ? "amber" : "green"}
-                    />
-                  </section>
                 </div>
 
                 {/* RIGHT — Tabs */}
                 <div className="p-6">
                   <Tabs defaultValue="enrollments">
-                    <TabsList className="w-full grid grid-cols-3">
+                    <TabsList className="w-full grid grid-cols-4">
                       <TabsTrigger value="enrollments" className="text-xs">
                         <GraduationCap className="mr-1.5 h-3.5 w-3.5" />
                         Classes ({enrollments.length})
                       </TabsTrigger>
-                      <TabsTrigger value="invoices" className="text-xs">
+                      <TabsTrigger value="fees" className="text-xs">
                         <CreditCard className="mr-1.5 h-3.5 w-3.5" />
+                        Fees
+                      </TabsTrigger>
+                      <TabsTrigger value="invoices" className="text-xs">
+                        <Receipt className="mr-1.5 h-3.5 w-3.5" />
                         Invoices ({invoices.length})
                       </TabsTrigger>
                       <TabsTrigger value="notifications" className="text-xs">
@@ -405,6 +399,17 @@ export function StudentDetailsModal({
                           );
                         })
                       )}
+                    </TabsContent>
+
+                    {/* Fees */}
+                    <TabsContent value="fees" className="mt-4">
+                      <StudentFeeHistory
+                        studentId={studentId}
+                        onUpdate={() => {
+                          load();
+                          onUpdate?.();
+                        }}
+                      />
                     </TabsContent>
 
                     {/* Invoices */}

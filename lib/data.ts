@@ -248,6 +248,109 @@ export const studentService = {
     ),
 };
 
+export const studentFeePaymentService = {
+  // Get complete fee history for a student
+  getStudentFeeHistory: (studentId: string) =>
+    apiClient.get<{
+      student_id: string;
+      student_name: string;
+      admission_no: string;
+      total_paid: number;
+      total_outstanding: number;
+      payments: Array<{
+        id: string;
+        student_id: string;
+        class_id: string;
+        amount: number;
+        payment_month: string;
+        paid_at: string | null;
+        payment_status: string;
+        collected_by: string | null;
+        created_by: string;
+        payment_method: string;
+        notes: string;
+        created_at: string;
+        student?: {
+          id: string;
+          admission_no: string;
+          fullname: string;
+          contact_number: string;
+        };
+        class?: {
+          id: string;
+          name: string;
+          base_monthly_fee: number;
+          teacher_name?: string;
+        };
+        collected_by_user?: {
+          id: string;
+          name: string;
+          username: string;
+        };
+      }>;
+      missed_months: Array<{
+        month: string;
+        expected_amount: number;
+        class_name: string;
+        class_id: string;
+      }>;
+    }>(`/students/${studentId}/fee-history`),
+
+  // Create new fee payment
+  createFeePayment: (data: {
+    student_id: string;
+    class_id: string;
+    amount: number;
+    payment_month: string;
+    payment_status: "PAID" | "UNPAID" | "PARTIAL" | "WAIVED";
+    payment_method?: string;
+    notes?: string;
+    collected_by?: string;
+  }) => apiClient.post("/fee-payments", data),
+
+  // Update fee payment
+  updateFeePayment: (
+    id: string,
+    data: {
+      amount?: number;
+      payment_status?: "PAID" | "UNPAID" | "PARTIAL" | "WAIVED";
+      payment_method?: string;
+      notes?: string;
+      collected_by?: string;
+    },
+  ) => apiClient.put(`/fee-payments/${id}`, data),
+
+  // Delete fee payment
+  deleteFeePayment: (id: string) => apiClient.delete(`/fee-payments/${id}`),
+
+  // Get monthly fee status for all students
+  getMonthlyFeeStatus: (month: string) =>
+    apiClient.get<{
+      month: string;
+      total_expected: number;
+      total_collected: number;
+      total_outstanding: number;
+      payment_summary: Array<{
+        student_id: string;
+        student_name: string;
+        admission_no: string;
+        expected_amount: number;
+        paid_amount: number;
+        outstanding_amount: number;
+        payment_status: string;
+        classes: Array<{
+          class_id: string;
+          class_name: string;
+          expected_amount: number;
+          paid_amount: number;
+          payment_status: string;
+          paid_at: string | null;
+          collected_by: string | null;
+        }>;
+      }>;
+    }>(`/fee-payments/monthly-status?month=${month}`),
+};
+
 export const enrollmentService = {
   enroll: (student_id: string, class_id: string) =>
     apiClient.post<Enrollment>("/enrollments", { student_id, class_id }),
