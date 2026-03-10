@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import {
   Table,
   TableBody,
@@ -22,7 +22,7 @@ import {
 import { classroomService } from "@/lib/data";
 import { Classroom } from "@/types";
 import { AddClassroomDialog } from "./AddClassroomDialog";
-import { Loader2, Pencil } from "lucide-react";
+import { Loader2, Pencil, RefreshCw } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -35,8 +35,11 @@ import { Label } from "@/components/ui/label";
 
 export function ClassroomList() {
   const [classrooms, setClassrooms] = useState<Classroom[]>([]);
+  const [availableRooms, setAvailableRooms] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshingOccupancy, setRefreshingOccupancy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
   // Edit dialog state
   const [editing, setEditing] = useState<Classroom | null>(null);
@@ -49,8 +52,12 @@ export function ClassroomList() {
     setLoading(true);
     setError(null);
     try {
-      const data = await classroomService.getAll();
-      setClassrooms(data);
+      const [allRooms, availableRoomsData] = await Promise.all([
+        classroomService.getAll(),
+        classroomService.getAvailable(),
+      ]);
+      setClassrooms(allRooms);
+      setAvailableRooms(availableRoomsData.map((room) => room.id));
     } catch (err: unknown) {
       setError(
         err instanceof Error ? err.message : "Failed to load classrooms",
@@ -60,9 +67,32 @@ export function ClassroomList() {
     }
   }, []);
 
+  const refreshOccupancy = useCallback(async () => {
+    setRefreshingOccupancy(true);
+    try {
+      const availableRoomsData = await classroomService.getAvailable();
+      setAvailableRooms(availableRoomsData.map((room) => room.id));
+    } catch (err: unknown) {
+      console.error("Failed to refresh occupancy:", err);
+    } finally {
+      setRefreshingOccupancy(false);
+    }
+  }, []);
+
   useEffect(() => {
     load();
-  }, [load]);
+
+    // Set up periodic refresh for occupancy status every 30 seconds
+    intervalRef.current = setInterval(() => {
+      refreshOccupancy();
+    }, 30000);
+
+    return () => {
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+      }
+    };
+  }, [load, refreshOccupancy]);
 
   // Toggle is_usable — optimistic update then confirm from server
   const handleToggle = async (id: string) => {
@@ -134,10 +164,26 @@ export function ClassroomList() {
           <div>
             <CardTitle>All Classrooms</CardTitle>
             <CardDescription>
-              Manage classroom availability and capacity.
+              Manage classroom availability and capacity. Occupancy updates
+              every 30s.
             </CardDescription>
           </div>
-          <AddClassroomDialog onAdded={load} />
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={refreshOccupancy}
+              disabled={refreshingOccupancy}
+            >
+              {refreshingOccupancy ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <RefreshCw className="h-4 w-4" />
+              )}
+              Refresh
+            </Button>
+            <AddClassroomDialog onAdded={load} />
+          </div>
         </CardHeader>
         <CardContent>
           {classrooms.length === 0 ? (
@@ -151,6 +197,15 @@ export function ClassroomList() {
                   <TableHead>Name</TableHead>
                   <TableHead>Capacity</TableHead>
                   <TableHead>Status</TableHead>
+                  <TableHead>
+                    Occupancy{" "}
+                    <span className="text-xs text-muted-foreground">
+                      (now)
+                      {refreshingOccupancy && (
+                        <Loader2 className="inline ml-1 h-3 w-3 animate-spin" />
+                      )}
+                    </span>
+                  </TableHead>
                   <TableHead className="text-right">Usable</TableHead>
                   <TableHead className="text-right">Edit</TableHead>
                 </TableRow>
@@ -169,12 +224,44 @@ export function ClassroomList() {
                         }
                         className={
                           classroom.is_usable
-                            ? "bg-green-100 text-green-700"
-                            : undefined
+                            ? "bg-green-100 text-green-800 border-green-200 dark:bg-green-900 dark:text-green-100 dark:border-green-700"
+                            : "bg-red-100 text-red-800 border-red-200 dark:bg-red-900 dark:text-red-200 dark:border-red-700"
+                        }
+                        title={
+                          classroom.is_usable
+                            ? "This classroom is available for scheduling"
+                            : "This classroom is under maintenance or temporarily unavailable"
                         }
                       >
                         {classroom.is_usable ? "Usable" : "Unusable"}
                       </Badge>
+                    </TableCell>
+                    <TableCell>
+                      {!classroom.is_usable ? (
+                        <span className="text-xs text-muted-foreground">—</span>
+                      ) : (
+                        <Badge
+                          variant={
+                            availableRooms.includes(classroom.id)
+                              ? "outline"
+                              : "secondary"
+                          }
+                          className={
+                            availableRooms.includes(classroom.id)
+                              ? "bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950 dark:text-blue-300 dark:border-blue-800"
+                              : "bg-amber-100 text-amber-800 border-amber-200 dark:bg-amber-900 dark:text-amber-200 dark:border-amber-700"
+                          }
+                          title={
+                            availableRooms.includes(classroom.id)
+                              ? "No active classes in this room right now"
+                              : "Currently being used for a class session"
+                          }
+                        >
+                          {availableRooms.includes(classroom.id)
+                            ? "Available"
+                            : "Occupied"}
+                        </Badge>
+                      )}
                     </TableCell>
                     <TableCell className="text-right">
                       <Switch
@@ -182,8 +269,8 @@ export function ClassroomList() {
                         onCheckedChange={() => handleToggle(classroom.id)}
                         title={
                           classroom.is_usable
-                            ? "Mark as unusable"
-                            : "Mark as usable"
+                            ? "Mark as unusable (maintenance mode)"
+                            : "Mark as usable (ready for classes)"
                         }
                       />
                     </TableCell>
@@ -192,6 +279,7 @@ export function ClassroomList() {
                         variant="ghost"
                         size="icon"
                         onClick={() => openEdit(classroom)}
+                        title="Edit classroom details"
                       >
                         <Pencil className="h-4 w-4" />
                       </Button>
