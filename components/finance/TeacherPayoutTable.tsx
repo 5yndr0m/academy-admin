@@ -235,7 +235,7 @@ export function TeacherPayoutTable() {
     }
   };
 
-  const getTeacherName = (id?: string) => {
+  const getTeacherName = (id?: string | null) => {
     if (!id) return "—";
     const t = teachers.find((t) => t.id === id);
     return t ? (t.full_name ?? (t as any).fullname) : id.slice(0, 8) + "…";
@@ -250,11 +250,11 @@ export function TeacherPayoutTable() {
   }
 
   const totalPaid = invoices
-    .filter((i) => i.status === "PAID")
-    .reduce((s, i) => s + i.amount, 0);
+    .filter((i) => i.payment_status === "PAID")
+    .reduce((s, i) => s + i.total_amount, 0);
   const totalPending = invoices
-    .filter((i) => i.status === "PENDING")
-    .reduce((s, i) => s + i.amount, 0);
+    .filter((i) => i.payment_status === "UNPAID")
+    .reduce((s, i) => s + i.total_amount, 0);
 
   return (
     <div className="space-y-4">
@@ -335,30 +335,32 @@ export function TeacherPayoutTable() {
                         <div className="h-7 w-7 rounded-full bg-primary/10 flex items-center justify-center">
                           <User className="h-3.5 w-3.5 text-primary" />
                         </div>
-                        {getTeacherName(inv.teacher_id)}
+                        {getTeacherName(inv.recipient_id)}
                       </div>
                     </TableCell>
                     <TableCell className="text-sm font-mono">
                       {inv.billing_month}
                     </TableCell>
                     <TableCell className="font-semibold text-green-700">
-                      Rs. {inv.amount.toLocaleString()}
+                      Rs. {inv.total_amount.toLocaleString()}
                     </TableCell>
                     <TableCell className="text-sm text-muted-foreground">
-                      {inv.notes || "—"}
+                      {inv.billing_month || "—"}
                     </TableCell>
                     <TableCell>
                       <Badge
                         variant={
-                          inv.status === "PAID" ? "outline" : "secondary"
+                          inv.payment_status === "PAID"
+                            ? "outline"
+                            : "secondary"
                         }
                         className={
-                          inv.status === "PAID"
+                          inv.payment_status === "PAID"
                             ? "bg-green-50 text-green-700 border-green-200"
                             : ""
                         }
                       >
-                        {inv.status === "PAID" ? (
+                        {inv.payment_status === "PAID" ? (
                           <>
                             <CheckCircle2 className="mr-1 h-3 w-3" />
                             Paid
@@ -366,13 +368,13 @@ export function TeacherPayoutTable() {
                         ) : (
                           <>
                             <Clock className="mr-1 h-3 w-3" />
-                            {inv.status}
+                            {inv.payment_status}
                           </>
                         )}
                       </Badge>
                     </TableCell>
                     <TableCell className="text-right">
-                      {inv.status === "PENDING" && (
+                      {inv.payment_status === "UNPAID" && (
                         <Button
                           variant="ghost"
                           size="sm"

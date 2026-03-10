@@ -145,7 +145,7 @@ export function AttendanceManager() {
       const raw = await attendanceService.getStudentsForSession(sid);
       // Backend returns { session, students } — extract the students array
       const list: StudentEntry[] = Array.isArray(raw)
-        ? (raw as StudentEntry[])
+        ? (raw as unknown as StudentEntry[])
         : ((raw as { students?: StudentEntry[] }).students ?? []);
       setStudents(list);
     } catch {

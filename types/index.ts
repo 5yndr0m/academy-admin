@@ -8,7 +8,7 @@ export interface LoginResponse {
 
 export interface User {
   id: string;
-  user_name: string;
+  username: string;
   name: string;
   email: string;
   role: UserRole;
@@ -94,7 +94,7 @@ export interface ClassSession {
 export interface Student {
   id: string;
   admission_no: string;
-  full_name: string;
+  fullname: string; // Backend uses 'fullname' not 'full_name'
   nic_no: string;
   gender: "M" | "F";
   date_of_birth: string; // "YYYY-MM-DD"
@@ -109,6 +109,8 @@ export interface Student {
   created_by: string;
   created_at: string;
   updated_at: string;
+  authorized_by_user?: User;
+  created_by_user?: User;
 }
 
 export type EnrollmentStatus = "ENROLLED" | "DROPPED";
@@ -118,12 +120,12 @@ export interface Enrollment {
   student_id: string;
   class_id: string;
   status: EnrollmentStatus;
-  enrolled_at: string;
-  dropped_at: string | null;
+  created_by: string;
   created_at: string;
   updated_at: string;
   student?: Student;
   class?: Class;
+  created_by_user?: User;
 }
 
 export type AttendanceStatus = "PRESENT" | "ABSENT" | "LATE";
@@ -155,29 +157,46 @@ export interface SessionWithAttendance {
   attendance_status: AttendanceStatus | "";
 }
 
+export interface StudentEntry {
+  student_id: string;
+  fullname: string;
+  admission_no: string;
+  status: AttendanceStatus | "";
+}
+
 export type InvoiceType =
   | "STUDENT_PAYMENT"
   | "TEACHER_PAYOUT"
   | "STAFF_COMMISSION";
+
+// Backend uses 'payment_status' field with these values
 export type InvoiceStatus = "PAID" | "UNPAID";
+
+export type BillingFrequency =
+  | "MONTHLY"
+  | "QUARTERLY"
+  | "ANNUALLY"
+  | "ONE_TIME";
 
 export interface Invoice {
   id: string;
   invoice_type: InvoiceType;
+  total_amount: number; // Backend field name
   billing_month: string; // "YYYY-MM"
-  total_amount: number;
-  status: InvoiceStatus;
+  payment_status: InvoiceStatus; // Backend field name
+  paid_at: string | null;
   student_id: string | null;
   class_id: string | null;
   recipient_id: string | null;
   recipient_type: string | null;
-  collected_by: string | null;
-  paid_at: string | null;
+  collected_by: string;
   created_by: string;
   created_at: string;
   updated_at: string;
   student?: Student;
   class?: Class;
+  collected_by_user?: User;
+  created_by_user?: User;
 }
 
 export type ExpenseCategory =
@@ -185,17 +204,19 @@ export type ExpenseCategory =
   | "MAINTENANCE"
   | "SALARY"
   | "SUPPLIES"
+  | "MARKETING"
   | "OTHER";
 
 export interface Expense {
   id: string;
+  category: ExpenseCategory;
   description: string;
   amount: number;
-  category: ExpenseCategory;
   expense_date: string; // "YYYY-MM-DD"
   created_by: string;
   created_at: string;
   updated_at: string;
+  created_by_user?: User;
 }
 
 export type NotificationChannel = "WHATSAPP" | "EMAIL";
@@ -205,13 +226,18 @@ export interface NotificationLog {
   id: string;
   student_id: string;
   channel: NotificationChannel;
-  recipient: string;
+  notification_type: string; // Backend field name
   message: string;
+  recipient: string;
   status: NotificationStatus;
+  sent_at: string | null;
   invoice_id: string | null;
-  sent_by: string;
-  sent_at: string;
+  sent_by: string; // Backend field name
+  created_at: string;
+  updated_at: string;
   student?: Student;
+  invoice?: Invoice;
+  sent_by_user?: User;
 }
 
 export interface MonthlyFinancialSummary {

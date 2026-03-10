@@ -22,9 +22,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { studentService } from "@/lib/data";
+import { useAuth } from "@/components/auth/AuthProvider";
 import { Plus, Loader2 } from "lucide-react";
 
 export function AddStudentDialog({ onAdded }: { onAdded?: () => void }) {
+  const { user } = useAuth();
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -78,6 +80,7 @@ export function AddStudentDialog({ onAdded }: { onAdded?: () => void }) {
         guardian_email: guardianEmail,
         admission_fee_paid: admissionFeePaid,
         registration_date: registrationDate,
+        authorized_by: user || "unknown",
       });
       setOpen(false);
       reset();

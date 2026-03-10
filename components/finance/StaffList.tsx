@@ -264,7 +264,6 @@ export function StaffList() {
         if (u.id !== id) return u;
         return {
           ...u,
-          is_active: !u.is_active,
           status: u.status === "ACTIVE" ? "INACTIVE" : "ACTIVE",
         };
       }),
@@ -361,14 +360,10 @@ export function StaffList() {
                   <TableCell>
                     <Badge
                       variant={
-                        (u.is_active ?? u.status === "ACTIVE")
-                          ? "outline"
-                          : "destructive"
+                        u.status === "ACTIVE" ? "outline" : "destructive"
                       }
                     >
-                      {(u.is_active ?? u.status === "ACTIVE")
-                        ? "Active"
-                        : "Inactive"}
+                      {u.status === "ACTIVE" ? "Active" : "Inactive"}
                     </Badge>
                   </TableCell>
                   <TableCell className="text-right">
@@ -380,7 +375,7 @@ export function StaffList() {
                     >
                       {togglingId === u.id ? (
                         <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : (u.is_active ?? u.status === "ACTIVE") ? (
+                      ) : u.status === "ACTIVE" ? (
                         "Deactivate"
                       ) : (
                         "Activate"

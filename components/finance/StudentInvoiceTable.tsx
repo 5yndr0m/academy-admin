@@ -134,14 +134,11 @@ function GenerateDialog({ onGenerated }: { onGenerated: () => void }) {
 
 const STATUS_COLORS: Record<string, string> = {
   PAID: "bg-green-50 text-green-700 border-green-200",
-  PENDING: "bg-amber-50 text-amber-700 border-amber-200",
-  OVERDUE: "bg-red-50 text-red-700 border-red-200",
-  CANCELLED: "bg-slate-50 text-slate-500 border-slate-200",
+  UNPAID: "bg-amber-50 text-amber-700 border-amber-200",
 };
 
 const StatusIcon = ({ status }: { status: string }) => {
   if (status === "PAID") return <CheckCircle2 className="mr-1 h-3 w-3" />;
-  if (status === "OVERDUE") return <AlertCircle className="mr-1 h-3 w-3" />;
   return <Clock className="mr-1 h-3 w-3" />;
 };
 
@@ -184,12 +181,12 @@ export function StudentInvoiceTable() {
     }
   };
 
-  const totalAmount = invoices.reduce((s, i) => s + i.amount, 0);
+  const totalAmount = invoices.reduce((s, i) => s + i.total_amount, 0);
   const paidAmount = invoices
-    .filter((i) => i.status === "PAID")
-    .reduce((s, i) => s + i.amount, 0);
+    .filter((i) => i.payment_status === "PAID")
+    .reduce((s, i) => s + i.total_amount, 0);
   const pendingCount = invoices.filter(
-    (i) => i.status === "PENDING" || i.status === "OVERDUE",
+    (i) => i.payment_status === "UNPAID",
   ).length;
 
   return (
@@ -301,15 +298,15 @@ export function StudentInvoiceTable() {
                         {inv.student_id?.slice(0, 8) ?? "—"}…
                       </TableCell>
                       <TableCell className="font-semibold">
-                        Rs. {inv.amount.toLocaleString()}
+                        Rs. {inv.total_amount.toLocaleString()}
                       </TableCell>
                       <TableCell>
                         <Badge
                           variant="outline"
-                          className={`text-[10px] ${STATUS_COLORS[inv.status] ?? ""}`}
+                          className={`text-[10px] ${STATUS_COLORS[inv.payment_status] ?? ""}`}
                         >
-                          <StatusIcon status={inv.status} />
-                          {inv.status}
+                          <StatusIcon status={inv.payment_status} />
+                          {inv.payment_status}
                         </Badge>
                       </TableCell>
                       <TableCell className="text-xs text-muted-foreground">
@@ -319,8 +316,7 @@ export function StudentInvoiceTable() {
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end gap-1">
-                          {inv.status === "PENDING" ||
-                          inv.status === "OVERDUE" ? (
+                          {inv.payment_status === "UNPAID" ? (
                             <Button
                               variant="ghost"
                               size="sm"

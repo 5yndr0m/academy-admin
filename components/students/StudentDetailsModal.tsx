@@ -19,6 +19,7 @@ import {
   Invoice,
   NotificationLog,
   InvoiceStatus,
+  EnrollmentStatus,
 } from "@/types";
 import {
   studentService,
@@ -112,8 +113,7 @@ export function StudentDetailsModal({
     } catch {}
   };
 
-  const displayName =
-    student?.full_name ?? (student as any)?.fullname ?? "Loading...";
+  const displayName = student?.fullname ?? "Loading...";
   const initials = displayName
     .split(" ")
     .map((w: string) => w[0])
@@ -121,13 +121,16 @@ export function StudentDetailsModal({
     .slice(0, 2)
     .toUpperCase();
 
-  const totalBilled = invoices.reduce((s, i) => s + Number(i.amount ?? 0), 0);
+  const totalBilled = invoices.reduce(
+    (s, i) => s + Number(i.total_amount ?? 0),
+    0,
+  );
   const totalPaid = invoices
-    .filter((i) => i.status === "PAID")
-    .reduce((s, i) => s + Number(i.amount ?? 0), 0);
+    .filter((i) => i.payment_status === "PAID")
+    .reduce((s, i) => s + Number(i.total_amount ?? 0), 0);
   const totalPending = invoices
-    .filter((i) => i.status === "PENDING" || i.status === "OVERDUE")
-    .reduce((s, i) => s + Number(i.amount ?? 0), 0);
+    .filter((i) => i.payment_status === "UNPAID")
+    .reduce((s, i) => s + Number(i.total_amount ?? 0), 0);
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -363,7 +366,10 @@ export function StudentDetailsModal({
                                       setEnrollments((prev) =>
                                         prev.map((e) =>
                                           e.id === enr.id
-                                            ? { ...e, status: v }
+                                            ? {
+                                                ...e,
+                                                status: v as EnrollmentStatus,
+                                              }
                                             : e,
                                         ),
                                       )
@@ -372,11 +378,9 @@ export function StudentDetailsModal({
                                     <SelectTrigger
                                       className={cn(
                                         "h-8 w-[120px] text-[11px] font-bold",
-                                        enr.status === "ACTIVE"
+                                        enr.status === "ENROLLED"
                                           ? "text-green-700 bg-green-50 border-green-200"
-                                          : enr.status === "COMPLETED"
-                                            ? "text-blue-700 bg-blue-50 border-blue-200"
-                                            : "text-amber-700 bg-amber-50 border-amber-200",
+                                          : "text-amber-700 bg-amber-50 border-amber-200",
                                       )}
                                     >
                                       <SelectValue />
@@ -420,17 +424,13 @@ export function StudentDetailsModal({
                               <div
                                 className={cn(
                                   "h-10 w-10 rounded-lg flex items-center justify-center flex-shrink-0",
-                                  inv.status === "PAID"
+                                  inv.payment_status === "PAID"
                                     ? "bg-green-100"
-                                    : inv.status === "OVERDUE"
-                                      ? "bg-red-100"
-                                      : "bg-amber-100",
+                                    : "bg-amber-100",
                                 )}
                               >
-                                {inv.status === "PAID" ? (
+                                {inv.payment_status === "PAID" ? (
                                   <CheckCircle2 className="h-5 w-5 text-green-600" />
-                                ) : inv.status === "OVERDUE" ? (
-                                  <XCircle className="h-5 w-5 text-red-600" />
                                 ) : (
                                   <Clock className="h-5 w-5 text-amber-600" />
                                 )}
@@ -446,21 +446,19 @@ export function StudentDetailsModal({
                                   >
                                     {inv.invoice_type}
                                   </Badge>
-                                  {inv.due_date && (
-                                    <span className="text-[10px] text-muted-foreground">
-                                      Due {fmtDate(inv.due_date)}
-                                    </span>
-                                  )}
+                                  <p className="text-[10px] text-muted-foreground">
+                                    {inv.billing_month}
+                                  </p>
                                 </div>
                               </div>
                             </div>
                             <div className="flex items-center gap-4 flex-shrink-0">
                               <p className="font-mono font-bold text-base">
-                                {fmt(inv.amount)}
+                                {fmt(inv.total_amount)}
                               </p>
                               {role === "ADMIN" ? (
                                 <Select
-                                  value={inv.status}
+                                  value={inv.payment_status}
                                   onValueChange={(v) =>
                                     handleInvoiceStatus(inv.id, v)
                                   }
@@ -468,11 +466,9 @@ export function StudentDetailsModal({
                                   <SelectTrigger
                                     className={cn(
                                       "h-8 w-[120px] text-[11px] font-bold",
-                                      inv.status === "PAID"
+                                      inv.payment_status === "PAID"
                                         ? "text-green-700 bg-green-50 border-green-200"
-                                        : inv.status === "OVERDUE"
-                                          ? "text-red-700 bg-red-50 border-red-200"
-                                          : "text-amber-700 bg-amber-50 border-amber-200",
+                                        : "text-amber-700 bg-amber-50 border-amber-200",
                                     )}
                                   >
                                     <SelectValue />
@@ -491,7 +487,7 @@ export function StudentDetailsModal({
                                   </SelectContent>
                                 </Select>
                               ) : (
-                                <StatusBadge status={inv.status} />
+                                <StatusBadge status={inv.payment_status} />
                               )}
                             </div>
                           </div>
@@ -521,9 +517,7 @@ export function StudentDetailsModal({
                                   "h-9 w-9 rounded-lg flex items-center justify-center flex-shrink-0 mt-0.5",
                                   n.channel === "WHATSAPP"
                                     ? "bg-green-100"
-                                    : n.channel === "SMS"
-                                      ? "bg-blue-100"
-                                      : "bg-purple-100",
+                                    : "bg-purple-100",
                                 )}
                               >
                                 <MessageSquare
@@ -531,9 +525,7 @@ export function StudentDetailsModal({
                                     "h-4 w-4",
                                     n.channel === "WHATSAPP"
                                       ? "text-green-600"
-                                      : n.channel === "SMS"
-                                        ? "text-blue-600"
-                                        : "text-purple-600",
+                                      : "text-purple-600",
                                   )}
                                 />
                               </div>
@@ -545,15 +537,13 @@ export function StudentDetailsModal({
                                       "text-[9px] h-4 uppercase font-bold",
                                       n.channel === "WHATSAPP"
                                         ? "bg-green-50 text-green-700 border-green-200"
-                                        : n.channel === "SMS"
-                                          ? "bg-blue-50 text-blue-700 border-blue-200"
-                                          : "bg-purple-50 text-purple-700 border-purple-200",
+                                        : "bg-purple-50 text-purple-700 border-purple-200",
                                     )}
                                   >
                                     {n.channel}
                                   </Badge>
                                   <span className="text-sm font-semibold">
-                                    {n.message_type}
+                                    {n.notification_type}
                                   </span>
                                 </div>
                                 <p className="text-xs text-muted-foreground mt-1">
@@ -563,7 +553,7 @@ export function StudentDetailsModal({
                             </div>
                             <div className="flex flex-col items-end gap-1.5 flex-shrink-0">
                               <span className="text-[10px] text-muted-foreground">
-                                {fmtDate(n.sent_at ?? n.created_at)}
+                                {fmtDate(n.sent_at || n.created_at)}
                               </span>
                               <Badge
                                 variant="outline"
