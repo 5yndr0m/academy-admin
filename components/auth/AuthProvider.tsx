@@ -6,25 +6,40 @@ import { UserRole } from "@/types";
 
 interface AuthContextType {
   user: string | null;
+  userId: string | null;
   role: UserRole | null;
-  login: (data: { token: string; username: string; role: UserRole }) => void;
+  login: (data: {
+    token: string;
+    username: string;
+    role: UserRole;
+    user_id: string;
+  }) => void;
   logout: () => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 // Read localStorage once at init — avoids setState inside useEffect
-function getStoredAuth(): { user: string | null; role: UserRole | null } {
-  if (typeof window === "undefined") return { user: null, role: null };
+function getStoredAuth(): {
+  user: string | null;
+  userId: string | null;
+  role: UserRole | null;
+} {
+  if (typeof window === "undefined")
+    return { user: null, userId: null, role: null };
   const user = localStorage.getItem("academy_user");
+  const userId = localStorage.getItem("academy_user_id");
   const role = localStorage.getItem("academy_role") as UserRole | null;
   const token = localStorage.getItem("auth_token");
-  if (user && role && token) return { user, role };
-  return { user: null, role: null };
+  if (user && userId && role && token) return { user, userId, role };
+  return { user: null, userId: null, role: null };
 }
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<string | null>(() => getStoredAuth().user);
+  const [userId, setUserId] = useState<string | null>(
+    () => getStoredAuth().userId,
+  );
   const [role, setRole] = useState<UserRole | null>(() => getStoredAuth().role);
 
   const router = useRouter();
@@ -37,11 +52,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [user, pathname, router]);
 
-  const login = (data: { token: string; username: string; role: UserRole }) => {
+  const login = (data: {
+    token: string;
+    username: string;
+    role: UserRole;
+    user_id: string;
+  }) => {
     localStorage.setItem("auth_token", data.token);
     localStorage.setItem("academy_user", data.username);
+    localStorage.setItem("academy_user_id", data.user_id);
     localStorage.setItem("academy_role", data.role);
     setUser(data.username);
+    setUserId(data.user_id);
     setRole(data.role);
     router.push("/");
   };
@@ -49,14 +71,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const logout = () => {
     localStorage.removeItem("auth_token");
     localStorage.removeItem("academy_user");
+    localStorage.removeItem("academy_user_id");
     localStorage.removeItem("academy_role");
     setUser(null);
+    setUserId(null);
     setRole(null);
     router.push("/login");
   };
 
   return (
-    <AuthContext.Provider value={{ user, role, login, logout }}>
+    <AuthContext.Provider value={{ user, userId, role, login, logout }}>
       {children}
     </AuthContext.Provider>
   );

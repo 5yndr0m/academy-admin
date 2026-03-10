@@ -1,10 +1,29 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Loader2, Plus, Calendar, DollarSign, User, AlertCircle, CheckCircle2, Clock, Receipt, FileText } from "lucide-react";
+import {
+  Loader2,
+  Plus,
+  Calendar,
+  DollarSign,
+  User,
+  AlertCircle,
+  CheckCircle2,
+  Clock,
+  Receipt,
+  FileText,
+} from "lucide-react";
+import { AddPaymentDialog } from "./AddPaymentDialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { studentFeePaymentService } from "@/lib/data";
@@ -116,7 +135,10 @@ const getPaymentStatusBadge = (status: string) => {
   }
 };
 
-export function StudentFeeHistory({ studentId, onUpdate }: StudentFeeHistoryProps) {
+export function StudentFeeHistory({
+  studentId,
+  onUpdate,
+}: StudentFeeHistoryProps) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [data, setData] = useState<FeeHistoryData | null>(null);
@@ -125,10 +147,13 @@ export function StudentFeeHistory({ studentId, onUpdate }: StudentFeeHistoryProp
     setLoading(true);
     setError(null);
     try {
-      const response = await studentFeePaymentService.getStudentFeeHistory(studentId);
+      const response =
+        await studentFeePaymentService.getStudentFeeHistory(studentId);
       setData(response);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Failed to load fee history");
+      setError(
+        err instanceof Error ? err.message : "Failed to load fee history",
+      );
     } finally {
       setLoading(false);
     }
@@ -176,7 +201,9 @@ export function StudentFeeHistory({ studentId, onUpdate }: StudentFeeHistoryProp
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Total Paid</p>
+                <p className="text-sm font-medium text-muted-foreground">
+                  Total Paid
+                </p>
                 <p className="text-2xl font-bold text-green-700 dark:text-green-400">
                   {fmt(data.total_paid)}
                 </p>
@@ -192,20 +219,26 @@ export function StudentFeeHistory({ studentId, onUpdate }: StudentFeeHistoryProp
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Outstanding</p>
-                <p className={`text-2xl font-bold ${
-                  data.total_outstanding > 0
-                    ? "text-amber-700 dark:text-amber-400"
-                    : "text-green-700 dark:text-green-400"
-                }`}>
+                <p className="text-sm font-medium text-muted-foreground">
+                  Outstanding
+                </p>
+                <p
+                  className={`text-2xl font-bold ${
+                    data.total_outstanding > 0
+                      ? "text-amber-700 dark:text-amber-400"
+                      : "text-green-700 dark:text-green-400"
+                  }`}
+                >
                   {fmt(data.total_outstanding)}
                 </p>
               </div>
-              <div className={`h-12 w-12 rounded-lg flex items-center justify-center ${
-                data.total_outstanding > 0
-                  ? "bg-amber-100 dark:bg-amber-900/20"
-                  : "bg-green-100 dark:bg-green-900/20"
-              }`}>
+              <div
+                className={`h-12 w-12 rounded-lg flex items-center justify-center ${
+                  data.total_outstanding > 0
+                    ? "bg-amber-100 dark:bg-amber-900/20"
+                    : "bg-green-100 dark:bg-green-900/20"
+                }`}
+              >
                 {data.total_outstanding > 0 ? (
                   <AlertCircle className="h-6 w-6 text-amber-600 dark:text-amber-400" />
                 ) : (
@@ -220,7 +253,9 @@ export function StudentFeeHistory({ studentId, onUpdate }: StudentFeeHistoryProp
           <CardContent className="p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-muted-foreground">Missed Months</p>
+                <p className="text-sm font-medium text-muted-foreground">
+                  Missed Months
+                </p>
                 <p className="text-2xl font-bold text-red-700 dark:text-red-400">
                   {data.missed_months.length}
                 </p>
@@ -247,10 +282,10 @@ export function StudentFeeHistory({ studentId, onUpdate }: StudentFeeHistoryProp
         <TabsContent value="payments" className="space-y-4">
           <div className="flex items-center justify-between">
             <h3 className="text-lg font-semibold">Payment Records</h3>
-            <Button size="sm">
-              <Plus className="h-4 w-4 mr-2" />
-              Add Payment
-            </Button>
+            <AddPaymentDialog
+              studentId={studentId}
+              onPaymentAdded={loadFeeHistory}
+            />
           </div>
 
           {data.payments.length === 0 ? (
@@ -258,7 +293,9 @@ export function StudentFeeHistory({ studentId, onUpdate }: StudentFeeHistoryProp
               <CardContent className="py-12">
                 <div className="text-center">
                   <Receipt className="h-12 w-12 mx-auto mb-4 text-muted-foreground opacity-50" />
-                  <p className="text-muted-foreground">No payments recorded yet</p>
+                  <p className="text-muted-foreground">
+                    No payments recorded yet
+                  </p>
                 </div>
               </CardContent>
             </Card>
@@ -285,7 +322,9 @@ export function StudentFeeHistory({ studentId, onUpdate }: StudentFeeHistoryProp
                         </TableCell>
                         <TableCell>
                           <div>
-                            <p className="font-medium text-sm">{payment.class?.name}</p>
+                            <p className="font-medium text-sm">
+                              {payment.class?.name}
+                            </p>
                             <p className="text-xs text-muted-foreground">
                               {payment.class?.teacher_name}
                             </p>
@@ -322,10 +361,21 @@ export function StudentFeeHistory({ studentId, onUpdate }: StudentFeeHistoryProp
         <TabsContent value="missed" className="space-y-4">
           <div className="flex items-center justify-between">
             <h3 className="text-lg font-semibold">Missed Payments</h3>
-            <Button size="sm" variant="destructive">
-              <AlertCircle className="h-4 w-4 mr-2" />
-              Mark as Paid
-            </Button>
+            {data.missed_months.length > 0 && (
+              <AddPaymentDialog
+                studentId={studentId}
+                defaultMonth={data.missed_months[0]?.month}
+                defaultClassId={data.missed_months[0]?.class_id}
+                defaultAmount={data.missed_months[0]?.expected_amount}
+                onPaymentAdded={loadFeeHistory}
+                trigger={
+                  <Button size="sm" variant="destructive">
+                    <AlertCircle className="h-4 w-4 mr-2" />
+                    Record First Missing
+                  </Button>
+                }
+              />
+            )}
           </div>
 
           {data.missed_months.length === 0 ? (
@@ -368,9 +418,18 @@ export function StudentFeeHistory({ studentId, onUpdate }: StudentFeeHistoryProp
                           {fmt(missed.expected_amount)}
                         </TableCell>
                         <TableCell className="text-right">
-                          <Button size="sm" variant="outline">
-                            Record Payment
-                          </Button>
+                          <AddPaymentDialog
+                            studentId={studentId}
+                            defaultMonth={missed.month}
+                            defaultClassId={missed.class_id}
+                            defaultAmount={missed.expected_amount}
+                            onPaymentAdded={loadFeeHistory}
+                            trigger={
+                              <Button size="sm" variant="outline">
+                                Record Payment
+                              </Button>
+                            }
+                          />
                         </TableCell>
                       </TableRow>
                     ))}

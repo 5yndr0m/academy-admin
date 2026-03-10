@@ -4,6 +4,7 @@ export interface LoginResponse {
   token: string;
   role: UserRole;
   username: string; // added to backend LoginResponse DTO
+  user_id: string;
 }
 
 export interface User {
@@ -81,6 +82,9 @@ export interface ClassSession {
   session_date: string; // "YYYY-MM-DD"
   start_time: string; // "HH:mm"
   end_time: string; // "HH:mm"
+  status: "SCHEDULED" | "ACTIVE" | "COMPLETED" | "CANCELLED";
+  actual_start: string | null; // ISO timestamp
+  actual_end: string | null; // ISO timestamp
   class_id: string;
   classroom_id: string;
   schedule_id: string | null;
@@ -89,6 +93,8 @@ export interface ClassSession {
   updated_at: string;
   class?: Class;
   classroom?: Classroom;
+  schedule?: ClassSchedule;
+  created_by_user?: User;
 }
 
 export interface Student {
@@ -321,4 +327,73 @@ export interface AuditLog {
 export interface SearchResult<T> {
   results: T[];
   count: number;
+}
+
+// Financial Service Types
+export interface TeacherPayment {
+  id: string;
+  teacher_id: string;
+  payment_month: string;
+  total_sessions: number;
+  total_amount: number;
+  actual_paid_amount: number;
+  payment_status: "PENDING" | "PAID" | "PARTIAL" | "CANCELLED";
+  payment_method: string;
+  paid_at: string | null;
+  processed_by: string | null;
+  notes: string;
+  created_by: string;
+  created_at: string;
+  updated_at: string;
+  teacher?: Teacher;
+  processed_by_user?: User;
+  created_by_user?: User;
+}
+
+export interface StaffCommission {
+  id: string;
+  staff_id: string;
+  commission_month: string;
+  base_revenue: number;
+  commission_percentage: number;
+  calculated_amount: number;
+  actual_paid_amount: number;
+  payment_status: "PENDING" | "PAID" | "PARTIAL" | "CANCELLED";
+  payment_method: string;
+  paid_at: string | null;
+  processed_by: string | null;
+  notes: string;
+  created_by: string;
+  created_at: string;
+  updated_at: string;
+  staff?: User;
+  processed_by_user?: User;
+  created_by_user?: User;
+}
+
+export interface StaffPayment {
+  id: string;
+  staff_id: string;
+  amount: number;
+  payment_month: string;
+  base_revenue: number;
+  commission_percentage: number;
+  calculated_amount: number;
+  payment_status: "UNPAID" | "PAID" | "PARTIAL" | "WAIVED";
+  paid_at: string | null;
+  payment_method: string;
+  notes: string;
+  invoice_id: string | null;
+  student_count: number;
+  total_student_fees: number;
+  total_teacher_payouts: number;
+  net_revenue: number;
+  processed_by: string | null;
+  created_by: string;
+  created_at: string;
+  updated_at: string;
+  staff?: User;
+  processed_by_user?: User;
+  created_by_user?: User;
+  invoice?: Invoice;
 }

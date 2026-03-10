@@ -37,7 +37,7 @@ import {
 } from "lucide-react";
 
 export function AddStudentDialog({ onAdded }: { onAdded?: () => void }) {
-  const { user } = useAuth();
+  const { userId } = useAuth();
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -77,6 +77,13 @@ export function AddStudentDialog({ onAdded }: { onAdded?: () => void }) {
     e.preventDefault();
     setLoading(true);
     setError(null);
+
+    if (!userId) {
+      setError("User authentication error. Please log in again.");
+      setLoading(false);
+      return;
+    }
+
     try {
       await studentService.create({
         admission_no: admissionNo,
@@ -91,7 +98,7 @@ export function AddStudentDialog({ onAdded }: { onAdded?: () => void }) {
         guardian_email: guardianEmail,
         admission_fee_paid: admissionFeePaid,
         registration_date: registrationDate,
-        authorized_by: user || "unknown",
+        authorized_by: userId,
       });
       setOpen(false);
       reset();

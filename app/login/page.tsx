@@ -35,6 +35,7 @@ export default function LoginPage() {
         token: response.token,
         username: response.username,
         role: response.role as UserRole,
+        user_id: response.user_id,
       });
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : "Invalid credentials");

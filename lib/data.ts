@@ -29,10 +29,12 @@ import type {
 
 export const authService = {
   login: (username: string, password: string) =>
-    apiClient.post<{ token: string; role: string; username: string }>(
-      "/auth/login",
-      { username, password },
-    ),
+    apiClient.post<{
+      token: string;
+      role: string;
+      username: string;
+      user_id: string;
+    }>("/auth/login", { username, password }),
 };
 
 export const userService = {
@@ -200,6 +202,39 @@ export const sessionService = {
     apiClient.get<ClassSession[]>(`/sessions/class/${classId}`),
 
   getToday: () => apiClient.get<ClassSession[]>("/sessions/today"),
+
+  getActive: () => apiClient.get<ClassSession[]>("/sessions/active"),
+
+  getRoomStatus: (roomId: string) =>
+    apiClient.get<{
+      room_id: string;
+      room_name: string;
+      is_occupied: boolean;
+      current_session: ClassSession | null;
+      next_session: ClassSession | null;
+    }>(`/sessions/room/${roomId}/status`),
+
+  generate: (data: {
+    start_date: string; // "YYYY-MM-DD"
+    end_date: string; // "YYYY-MM-DD"
+  }) =>
+    apiClient.post<{ message: string; sessions_created: number }>(
+      "/sessions/generate",
+      data,
+    ),
+
+  start: (sessionId: string) =>
+    apiClient.patch<{ message: string; session: ClassSession }>(
+      `/sessions/${sessionId}/start`,
+    ),
+
+  end: (sessionId: string) =>
+    apiClient.patch<{ message: string; session: ClassSession }>(
+      `/sessions/${sessionId}/end`,
+    ),
+
+  cancel: (sessionId: string) =>
+    apiClient.delete<{ message: string }>(`/sessions/${sessionId}/cancel`),
 };
 
 export const studentService = {
@@ -360,11 +395,46 @@ export const enrollmentService = {
       `/enrollments/${enrollmentId}/drop`,
     ),
 
+  reactivate: (enrollmentId: string) =>
+    apiClient.patch<{ message: string; id: string }>(
+      `/enrollments/${enrollmentId}/reactivate`,
+    ),
+
+  complete: (enrollmentId: string) =>
+    apiClient.patch<{ message: string; id: string }>(
+      `/enrollments/${enrollmentId}/complete`,
+    ),
+
+  bulkComplete: (enrollment_ids: string[]) =>
+    apiClient.patch<{ message: string; updated: number }>(
+      "/enrollments/bulk/complete",
+      { enrollment_ids },
+    ),
+
   getByStudent: (studentId: string) =>
     apiClient.get<Enrollment[]>(`/enrollments/student/${studentId}`),
 
   getByClass: (classId: string) =>
     apiClient.get<Enrollment[]>(`/enrollments/class/${classId}`),
+
+  getGradeTransitionCandidates: (monthsEnrolled?: number, classId?: string) => {
+    const params = new URLSearchParams();
+    if (monthsEnrolled) params.set("months_enrolled", String(monthsEnrolled));
+    if (classId) params.set("class_id", classId);
+    const qs = params.toString();
+    return apiClient.get<
+      Array<{
+        enrollment_id: string;
+        student_id: string;
+        student_name: string;
+        admission_no: string;
+        class_id: string;
+        class_name: string;
+        enrollment_date: string;
+        months_enrolled: number;
+      }>
+    >(`/enrollments/grade-transition-candidates${qs ? "?" + qs : ""}`);
+  },
 };
 
 export const attendanceService = {
@@ -373,6 +443,18 @@ export const attendanceService = {
     student_id: string;
     status: "PRESENT" | "ABSENT" | "LATE";
   }) => apiClient.post<Attendance>("/attendance", data),
+
+  markBulk: (data: {
+    session_id: string;
+    attendance: Array<{
+      student_id: string;
+      status: "PRESENT" | "ABSENT" | "LATE";
+    }>;
+  }) =>
+    apiClient.post<{ message: string; processed: number }>(
+      "/attendance/bulk",
+      data,
+    ),
 
   getBySession: (sessionId: string) =>
     apiClient.get<Attendance[]>(`/attendance/session/${sessionId}`),
@@ -390,6 +472,99 @@ export const attendanceService = {
     return apiClient.get<AttendanceSummary>(
       `/attendance/student/${studentId}${qs ? "?" + qs : ""}`,
     );
+  },
+
+  getTodayClasses: () =>
+    apiClient.get<
+      Array<{
+        class_id: string;
+        class_name: string;
+        teacher_name: string;
+        room_name: string;
+        start_time: string;
+        end_time: string;
+        status: string;
+        enrolled_students: number;
+        attendance_marked: number;
+        completion_rate: number;
+      }>
+    >("/attendance/today/classes"),
+
+  getWeeklyForClass: (classId: string, weekStart?: string) => {
+    const params = new URLSearchParams();
+    if (weekStart) params.set("week_start", weekStart);
+    const qs = params.toString();
+    return apiClient.get<
+      Array<{
+        student_id: string;
+        student_name: string;
+        admission_no: string;
+        total_sessions: number;
+        present_count: number;
+        absent_count: number;
+        late_count: number;
+        attendance_rate: number;
+        status: string;
+      }>
+    >(`/attendance/weekly/class/${classId}${qs ? "?" + qs : ""}`);
+  },
+
+  getWeeklyForStudent: (studentId: string, weekStart?: string) => {
+    const params = new URLSearchParams();
+    if (weekStart) params.set("week_start", weekStart);
+    const qs = params.toString();
+    return apiClient.get<
+      Array<{
+        class_id: string;
+        class_name: string;
+        total_sessions: number;
+        present_count: number;
+        absent_count: number;
+        late_count: number;
+        attendance_rate: number;
+        status: string;
+      }>
+    >(`/attendance/weekly/student/${studentId}${qs ? "?" + qs : ""}`);
+  },
+
+  getClassOverview: (classId: string, fromDate?: string, toDate?: string) => {
+    const params = new URLSearchParams();
+    if (fromDate) params.set("from_date", fromDate);
+    if (toDate) params.set("to_date", toDate);
+    const qs = params.toString();
+    return apiClient.get<{
+      class_id: string;
+      class_name: string;
+      total_students: number;
+      total_sessions: number;
+      average_attendance: number;
+      excellent_students: number;
+      good_students: number;
+      poor_students: number;
+      critical_students: number;
+    }>(`/attendance/overview/class/${classId}${qs ? "?" + qs : ""}`);
+  },
+
+  getStudentOverall: (
+    studentId: string,
+    fromDate?: string,
+    toDate?: string,
+  ) => {
+    const params = new URLSearchParams();
+    if (fromDate) params.set("from_date", fromDate);
+    if (toDate) params.set("to_date", toDate);
+    const qs = params.toString();
+    return apiClient.get<{
+      student_id: string;
+      student_name: string;
+      total_classes: number;
+      total_sessions: number;
+      total_present: number;
+      total_absent: number;
+      total_late: number;
+      overall_attendance: number;
+      status: string;
+    }>(`/attendance/overview/student/${studentId}${qs ? "?" + qs : ""}`);
   },
 };
 
@@ -434,11 +609,72 @@ export const invoiceService = {
   markPaid: (id: string, paid_at?: string) =>
     apiClient.patch(`/invoices/${id}/pay`, paid_at ? { paid_at } : undefined),
 
+  update: (
+    id: string,
+    data: {
+      total_amount?: number;
+      due_date?: string;
+      notes?: string;
+    },
+  ) => apiClient.put<Invoice>(`/invoices/${id}`, data),
+
   downloadPDF: (id: string) =>
     `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000/api"}/invoices/${id}/pdf`,
 
   getByStudent: (studentId: string) =>
     apiClient.get<Invoice[]>(`/invoices?student_id=${studentId}`),
+
+  getDashboard: (filters?: {
+    type?: InvoiceType;
+    status?: InvoiceStatus;
+    month?: string;
+  }) => {
+    const params = new URLSearchParams();
+    if (filters?.type) params.set("type", filters.type);
+    if (filters?.status) params.set("status", filters.status);
+    if (filters?.month) params.set("month", filters.month);
+    const qs = params.toString();
+    return apiClient.get<{
+      total_invoices: number;
+      total_amount: number;
+      paid_amount: number;
+      pending_amount: number;
+      overdue_amount: number;
+      collection_rate: number;
+      invoices: Invoice[];
+    }>(`/invoices/dashboard${qs ? "?" + qs : ""}`);
+  },
+
+  getOverdue: () => apiClient.get<Invoice[]>("/invoices/overdue"),
+
+  getPendingDelivery: () =>
+    apiClient.get<Invoice[]>("/invoices/pending-delivery"),
+
+  send: (data: {
+    invoice_ids: string[];
+    delivery_method: "EMAIL" | "WHATSAPP";
+    message?: string;
+  }) =>
+    apiClient.post<{ message: string; sent: number; failed: number }>(
+      "/invoices/send",
+      data,
+    ),
+
+  generatePDFs: (invoice_ids: string[]) =>
+    apiClient.post<{ message: string; generated: number }>(
+      "/invoices/generate-pdf",
+      { invoice_ids },
+    ),
+
+  bulkAction: (data: {
+    action: "PAY" | "SEND" | "GENERATE_PDF" | "DELETE";
+    invoice_ids: string[];
+    params?: Record<string, any>;
+  }) =>
+    apiClient.post<{ message: string; processed: number }>(
+      "/invoices/bulk-action",
+      data,
+    ),
 
   updateStatus: (id: string, status: string) =>
     apiClient.patch<Invoice>(`/invoices/${id}/status`, { status }),
@@ -490,6 +726,228 @@ export const notificationService = {
 
   getByStudent: (studentId: string) =>
     apiClient.get<NotificationLog[]>(`/notifications?student_id=${studentId}`),
+};
+
+export const teacherPaymentService = {
+  getDashboard: (filters?: {
+    teacher_id?: string;
+    month?: string;
+    status?: string;
+  }) => {
+    const params = new URLSearchParams();
+    if (filters?.teacher_id) params.set("teacher_id", filters.teacher_id);
+    if (filters?.month) params.set("month", filters.month);
+    if (filters?.status) params.set("status", filters.status);
+    const qs = params.toString();
+    return apiClient.get(`/teacher-payments/dashboard${qs ? "?" + qs : ""}`);
+  },
+
+  getPending: () => apiClient.get("/teacher-payments/pending"),
+
+  getMonthlyStats: (month?: string) => {
+    const params = new URLSearchParams();
+    if (month) params.set("month", month);
+    const qs = params.toString();
+    return apiClient.get(
+      `/teacher-payments/monthly-stats${qs ? "?" + qs : ""}`,
+    );
+  },
+
+  getTeacherSummary: (teacherId: string, month?: string) => {
+    const params = new URLSearchParams();
+    if (month) params.set("month", month);
+    const qs = params.toString();
+    return apiClient.get(
+      `/teacher-payments/teacher/${teacherId}/summary${qs ? "?" + qs : ""}`,
+    );
+  },
+
+  getTeacherHistory: (teacherId: string) =>
+    apiClient.get(`/teacher-payments/teacher/${teacherId}/history`),
+
+  getTeacherEarnings: (
+    teacherId: string,
+    fromDate?: string,
+    toDate?: string,
+  ) => {
+    const params = new URLSearchParams();
+    if (fromDate) params.set("from_date", fromDate);
+    if (toDate) params.set("to_date", toDate);
+    const qs = params.toString();
+    return apiClient.get(
+      `/teacher-payments/teacher/${teacherId}/earnings${qs ? "?" + qs : ""}`,
+    );
+  },
+
+  calculate: (month: string) =>
+    apiClient.post("/teacher-payments/calculate", { month }),
+
+  process: (data: {
+    teacher_id: string;
+    payment_month: string;
+    actual_amount: number;
+    payment_method: string;
+    notes?: string;
+  }) => apiClient.post("/teacher-payments/process", data),
+
+  cancel: (paymentId: string) =>
+    apiClient.patch(`/teacher-payments/${paymentId}/cancel`),
+};
+
+export const staffCommissionService = {
+  getDashboard: (filters?: {
+    staff_id?: string;
+    month?: string;
+    status?: string;
+  }) => {
+    const params = new URLSearchParams();
+    if (filters?.staff_id) params.set("staff_id", filters.staff_id);
+    if (filters?.month) params.set("month", filters.month);
+    if (filters?.status) params.set("status", filters.status);
+    const qs = params.toString();
+    return apiClient.get(`/staff-commissions/dashboard${qs ? "?" + qs : ""}`);
+  },
+
+  getPending: () => apiClient.get("/staff-commissions/pending"),
+
+  getMonthlyStats: (month?: string) => {
+    const params = new URLSearchParams();
+    if (month) params.set("month", month);
+    const qs = params.toString();
+    return apiClient.get(
+      `/staff-commissions/monthly-stats${qs ? "?" + qs : ""}`,
+    );
+  },
+
+  getSummary: (staffId?: string, month?: string) => {
+    const params = new URLSearchParams();
+    if (staffId) params.set("staff_id", staffId);
+    if (month) params.set("month", month);
+    const qs = params.toString();
+    return apiClient.get(`/staff-commissions/summary${qs ? "?" + qs : ""}`);
+  },
+
+  getHistory: () => apiClient.get("/staff-commissions/history"),
+
+  getEarnings: (staffId?: string, fromDate?: string, toDate?: string) => {
+    const params = new URLSearchParams();
+    if (staffId) params.set("staff_id", staffId);
+    if (fromDate) params.set("from_date", fromDate);
+    if (toDate) params.set("to_date", toDate);
+    const qs = params.toString();
+    return apiClient.get(`/staff-commissions/earnings${qs ? "?" + qs : ""}`);
+  },
+
+  getRevenueBreakdown: (month?: string) => {
+    const params = new URLSearchParams();
+    if (month) params.set("month", month);
+    const qs = params.toString();
+    return apiClient.get(
+      `/staff-commissions/revenue-breakdown${qs ? "?" + qs : ""}`,
+    );
+  },
+
+  calculate: (month: string) =>
+    apiClient.post("/staff-commissions/calculate", { month }),
+
+  process: (data: {
+    staff_id: string;
+    commission_month: string;
+    actual_amount: number;
+    payment_method: string;
+    notes?: string;
+  }) => apiClient.post("/staff-commissions/process", data),
+
+  cancel: (commissionId: string) =>
+    apiClient.patch(`/staff-commissions/${commissionId}/cancel`),
+};
+
+export const staffPaymentService = {
+  getDashboard: (filters?: {
+    staff_id?: string;
+    month?: string;
+    status?: string;
+  }) => {
+    const params = new URLSearchParams();
+    if (filters?.staff_id) params.set("staff_id", filters.staff_id);
+    if (filters?.month) params.set("month", filters.month);
+    if (filters?.status) params.set("status", filters.status);
+    const qs = params.toString();
+    return apiClient.get(`/staff-payments/dashboard${qs ? "?" + qs : ""}`);
+  },
+
+  getMonthlyStatus: (month?: string) => {
+    const params = new URLSearchParams();
+    if (month) params.set("month", month);
+    const qs = params.toString();
+    return apiClient.get(`/staff-payments/monthly-status${qs ? "?" + qs : ""}`);
+  },
+
+  getOverdue: () => apiClient.get("/staff-payments/overdue"),
+
+  getStaffUnpaid: (staffId: string) =>
+    apiClient.get(`/staff-payments/staff/${staffId}/unpaid`),
+
+  getStaffHistory: (staffId: string) =>
+    apiClient.get(`/staff-payments/staff/${staffId}/history`),
+
+  getStaffSummary: (staffId: string, month?: string) => {
+    const params = new URLSearchParams();
+    if (month) params.set("month", month);
+    const qs = params.toString();
+    return apiClient.get(
+      `/staff-payments/staff/${staffId}/summary${qs ? "?" + qs : ""}`,
+    );
+  },
+
+  getAll: (filters?: {
+    staff_id?: string;
+    month?: string;
+    status?: string;
+  }) => {
+    const params = new URLSearchParams();
+    if (filters?.staff_id) params.set("staff_id", filters.staff_id);
+    if (filters?.month) params.set("month", filters.month);
+    if (filters?.status) params.set("status", filters.status);
+    const qs = params.toString();
+    return apiClient.get(`/staff-payments${qs ? "?" + qs : ""}`);
+  },
+
+  create: (data: {
+    staff_id: string;
+    amount: number;
+    payment_month: string;
+    payment_status: string;
+    payment_method?: string;
+    notes?: string;
+  }) => apiClient.post("/staff-payments", data),
+
+  process: (data: {
+    staff_id: string;
+    payment_month: string;
+    actual_amount: number;
+    payment_method: string;
+    notes?: string;
+  }) => apiClient.post("/staff-payments/process", data),
+
+  generateMonthly: (month: string) =>
+    apiClient.post("/staff-payments/generate-monthly", { month }),
+
+  update: (
+    paymentId: string,
+    data: {
+      amount?: number;
+      payment_status?: string;
+      payment_method?: string;
+      notes?: string;
+    },
+  ) => apiClient.put(`/staff-payments/${paymentId}`, data),
+
+  markAsWaived: (paymentId: string) =>
+    apiClient.patch(`/staff-payments/${paymentId}/waive`),
+
+  delete: (paymentId: string) =>
+    apiClient.delete(`/staff-payments/${paymentId}`),
 };
 
 export const reportService = {
