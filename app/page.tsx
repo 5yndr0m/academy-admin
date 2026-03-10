@@ -19,7 +19,8 @@ export default function Home() {
   const [error, setError] = useState<string | null>(null);
   const { role } = useAuth();
 
-  useEffect(() => {
+  const loadDashboard = () => {
+    setLoading(true);
     dashboardService
       .get()
       .then((d) => {
@@ -28,6 +29,10 @@ export default function Home() {
       })
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
+  };
+
+  useEffect(() => {
+    loadDashboard();
   }, []);
 
   if (loading) {
@@ -66,7 +71,11 @@ export default function Home() {
         <TabsContent value="overview" className="space-y-4">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div className="lg:col-span-2 space-y-6">
-              <UpcomingClasses sessions={data.today_sessions} />
+              <UpcomingClasses
+                sessions={data.today_sessions}
+                sessionGenerationNeeded={data.session_generation_needed}
+                onRefresh={loadDashboard}
+              />
               <ClassroomStatusGrid status={data.classroom_status ?? []} />
             </div>
             <div className="lg:col-span-1">
