@@ -29,7 +29,7 @@ import {
 } from "@/components/ui/dialog";
 import { subjectService, classService } from "@/lib/data";
 import { Subject, Class } from "@/types";
-import { Loader2, Plus, BookOpen } from "lucide-react";
+import { Loader2, Plus, BookOpen, Search } from "lucide-react";
 
 export function SubjectList() {
   const [subjects, setSubjects] = useState<Subject[]>([]);
@@ -37,18 +37,26 @@ export function SubjectList() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Search state
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searching, setSearching] = useState(false);
+
   // Add dialog state
   const [addOpen, setAddOpen] = useState(false);
   const [addLoading, setAddLoading] = useState(false);
   const [addError, setAddError] = useState<string | null>(null);
   const [newSubjectName, setNewSubjectName] = useState("");
 
-  const load = useCallback(async () => {
-    setLoading(true);
+  const load = useCallback(async (search?: string) => {
+    if (search !== undefined) {
+      setSearching(true);
+    } else {
+      setLoading(true);
+    }
     setError(null);
     try {
       const [subjectsData, classesData] = await Promise.all([
-        subjectService.getAll(),
+        subjectService.getAll(search),
         classService.getAll(),
       ]);
       setSubjects(subjectsData);
@@ -57,12 +65,26 @@ export function SubjectList() {
       setError(err instanceof Error ? err.message : "Failed to load data");
     } finally {
       setLoading(false);
+      setSearching(false);
     }
   }, []);
 
   useEffect(() => {
     load();
   }, [load]);
+
+  // Handle search with debounce
+  useEffect(() => {
+    const delayedSearch = setTimeout(() => {
+      if (searchQuery.trim()) {
+        load(searchQuery.trim());
+      } else {
+        load();
+      }
+    }, 300);
+
+    return () => clearTimeout(delayedSearch);
+  }, [searchQuery, load]);
 
   const handleAddSubject = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -130,76 +152,107 @@ export function SubjectList() {
             Manage academic subjects offered at the academy.
             {subjects.length > 0 && (
               <span className="block text-xs mt-1 text-muted-foreground">
-                {classes.length} total classes across {subjects.length} subjects
+                {searchQuery
+                  ? `Found ${subjects.length} subject${subjects.length === 1 ? "" : "s"}`
+                  : `${classes.length} total classes across ${subjects.length} subjects`}
               </span>
             )}
           </CardDescription>
         </div>
-        <Dialog open={addOpen} onOpenChange={setAddOpen}>
-          <DialogTrigger asChild>
-            <Button size="sm">
-              <Plus className="mr-2 h-4 w-4" />
-              Add Subject
+        <div className="flex items-center gap-2">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search subjects..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="w-64 pl-9 pr-3"
+            />
+            {searching && (
+              <Loader2 className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 animate-spin text-muted-foreground" />
+            )}
+          </div>
+          {searchQuery && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setSearchQuery("")}
+              className="h-9 px-2 text-muted-foreground hover:text-foreground"
+              title="Clear search"
+            >
+              ×
             </Button>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-[400px]">
-            <form onSubmit={handleAddSubject}>
-              <DialogHeader>
-                <DialogTitle>Add New Subject</DialogTitle>
-              </DialogHeader>
-              <div className="grid gap-4 py-4">
-                <div className="grid gap-2">
-                  <Label htmlFor="subject-name">Subject Name</Label>
-                  <Input
-                    id="subject-name"
-                    placeholder="e.g., Ballet, Mathematics, Piano"
-                    value={newSubjectName}
-                    onChange={(e) => setNewSubjectName(e.target.value)}
-                    required
-                    autoFocus
-                  />
-                </div>
-                {addError && (
-                  <p className="text-sm text-destructive">{addError}</p>
-                )}
-              </div>
-              <DialogFooter>
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setAddOpen(false)}
-                >
-                  Cancel
-                </Button>
-                <Button type="submit" disabled={addLoading}>
-                  {addLoading ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Adding...
-                    </>
-                  ) : (
-                    "Add Subject"
+          )}
+          <Dialog open={addOpen} onOpenChange={setAddOpen}>
+            <DialogTrigger asChild>
+              <Button size="sm">
+                <Plus className="mr-2 h-4 w-4" />
+                Add Subject
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[400px]">
+              <form onSubmit={handleAddSubject}>
+                <DialogHeader>
+                  <DialogTitle>Add New Subject</DialogTitle>
+                </DialogHeader>
+                <div className="grid gap-4 py-4">
+                  <div className="grid gap-2">
+                    <Label htmlFor="subject-name">Subject Name</Label>
+                    <Input
+                      id="subject-name"
+                      placeholder="e.g., Ballet, Mathematics, Piano"
+                      value={newSubjectName}
+                      onChange={(e) => setNewSubjectName(e.target.value)}
+                      required
+                      autoFocus
+                    />
+                  </div>
+                  {addError && (
+                    <p className="text-sm text-destructive">{addError}</p>
                   )}
-                </Button>
-              </DialogFooter>
-            </form>
-          </DialogContent>
-        </Dialog>
+                </div>
+                <DialogFooter>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setAddOpen(false)}
+                  >
+                    Cancel
+                  </Button>
+                  <Button type="submit" disabled={addLoading}>
+                    {addLoading ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Adding...
+                      </>
+                    ) : (
+                      "Add Subject"
+                    )}
+                  </Button>
+                </DialogFooter>
+              </form>
+            </DialogContent>
+          </Dialog>
+        </div>
       </CardHeader>
       <CardContent>
         {subjects.length === 0 ? (
           <div className="text-center py-12 bg-muted/20 rounded-lg border border-dashed">
             <BookOpen className="h-12 w-12 text-muted-foreground mx-auto mb-4 opacity-50" />
             <h3 className="font-medium text-lg mb-2 text-foreground">
-              No subjects yet
+              {searchQuery ? "No matching subjects" : "No subjects yet"}
             </h3>
             <p className="text-sm text-muted-foreground mb-4">
-              Add your first academic subject to get started.
+              {searchQuery
+                ? `No subjects found matching "${searchQuery}". Try a different search term.`
+                : "Add your first academic subject to get started."}
             </p>
-            <Button onClick={() => setAddOpen(true)} size="sm">
-              <Plus className="mr-2 h-4 w-4" />
-              Add Subject
-            </Button>
+            {!searchQuery && (
+              <Button onClick={() => setAddOpen(true)} size="sm">
+                <Plus className="mr-2 h-4 w-4" />
+                Add Subject
+              </Button>
+            )}
           </div>
         ) : (
           <Table>
