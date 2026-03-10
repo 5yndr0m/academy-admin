@@ -73,7 +73,8 @@ export function AddClassDialog({ onAdded }: { onAdded?: () => void }) {
           setSubjectId("");
         }
       })
-      .catch(() => {
+      .catch((error) => {
+        console.error("Error loading teacher subjects:", error);
         setTeacherSubjects([]);
         setSubjectId("");
       })
@@ -232,9 +233,16 @@ export function AddClassDialog({ onAdded }: { onAdded?: () => void }) {
                             Loading teacher's subjects...
                           </SelectItem>
                         ) : teacherSubjects.length === 0 ? (
-                          <SelectItem value="_" disabled>
-                            This teacher has no registered subjects
-                          </SelectItem>
+                          <>
+                            <SelectItem value="_" disabled>
+                              Teacher has no subjects - showing all subjects
+                            </SelectItem>
+                            {subjects.map((s) => (
+                              <SelectItem key={s.id} value={s.id}>
+                                {s.name}
+                              </SelectItem>
+                            ))}
+                          </>
                         ) : (
                           teacherSubjects.map((s) => (
                             <SelectItem key={s.id} value={s.id}>
@@ -247,9 +255,9 @@ export function AddClassDialog({ onAdded }: { onAdded?: () => void }) {
                     {teacherId &&
                       teacherSubjects.length === 0 &&
                       !loadingTeacherSubjects && (
-                        <p className="text-xs text-muted-foreground mt-1">
-                          This teacher needs subjects assigned. Go to Teachers →
-                          Edit to add subjects.
+                        <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">
+                          Teacher has no subjects assigned. Showing all subjects
+                          as fallback.
                         </p>
                       )}
                   </div>
@@ -307,23 +315,30 @@ export function AddClassDialog({ onAdded }: { onAdded?: () => void }) {
                   payoutPercentage &&
                   !isNaN(parseFloat(baseFee)) &&
                   !isNaN(parseFloat(payoutPercentage)) && (
-                    <div className="col-span-4 bg-muted/50 rounded-md px-4 py-2 text-xs text-muted-foreground grid grid-cols-2 gap-1">
-                      <span>Teacher receives:</span>
-                      <span className="font-medium text-foreground text-right">
-                        LKR{" "}
-                        {(
-                          (parseFloat(baseFee) * parseFloat(payoutPercentage)) /
-                          100
-                        ).toLocaleString()}
-                      </span>
-                      <span>Institute retains:</span>
-                      <span className="font-medium text-foreground text-right">
-                        LKR{" "}
-                        {(
-                          parseFloat(baseFee) *
-                          (1 - parseFloat(payoutPercentage) / 100)
-                        ).toLocaleString()}
-                      </span>
+                    <div className="grid grid-cols-4 gap-4">
+                      <div className="col-span-4">
+                        <div className="bg-muted/50 rounded-md px-4 py-2 text-xs text-muted-foreground">
+                          <div className="grid grid-cols-2 gap-1">
+                            <span>Teacher receives:</span>
+                            <span className="font-medium text-foreground text-right">
+                              LKR{" "}
+                              {(
+                                (parseFloat(baseFee) *
+                                  parseFloat(payoutPercentage)) /
+                                100
+                              ).toLocaleString()}
+                            </span>
+                            <span>Institute retains:</span>
+                            <span className="font-medium text-foreground text-right">
+                              LKR{" "}
+                              {(
+                                parseFloat(baseFee) *
+                                (1 - parseFloat(payoutPercentage) / 100)
+                              ).toLocaleString()}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   )}
               </>
