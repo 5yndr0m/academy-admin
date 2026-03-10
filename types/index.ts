@@ -291,6 +291,8 @@ export interface DashboardData {
   financial_summary: MonthlyReport | null;
   recent_audit_logs: AuditLog[];
   today: string;
+  has_actual_sessions: boolean;
+  session_generation_needed: boolean;
   counts: {
     students: number;
     teachers: number;
