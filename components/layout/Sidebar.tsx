@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useState, useEffect } from "react";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { cn } from "@/lib/utils";
@@ -29,6 +30,11 @@ const navigation = [
 export function Sidebar({ className }: { className?: string }) {
   const pathname = usePathname();
   const { role } = useAuth();
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   return (
     <div className={cn("flex flex-col h-full", className)}>
@@ -40,10 +46,12 @@ export function Sidebar({ className }: { className?: string }) {
       <nav className="flex-1 px-4 space-y-2">
         {navigation.map((item) => {
           if (
+            mounted &&
             (item.name === "Finance" || item.name === "Operations") &&
             role !== "ADMIN"
           )
             return null;
+
           const isActive =
             pathname === item.href ||
             (item.href !== "/" && pathname.startsWith(item.href));
@@ -68,12 +76,14 @@ export function Sidebar({ className }: { className?: string }) {
       <div className="p-4 border-t">
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-xs font-bold text-primary">
-            {role?.charAt(0) || "U"}
+            {mounted ? role?.charAt(0) || "U" : "U"}
           </div>
           <div className="text-sm">
-            <p className="font-medium">{role || "User"}</p>
+            <p className="font-medium">{mounted ? role || "User" : "User"}</p>
             <p className="text-xs text-muted-foreground">
-              {role === "ADMIN" ? "Full Access" : "Restricted Access"}
+              {mounted && role === "ADMIN"
+                ? "Full Access"
+                : "Restricted Access"}
             </p>
           </div>
         </div>
