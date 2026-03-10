@@ -23,7 +23,18 @@ import {
 } from "@/components/ui/select";
 import { studentService } from "@/lib/data";
 import { useAuth } from "@/components/auth/AuthProvider";
-import { Plus, Loader2 } from "lucide-react";
+import {
+  Plus,
+  Loader2,
+  User,
+  Phone,
+  Mail,
+  MapPin,
+  Calendar,
+  CreditCard,
+  Users,
+  IdCard,
+} from "lucide-react";
 
 export function AddStudentDialog({ onAdded }: { onAdded?: () => void }) {
   const { user } = useAuth();
@@ -107,177 +118,271 @@ export function AddStudentDialog({ onAdded }: { onAdded?: () => void }) {
         </Button>
       </DialogTrigger>
 
-      <DialogContent className="sm:max-w-[540px] max-h-[90vh] overflow-y-auto">
+      <DialogContent className="!max-w-4xl  max-h-[95vh] overflow-y-auto">
         <form onSubmit={handleSubmit}>
-          <DialogHeader>
-            <DialogTitle>Enroll New Student</DialogTitle>
-            <DialogDescription>
-              Fill in student and guardian details.
+          <DialogHeader className="space-y-3">
+            <DialogTitle className="flex items-center gap-3 text-xl">
+              <div className="p-2 bg-primary/10 rounded-lg">
+                <User className="h-5 w-5 text-primary" />
+              </div>
+              Enroll New Student
+            </DialogTitle>
+            <DialogDescription className="text-base">
+              Complete the enrollment form to add a new student to the academy.
+              Please fill in all required fields.
             </DialogDescription>
           </DialogHeader>
 
-          <div className="grid gap-4 py-4">
-            <p className="text-xs font-semibold uppercase text-muted-foreground tracking-wider">
-              Student Information
-            </p>
+          <div className="grid gap-8 py-6">
+            {/* Student Information Section */}
+            <div className="space-y-6">
+              <div className="flex items-center gap-3 pb-3 border-b">
+                <div className="p-2 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                  <User className="h-4 w-4 text-blue-600 dark:text-blue-400" />
+                </div>
+                <h3 className="text-lg font-semibold text-foreground">
+                  Student Information
+                </h3>
+              </div>
 
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label className="text-right">Admission No</Label>
-              <Input
-                value={admissionNo}
-                onChange={(e) => setAdmissionNo(e.target.value)}
-                className="col-span-3"
-                placeholder="e.g. 10001"
-                required
-              />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label className="text-right">Full Name</Label>
-              <Input
-                value={fullName}
-                onChange={(e) => setFullName(e.target.value)}
-                className="col-span-3"
-                required
-              />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label className="text-right">NIC / Birth Cert</Label>
-              <Input
-                value={nicNo}
-                onChange={(e) => setNicNo(e.target.value)}
-                className="col-span-3"
-                required
-              />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label className="text-right">Gender</Label>
-              <div className="col-span-3">
-                <Select
-                  value={gender}
-                  onValueChange={(v) => setGender(v as "M" | "F")}
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="M">Male</SelectItem>
-                    <SelectItem value="F">Female</SelectItem>
-                  </SelectContent>
-                </Select>
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div className="space-y-3">
+                  <Label className="flex items-center gap-2 text-sm font-medium">
+                    <IdCard className="h-4 w-4" />
+                    Admission Number *
+                  </Label>
+                  <Input
+                    value={admissionNo}
+                    onChange={(e) => setAdmissionNo(e.target.value)}
+                    placeholder="e.g. 10001"
+                    required
+                    className="h-11"
+                  />
+                </div>
+                <div className="space-y-3">
+                  <Label className="flex items-center gap-2 text-sm font-medium">
+                    <User className="h-4 w-4" />
+                    Full Name *
+                  </Label>
+                  <Input
+                    value={fullName}
+                    onChange={(e) => setFullName(e.target.value)}
+                    placeholder="Student's full name"
+                    required
+                    className="h-11"
+                  />
+                </div>
+                <div className="space-y-3">
+                  <Label className="flex items-center gap-2 text-sm font-medium">
+                    <IdCard className="h-4 w-4" />
+                    NIC / Birth Certificate *
+                  </Label>
+                  <Input
+                    value={nicNo}
+                    onChange={(e) => setNicNo(e.target.value)}
+                    placeholder="NIC or Birth Cert No."
+                    required
+                    className="h-11"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div className="space-y-3">
+                  <Label className="text-sm font-medium">Gender *</Label>
+                  <Select
+                    value={gender}
+                    onValueChange={(v) => setGender(v as "M" | "F")}
+                  >
+                    <SelectTrigger className="h-11">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="M">Male</SelectItem>
+                      <SelectItem value="F">Female</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-3">
+                  <Label className="flex items-center gap-2 text-sm font-medium">
+                    <Calendar className="h-4 w-4" />
+                    Date of Birth *
+                  </Label>
+                  <Input
+                    type="date"
+                    value={dob}
+                    onChange={(e) => setDob(e.target.value)}
+                    required
+                    className="h-11"
+                  />
+                </div>
+                <div className="space-y-3">
+                  <Label className="flex items-center gap-2 text-sm font-medium">
+                    <Phone className="h-4 w-4" />
+                    Contact Number *
+                  </Label>
+                  <Input
+                    value={contactNumber}
+                    onChange={(e) => setContactNumber(e.target.value)}
+                    placeholder="0771234567"
+                    required
+                    className="h-11"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                <Label className="flex items-center gap-2 text-sm font-medium">
+                  <MapPin className="h-4 w-4" />
+                  Address *
+                </Label>
+                <Input
+                  value={address}
+                  onChange={(e) => setAddress(e.target.value)}
+                  placeholder="Student's complete home address"
+                  required
+                  className="h-11"
+                />
               </div>
             </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label className="text-right">Date of Birth</Label>
-              <Input
-                type="date"
-                value={dob}
-                onChange={(e) => setDob(e.target.value)}
-                className="col-span-3"
-                required
-              />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label className="text-right">Address</Label>
-              <Input
-                value={address}
-                onChange={(e) => setAddress(e.target.value)}
-                className="col-span-3"
-                required
-              />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label className="text-right">Contact</Label>
-              <Input
-                value={contactNumber}
-                onChange={(e) => setContactNumber(e.target.value)}
-                className="col-span-3"
-                placeholder="07XXXXXXXX"
-                required
-              />
-            </div>
 
-            <p className="text-xs font-semibold uppercase text-muted-foreground tracking-wider mt-2">
-              Guardian Information
-            </p>
+            {/* Guardian Information Section */}
+            <div className="space-y-6">
+              <div className="flex items-center gap-3 pb-3 border-b">
+                <div className="p-2 bg-green-50 dark:bg-green-900/20 rounded-lg">
+                  <Users className="h-4 w-4 text-green-600 dark:text-green-400" />
+                </div>
+                <h3 className="text-lg font-semibold text-foreground">
+                  Guardian Information
+                </h3>
+              </div>
 
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label className="text-right">Name</Label>
-              <Input
-                value={guardianName}
-                onChange={(e) => setGuardianName(e.target.value)}
-                className="col-span-3"
-                required
-              />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label className="text-right">Contact</Label>
-              <Input
-                value={guardianContact}
-                onChange={(e) => setGuardianContact(e.target.value)}
-                className="col-span-3"
-                placeholder="07XXXXXXXX"
-                required
-              />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label className="text-right">Email</Label>
-              <Input
-                type="email"
-                value={guardianEmail}
-                onChange={(e) => setGuardianEmail(e.target.value)}
-                className="col-span-3"
-                placeholder="guardian@email.com"
-              />
-            </div>
-
-            <p className="text-xs font-semibold uppercase text-muted-foreground tracking-wider mt-2">
-              Admission Details
-            </p>
-
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label className="text-right">Reg. Date</Label>
-              <Input
-                type="date"
-                value={registrationDate}
-                onChange={(e) => setRegistrationDate(e.target.value)}
-                className="col-span-3"
-                required
-              />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label className="text-right">Admission Fee</Label>
-              <div className="col-span-3 flex items-center gap-2">
-                <Switch
-                  checked={admissionFeePaid}
-                  onCheckedChange={setAdmissionFeePaid}
+              <div className="space-y-3">
+                <Label className="flex items-center gap-2 text-sm font-medium">
+                  <User className="h-4 w-4" />
+                  Guardian Name *
+                </Label>
+                <Input
+                  value={guardianName}
+                  onChange={(e) => setGuardianName(e.target.value)}
+                  placeholder="Parent or guardian's full name"
+                  required
+                  className="h-11"
                 />
-                <span className="text-sm text-muted-foreground">
-                  {admissionFeePaid ? "Paid" : "Not paid yet"}
-                </span>
+              </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div className="space-y-3">
+                  <Label className="flex items-center gap-2 text-sm font-medium">
+                    <Phone className="h-4 w-4" />
+                    Guardian Contact *
+                  </Label>
+                  <Input
+                    value={guardianContact}
+                    onChange={(e) => setGuardianContact(e.target.value)}
+                    placeholder="0771234567"
+                    required
+                    className="h-11"
+                  />
+                </div>
+                <div className="space-y-3">
+                  <Label className="flex items-center gap-2 text-sm font-medium">
+                    <Mail className="h-4 w-4" />
+                    Email Address *
+                  </Label>
+                  <Input
+                    type="email"
+                    value={guardianEmail}
+                    onChange={(e) => setGuardianEmail(e.target.value)}
+                    placeholder="guardian@example.com"
+                    required
+                    className="h-11"
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* Admission Details Section */}
+            <div className="space-y-6">
+              <div className="flex items-center gap-3 pb-3 border-b">
+                <div className="p-2 bg-purple-50 dark:bg-purple-900/20 rounded-lg">
+                  <Calendar className="h-4 w-4 text-purple-600 dark:text-purple-400" />
+                </div>
+                <h3 className="text-lg font-semibold text-foreground">
+                  Admission Details
+                </h3>
+              </div>
+
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div className="space-y-3">
+                  <Label className="flex items-center gap-2 text-sm font-medium">
+                    <Calendar className="h-4 w-4" />
+                    Registration Date
+                  </Label>
+                  <Input
+                    type="date"
+                    value={registrationDate}
+                    onChange={(e) => setRegistrationDate(e.target.value)}
+                    required
+                    className="h-11"
+                  />
+                </div>
+                <div className="space-y-3">
+                  <Label className="flex items-center gap-2 text-sm font-medium">
+                    <CreditCard className="h-4 w-4" />
+                    Admission Fee Status
+                  </Label>
+                  <div className="flex items-center gap-4 p-4 bg-muted/50 rounded-lg border h-11">
+                    <Switch
+                      checked={admissionFeePaid}
+                      onCheckedChange={setAdmissionFeePaid}
+                    />
+                    <span
+                      className={`text-sm font-medium ${
+                        admissionFeePaid
+                          ? "text-green-700 dark:text-green-400"
+                          : "text-amber-700 dark:text-amber-400"
+                      }`}
+                    >
+                      {admissionFeePaid ? "✓ Fee Paid" : "Payment Pending"}
+                    </span>
+                  </div>
+                </div>
               </div>
             </div>
 
             {error && (
-              <p className="text-sm text-destructive text-center">{error}</p>
+              <div className="flex items-center gap-2 p-4 bg-destructive/10 border border-destructive/20 rounded-lg">
+                <p className="text-sm text-destructive font-medium">{error}</p>
+              </div>
             )}
           </div>
 
-          <DialogFooter>
+          <DialogFooter className="gap-3 pt-6 border-t">
             <Button
               type="button"
               variant="outline"
               onClick={() => setOpen(false)}
+              disabled={loading}
+              className="h-11 px-8"
             >
               Cancel
             </Button>
-            <Button type="submit" disabled={loading}>
+            <Button
+              type="submit"
+              disabled={loading}
+              className="h-11 px-8 min-w-36"
+            >
               {loading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Enrolling...
+                  Enrolling Student...
                 </>
               ) : (
-                "Enroll Student"
+                <>
+                  <User className="mr-2 h-4 w-4" />
+                  Enroll Student
+                </>
               )}
             </Button>
           </DialogFooter>
