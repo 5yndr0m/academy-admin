@@ -3,6 +3,7 @@ import type {
   User,
   Teacher,
   Subject,
+  SubjectDependencies,
   Classroom,
   Class,
   ClassSchedule,
@@ -78,10 +79,31 @@ export const subjectService = {
   },
 
   create: (name: string) => apiClient.post<Subject>("/subjects", { name }),
+
+  getDependencies: (id: string) =>
+    apiClient.get<SubjectDependencies>(`/subjects/${id}/dependencies`),
+
+  archive: (id: string) =>
+    apiClient.patch<{ message: string; subject: Subject }>(
+      `/subjects/${id}/archive`,
+    ),
+
+  restore: (id: string) =>
+    apiClient.patch<{ message: string; subject: Subject }>(
+      `/subjects/${id}/restore`,
+    ),
+
+  forceDelete: (id: string) =>
+    apiClient.delete<{ message: string; affected_records: number }>(
+      `/subjects/${id}/force`,
+    ),
 };
 
 export const teacherService = {
-  getAll: () => apiClient.get<Teacher[]>("/teachers"),
+  getAll: (search?: string) => {
+    const params = search ? `?search=${encodeURIComponent(search)}` : "";
+    return apiClient.get<Teacher[]>(`/teachers${params}`);
+  },
 
   getById: (id: string) =>
     apiClient.get<{ teacher: Teacher; subjects: Subject[]; classes: Class[] }>(
@@ -91,6 +113,7 @@ export const teacherService = {
   create: (data: {
     full_name: string;
     contact_number: string;
+    email?: string;
     subject_ids: string[];
   }) => apiClient.post<Teacher>("/teachers", data),
 
@@ -99,8 +122,14 @@ export const teacherService = {
     data: {
       full_name: string;
       contact_number: string;
+      email?: string;
     },
   ) => apiClient.put<Teacher>(`/teachers/${id}`, data),
+
+  toggleStatus: (id: string) =>
+    apiClient.patch<{ message: string; id: string; status: string }>(
+      `/teachers/${id}/toggle`,
+    ),
 
   search: (q: string) =>
     apiClient.get<SearchResult<Teacher>>(

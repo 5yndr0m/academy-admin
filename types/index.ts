@@ -23,15 +23,29 @@ export interface User {
 export interface Subject {
   id: string;
   name: string;
+  status: "ACTIVE" | "ARCHIVED" | "DELETED";
   created_by: string;
   created_at: string;
   updated_at: string;
+  deleted_at?: string;
+}
+
+export interface SubjectDependencies {
+  can_delete: boolean;
+  can_safe_delete: boolean;
+  active_teachers: number;
+  active_classes: number;
+  historical_records: number;
+  blocking_items: string[];
+  recommended_action: string;
 }
 
 export interface Teacher {
   id: string;
   full_name: string;
   contact_number: string;
+  email?: string;
+  status: "ACTIVE" | "INACTIVE";
   created_by: string;
   created_at: string;
   updated_at: string;
