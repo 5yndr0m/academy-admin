@@ -15,16 +15,24 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { teacherService, subjectService } from "@/lib/data";
-import { Subject } from "@/types";
-import { Plus, Loader2 } from "lucide-react";
+import { Subject, Teacher } from "@/types";
+import { Edit, Loader2 } from "lucide-react";
 
-export function AddTeacherDialog({ onAdded }: { onAdded?: () => void }) {
+interface UpdateTeacherDialogProps {
+  teacher: Teacher;
+  onUpdated: () => void;
+}
+
+export function UpdateTeacherDialog({
+  teacher,
+  onUpdated,
+}: UpdateTeacherDialogProps) {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [fullName, setFullName] = useState("");
-  const [contactNumber, setContactNumber] = useState("");
-  const [email, setEmail] = useState("");
+  const [fullName, setFullName] = useState(teacher.full_name);
+  const [contactNumber, setContactNumber] = useState(teacher.contact_number);
+  const [email, setEmail] = useState(teacher.email || "");
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [subjectsLoading, setSubjectsLoading] = useState(false);
@@ -33,12 +41,19 @@ export function AddTeacherDialog({ onAdded }: { onAdded?: () => void }) {
   useEffect(() => {
     if (!open) return;
     setSubjectsLoading(true);
-    subjectService
-      .getAll()
-      .then(setSubjects)
-      .catch(() => {})
+
+    Promise.all([subjectService.getAll(), teacherService.getById(teacher.id)])
+      .then(([allSubjects, teacherData]) => {
+        setSubjects(allSubjects);
+        // Set currently assigned subjects
+        const currentSubjectIds = teacherData.subjects.map((s) => s.id);
+        setSelectedIds(currentSubjectIds);
+      })
+      .catch(() => {
+        setError("Failed to load subjects");
+      })
       .finally(() => setSubjectsLoading(false));
-  }, [open]);
+  }, [open, teacher.id]);
 
   const toggleSubject = (id: string) => {
     setSelectedIds((prev) =>
@@ -47,33 +62,30 @@ export function AddTeacherDialog({ onAdded }: { onAdded?: () => void }) {
   };
 
   const reset = () => {
-    setFullName("");
-    setContactNumber("");
-    setEmail("");
+    setFullName(teacher.full_name);
+    setContactNumber(teacher.contact_number);
+    setEmail(teacher.email || "");
     setSelectedIds([]);
     setError(null);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (selectedIds.length === 0) {
-      setError("Please select at least one subject.");
-      return;
-    }
     setLoading(true);
     setError(null);
+
     try {
-      await teacherService.create({
+      // Update basic teacher info
+      await teacherService.update(teacher.id, {
         full_name: fullName,
         contact_number: contactNumber,
         email: email.trim() || undefined,
-        subject_ids: selectedIds,
       });
+
       setOpen(false);
-      reset();
-      onAdded?.();
+      onUpdated();
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : "Failed to add teacher");
+      setError(err instanceof Error ? err.message : "Failed to update teacher");
     } finally {
       setLoading(false);
     }
@@ -88,17 +100,16 @@ export function AddTeacherDialog({ onAdded }: { onAdded?: () => void }) {
       }}
     >
       <DialogTrigger asChild>
-        <Button>
-          <Plus className="mr-2 h-4 w-4" />
-          Add Teacher
+        <Button variant="ghost" size="sm">
+          <Edit className="h-4 w-4" />
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-[440px]">
         <form onSubmit={handleSubmit}>
           <DialogHeader>
-            <DialogTitle>Add Teacher</DialogTitle>
+            <DialogTitle>Update Teacher</DialogTitle>
             <DialogDescription>
-              Register a new faculty member and assign subjects.
+              Edit {teacher.full_name}&apos;s details and subject assignments.
             </DialogDescription>
           </DialogHeader>
 
@@ -148,29 +159,39 @@ export function AddTeacherDialog({ onAdded }: { onAdded?: () => void }) {
               <Label className="text-right pt-2">Subjects</Label>
               <div className="col-span-3 space-y-2">
                 {subjectsLoading ? (
-                  <p className="text-xs text-muted-foreground">
-                    Loading subjects...
-                  </p>
+                  <div className="flex items-center gap-2">
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    <p className="text-xs text-muted-foreground">
+                      Loading subjects...
+                    </p>
+                  </div>
                 ) : subjects.length === 0 ? (
                   <p className="text-xs text-muted-foreground">
                     No subjects found. Create subjects first.
                   </p>
                 ) : (
-                  subjects.map((subject) => (
-                    <div key={subject.id} className="flex items-center gap-2">
-                      <Checkbox
-                        id={subject.id}
-                        checked={selectedIds.includes(subject.id)}
-                        onCheckedChange={() => toggleSubject(subject.id)}
-                      />
-                      <Label
-                        htmlFor={subject.id}
-                        className="font-normal cursor-pointer"
-                      >
-                        {subject.name}
-                      </Label>
-                    </div>
-                  ))
+                  <div className="max-h-32 overflow-y-auto space-y-2">
+                    {subjects.map((subject) => (
+                      <div key={subject.id} className="flex items-center gap-2">
+                        <Checkbox
+                          id={subject.id}
+                          checked={selectedIds.includes(subject.id)}
+                          onCheckedChange={() => toggleSubject(subject.id)}
+                        />
+                        <Label
+                          htmlFor={subject.id}
+                          className="font-normal cursor-pointer"
+                        >
+                          {subject.name}
+                        </Label>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {!subjectsLoading && subjects.length > 0 && (
+                  <p className="text-xs text-muted-foreground mt-2">
+                    Note: Subject assignments will be updated separately.
+                  </p>
                 )}
               </div>
             </div>
@@ -181,14 +202,21 @@ export function AddTeacherDialog({ onAdded }: { onAdded?: () => void }) {
           </div>
 
           <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setOpen(false)}
+            >
+              Cancel
+            </Button>
             <Button type="submit" disabled={loading}>
               {loading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Saving...
+                  Updating...
                 </>
               ) : (
-                "Save Teacher"
+                "Update Teacher"
               )}
             </Button>
           </DialogFooter>
