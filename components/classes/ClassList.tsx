@@ -123,7 +123,7 @@ export function ClassList() {
     setEditError(null);
     setDropdownReady(false);
     const [t, s] = await Promise.all([
-      teacherService.getAll(),
+      teacherService.getAll(undefined, true),
       subjectService.getAll(),
     ]);
     setTeachers(t);
@@ -364,13 +364,22 @@ export function ClassList() {
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          {teachers.map((t) => (
-                            <SelectItem key={t.id} value={t.id}>
-                              {t.full_name ?? (t as any).fullname}
+                          {teachers.length === 0 ? (
+                            <SelectItem value="_" disabled>
+                              No active teachers found
                             </SelectItem>
-                          ))}
+                          ) : (
+                            teachers.map((t) => (
+                              <SelectItem key={t.id} value={t.id}>
+                                {t.full_name ?? (t as any).fullname}
+                              </SelectItem>
+                            ))
+                          )}
                         </SelectContent>
                       </Select>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Only active teachers are shown
+                      </p>
                     </div>
                   </div>
 
@@ -385,11 +394,17 @@ export function ClassList() {
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          {subjects.map((s) => (
-                            <SelectItem key={s.id} value={s.id}>
-                              {s.name}
+                          {subjects.length === 0 ? (
+                            <SelectItem value="_" disabled>
+                              No subjects found
                             </SelectItem>
-                          ))}
+                          ) : (
+                            subjects.map((s) => (
+                              <SelectItem key={s.id} value={s.id}>
+                                {s.name}
+                              </SelectItem>
+                            ))
+                          )}
                         </SelectContent>
                       </Select>
                     </div>
@@ -397,28 +412,72 @@ export function ClassList() {
 
                   <div className="grid grid-cols-4 items-center gap-4">
                     <Label className="text-right">Fee (LKR)</Label>
-                    <Input
-                      type="number"
-                      min="0"
-                      value={editFee}
-                      onChange={(e) => setEditFee(e.target.value)}
-                      className="col-span-3"
-                      required
-                    />
+                    <div className="col-span-3 relative">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
+                        LKR
+                      </span>
+                      <Input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={editFee}
+                        onChange={(e) => setEditFee(e.target.value)}
+                        className="pl-12"
+                        required
+                      />
+                    </div>
                   </div>
 
                   <div className="grid grid-cols-4 items-center gap-4">
                     <Label className="text-right">Payout %</Label>
-                    <Input
-                      type="number"
-                      min="0"
-                      max="100"
-                      value={editPayout}
-                      onChange={(e) => setEditPayout(e.target.value)}
-                      className="col-span-3"
-                      required
-                    />
+                    <div className="col-span-3 relative">
+                      <Input
+                        type="number"
+                        min="0"
+                        max="100"
+                        step="0.01"
+                        value={editPayout}
+                        onChange={(e) => setEditPayout(e.target.value)}
+                        className="pr-8"
+                        required
+                      />
+                      <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-muted-foreground">
+                        %
+                      </span>
+                    </div>
                   </div>
+
+                  {/* Breakdown hint */}
+                  {editFee &&
+                    editPayout &&
+                    !isNaN(parseFloat(editFee)) &&
+                    !isNaN(parseFloat(editPayout)) && (
+                      <div className="grid grid-cols-4 gap-4">
+                        <div className="col-span-4">
+                          <div className="bg-muted/50 rounded-md px-4 py-2 text-xs text-muted-foreground">
+                            <div className="grid grid-cols-2 gap-1">
+                              <span>Teacher receives:</span>
+                              <span className="font-medium text-foreground text-right">
+                                LKR{" "}
+                                {(
+                                  (parseFloat(editFee) *
+                                    parseFloat(editPayout)) /
+                                  100
+                                ).toLocaleString()}
+                              </span>
+                              <span>Institute retains:</span>
+                              <span className="font-medium text-foreground text-right">
+                                LKR{" "}
+                                {(
+                                  parseFloat(editFee) *
+                                  (1 - parseFloat(editPayout) / 100)
+                                ).toLocaleString()}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
                 </>
               )}
               {editError && (
@@ -435,14 +494,19 @@ export function ClassList() {
               >
                 Cancel
               </Button>
-              <Button type="submit" disabled={editLoading}>
+              <Button
+                type="submit"
+                disabled={
+                  editLoading || !dropdownReady || teachers.length === 0
+                }
+              >
                 {editLoading ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Saving...
+                    Updating...
                   </>
                 ) : (
-                  "Save"
+                  "Update Class"
                 )}
               </Button>
             </DialogFooter>

@@ -46,7 +46,10 @@ export function AddClassDialog({ onAdded }: { onAdded?: () => void }) {
   useEffect(() => {
     if (!open) return;
     setDataLoading(true);
-    Promise.all([teacherService.getAll(), subjectService.getAll()])
+    Promise.all([
+      teacherService.getAll(undefined, true),
+      subjectService.getAll(),
+    ])
       .then(([t, s]) => {
         setTeachers(t);
         setSubjects(s);
@@ -186,7 +189,7 @@ export function AddClassDialog({ onAdded }: { onAdded?: () => void }) {
                       <SelectContent>
                         {teachers.length === 0 ? (
                           <SelectItem value="_" disabled>
-                            No teachers found
+                            No active teachers found
                           </SelectItem>
                         ) : (
                           teachers.map((t) => (
@@ -197,6 +200,12 @@ export function AddClassDialog({ onAdded }: { onAdded?: () => void }) {
                         )}
                       </SelectContent>
                     </Select>
+                    {teachers.length === 0 && (
+                      <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">
+                        No active teachers available. Inactive teachers are
+                        hidden.
+                      </p>
+                    )}
                   </div>
                 </div>
 

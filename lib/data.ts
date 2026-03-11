@@ -100,9 +100,14 @@ export const subjectService = {
 };
 
 export const teacherService = {
-  getAll: (search?: string) => {
-    const params = search ? `?search=${encodeURIComponent(search)}` : "";
-    return apiClient.get<Teacher[]>(`/teachers${params}`);
+  getAll: (search?: string, activeOnly?: boolean) => {
+    const params = new URLSearchParams();
+    if (search) params.append("search", search);
+    if (activeOnly) params.append("active_only", "true");
+    const queryString = params.toString();
+    return apiClient.get<Teacher[]>(
+      `/teachers${queryString ? `?${queryString}` : ""}`,
+    );
   },
 
   getById: (id: string) =>
