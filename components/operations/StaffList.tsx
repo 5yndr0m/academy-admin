@@ -389,61 +389,69 @@ function UpdateStaffDialog({
 
 export function StaffList() {
   const [users, setUsers] = useState<User[]>([]);
+  const [allUsers, setAllUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [togglingId, setTogglingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [searching, setSearching] = useState(false);
 
-  const load = useCallback(async (search?: string) => {
+  const load = useCallback(async () => {
     setLoading(true);
     setError(null);
     try {
-      const data = await userService.getAll(search);
+      const data = await userService.getAll();
+      setAllUsers(data);
       setUsers(data);
-    } catch {
+    } catch (err) {
       setError("Failed to load staff");
     } finally {
       setLoading(false);
     }
   }, []);
 
-  const handleSearch = async () => {
+  const handleSearch = () => {
     if (searching) return;
     setSearching(true);
-    await load(searchTerm || undefined);
+
+    const searchValue = searchTerm.trim().toLowerCase();
+    if (!searchValue) {
+      setUsers(allUsers);
+    } else {
+      const filtered = allUsers.filter(
+        (user) =>
+          user.name.toLowerCase().includes(searchValue) ||
+          user.email.toLowerCase().includes(searchValue) ||
+          user.username.toLowerCase().includes(searchValue) ||
+          user.contact_number.includes(searchValue),
+      );
+      setUsers(filtered);
+    }
+
     setSearching(false);
   };
 
-  const handleClearSearch = async () => {
+  const handleClearSearch = () => {
     setSearchTerm("");
-    await load();
+    setUsers(allUsers);
   };
 
   useEffect(() => {
     load();
   }, [load]);
 
+  useEffect(() => {
+    handleSearch();
+  }, [searchTerm]);
+
   const handleToggle = async (id: string) => {
     setTogglingId(id);
-    // Optimistic update — flip whichever field the backend populates
-    setUsers((prev) =>
-      prev.map((u) => {
-        if (u.id !== id) return u;
-        return {
-          ...u,
-          status: u.status === "ACTIVE" ? "INACTIVE" : "ACTIVE",
-        };
-      }),
-    );
     try {
       await userService.toggleStatus(id);
-      // Re-fetch to sync with server truth
-      const fresh = await userService.getAll();
-      setUsers(fresh);
-    } catch {
-      // Revert on failure
+      // Reload all users and reapply search
       await load();
+    } catch (err) {
+      setError("Failed to toggle user status");
     } finally {
       setTogglingId(null);
     }
@@ -493,7 +501,7 @@ export function StaffList() {
             {searching ? (
               <Loader2 className="h-4 w-4 animate-spin" />
             ) : (
-              "Search"
+              "Filter"
             )}
           </Button>
           {searchTerm && (
@@ -573,7 +581,9 @@ export function StaffList() {
                     <div className="flex items-center gap-1 justify-end">
                       <UpdateStaffDialog
                         user={u}
-                        onUpdated={() => load(searchTerm || undefined)}
+                        onUpdated={() => {
+                          load();
+                        }}
                       />
                       <Button
                         variant="ghost"
