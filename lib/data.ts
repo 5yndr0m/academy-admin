@@ -16,6 +16,7 @@ import type {
   Invoice,
   InvoiceItem,
   MultiRecordInvoiceRequest,
+  EnrollmentInvoiceRequest,
   InvoiceType,
   InvoiceStatus,
   Expense,
@@ -737,6 +738,9 @@ export const invoiceService = {
 
   createMultiRecord: (data: MultiRecordInvoiceRequest) =>
     apiClient.post<Invoice>("/invoices/multi-record", data),
+
+  createFromEnrollments: (data: EnrollmentInvoiceRequest) =>
+    apiClient.post<Invoice>("/invoices/enrollment-based", data),
 
   bulkAction: (data: {
     action: "PAY" | "SEND" | "GENERATE_PDF" | "DELETE";

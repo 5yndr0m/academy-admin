@@ -254,6 +254,12 @@ export interface MultiRecordInvoiceRequest {
   items: InvoiceItemRequest[];
 }
 
+export interface EnrollmentInvoiceRequest {
+  billing_month: string;
+  enrollment_ids: string[];
+  notes?: string;
+}
+
 export type ExpenseCategory =
   | "UTILITIES"
   | "MAINTENANCE"

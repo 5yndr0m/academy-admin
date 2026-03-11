@@ -42,6 +42,7 @@ import { AdmissionFeeDialog } from "@/components/students/AdmissionFeeDialog";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { StudentFeeHistory } from "@/components/students/StudentFeeHistory";
 import { MultiRecordInvoiceDialog } from "@/components/students/MultiRecordInvoiceDialog";
+import { EnrollmentInvoiceDialog } from "@/components/students/EnrollmentInvoiceDialog";
 import {
   ArrowLeft,
   Loader2,
@@ -60,6 +61,7 @@ import {
   UserPlus,
   Receipt,
   ExternalLink,
+  Users,
 } from "lucide-react";
 
 const formatDate = (d: string) =>
@@ -630,6 +632,17 @@ export default function StudentDetailsPage() {
                       <Button variant="outline" className="justify-start">
                         <FileText className="h-4 w-4 mr-2" />
                         Create Multi-Record Invoice
+                      </Button>
+                    }
+                  />
+
+                  <EnrollmentInvoiceDialog
+                    student={student}
+                    onInvoiceCreated={load}
+                    trigger={
+                      <Button variant="outline" className="justify-start">
+                        <Users className="h-4 w-4 mr-2" />
+                        Generate from Enrollments
                       </Button>
                     }
                   />
