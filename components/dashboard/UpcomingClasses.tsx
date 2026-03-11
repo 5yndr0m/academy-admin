@@ -32,7 +32,7 @@ interface TodayClass {
 }
 
 interface UpcomingClassesProps {
-  sessions: (ClassSession | TodayClass)[];
+  sessions: (ClassSession | TodayClass)[] | null;
   sessionGenerationNeeded?: boolean;
   onRefresh?: () => void;
 }
@@ -46,7 +46,7 @@ export function UpcomingClasses({
   const [cancelling, setCancelling] = useState<string | null>(null);
 
   // Sort by start_time ascending so earliest class is first
-  const sorted = [...sessions].sort((a, b) =>
+  const sorted = [...(sessions || [])].sort((a, b) =>
     a.start_time.localeCompare(b.start_time),
   );
 

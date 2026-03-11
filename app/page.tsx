@@ -72,7 +72,7 @@ export default function Home() {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             <div className="lg:col-span-2 space-y-6">
               <UpcomingClasses
-                sessions={data.today_sessions}
+                sessions={data.today_sessions || []}
                 sessionGenerationNeeded={data.session_generation_needed}
                 onRefresh={loadDashboard}
               />
