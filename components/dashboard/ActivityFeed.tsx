@@ -45,7 +45,7 @@ function getStyle(entityType: string) {
     };
   }
   return {
-    color: "bg-slate-100 text-slate-600",
+    color: "bg-muted text-muted-foreground",
     icon: <Shield className="h-3 w-3" />,
   };
 }

@@ -233,7 +233,7 @@ export function AttendanceManager() {
   if (loadingInit) {
     return (
       <div className="flex justify-center p-8">
-        <Loader2 className="h-8 w-8 animate-spin text-slate-400" />
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
       </div>
     );
   }
@@ -480,7 +480,7 @@ export function AttendanceManager() {
 
           {loadingRoll && (
             <div className="flex justify-center py-12">
-              <Loader2 className="h-6 w-6 animate-spin text-slate-400" />
+              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
             </div>
           )}
 

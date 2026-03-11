@@ -190,7 +190,7 @@ export function ScheduleManager({ teacher, onUpdate }: ScheduleManagerProps) {
 
         {loading ? (
           <div className="flex justify-center py-12">
-            <Loader2 className="h-6 w-6 animate-spin text-slate-400" />
+            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
           </div>
         ) : error ? (
           <p className="text-sm text-destructive text-center py-8">{error}</p>
