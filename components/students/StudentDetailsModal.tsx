@@ -23,8 +23,15 @@ import {
   attendanceService,
   studentFeePaymentService,
 } from "@/lib/data";
-import { Student, Enrollment } from "@/types";
+import { Student, Enrollment, EnrollmentStatus } from "@/types";
 import { EnrollStudentDialog } from "./EnrollStudentDialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Loader2,
   Save,
@@ -170,8 +177,8 @@ export function StudentDetailsModal({
                 studentId,
                 enrollment.class.id,
               );
-              const totalSessions = summary.total_sessions || 0;
-              const presentCount = summary.present_count || 0;
+              const totalSessions = summary.summary?.total || 0;
+              const presentCount = summary.summary?.present || 0;
               const percentage =
                 totalSessions > 0 ? (presentCount / totalSessions) * 100 : 0;
 
@@ -235,6 +242,32 @@ export function StudentDetailsModal({
         guardian_contact: student.guardian_contact || "",
         guardian_email: student.guardian_email || "",
       });
+    }
+  };
+
+  const handleEnrollmentStatusChange = async (
+    enrollmentId: string,
+    newStatus: string,
+  ) => {
+    try {
+      if (newStatus === "DROPPED") {
+        await enrollmentService.drop(enrollmentId);
+      } else if (newStatus === "ENROLLED") {
+        await enrollmentService.reactivate(enrollmentId);
+      }
+
+      // Update local state
+      setEnrollments((prev) =>
+        prev.map((enr) =>
+          enr.id === enrollmentId
+            ? { ...enr, status: newStatus as EnrollmentStatus }
+            : enr,
+        ),
+      );
+
+      onUpdate?.();
+    } catch (error) {
+      console.error("Failed to update enrollment status:", error);
     }
   };
 
@@ -563,17 +596,27 @@ export function StudentDetailsModal({
                                     </span>
                                   </div>
                                 </div>
-                                <Badge
-                                  variant={
-                                    enrollment.status === "ENROLLED"
-                                      ? "default"
-                                      : "secondary"
+                                <Select
+                                  value={enrollment.status}
+                                  onValueChange={(value) =>
+                                    handleEnrollmentStatusChange(
+                                      enrollment.id,
+                                      value,
+                                    )
                                   }
                                 >
-                                  {enrollment.status === "ENROLLED"
-                                    ? "Active"
-                                    : "Dropped"}
-                                </Badge>
+                                  <SelectTrigger className="w-32">
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="ENROLLED">
+                                      Active
+                                    </SelectItem>
+                                    <SelectItem value="DROPPED">
+                                      Dropped
+                                    </SelectItem>
+                                  </SelectContent>
+                                </Select>
                               </div>
                             </CardContent>
                           </Card>
@@ -659,15 +702,25 @@ export function StudentDetailsModal({
                                   <h4 className="font-medium">
                                     {record.class_name}
                                   </h4>
-                                  <span className="font-semibold">
+                                  <span className="font-semibold text-lg">
                                     {record.percentage.toFixed(1)}%
                                   </span>
                                 </div>
                                 <div className="space-y-2">
-                                  <Progress
-                                    value={record.percentage}
-                                    className="h-2"
-                                  />
+                                  <div className="w-full bg-gray-200 rounded-full h-3 dark:bg-gray-700">
+                                    <div
+                                      className={`h-3 rounded-full transition-all ${
+                                        record.percentage >= 85
+                                          ? "bg-green-500"
+                                          : record.percentage >= 70
+                                            ? "bg-yellow-500"
+                                            : "bg-red-500"
+                                      }`}
+                                      style={{
+                                        width: `${Math.max(record.percentage, 0)}%`,
+                                      }}
+                                    />
+                                  </div>
                                   <div className="flex justify-between text-xs text-muted-foreground">
                                     <span>
                                       {record.attended_sessions} of{" "}
