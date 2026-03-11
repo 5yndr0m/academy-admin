@@ -242,12 +242,12 @@ export function AttendanceManager() {
     <div className="space-y-5">
       {/* Active Sessions Quick Access */}
       {activeSessions.length > 0 && (
-        <Card className="border-orange-200 dark:border-orange-800 bg-orange-50/50 dark:bg-orange-950/30">
+        <Card className="border-blue-200 dark:border-blue-800 bg-blue-50/50 dark:bg-blue-950/30">
           <CardHeader className="pb-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <div className="h-2 w-2 bg-orange-500 dark:bg-orange-400 rounded-full animate-pulse" />
-                <CardTitle className="text-lg text-orange-800 dark:text-orange-200">
+                <div className="h-2 w-2 bg-blue-500 dark:bg-blue-400 rounded-full animate-pulse" />
+                <CardTitle className="text-lg text-blue-800 dark:text-blue-200">
                   Active Sessions
                 </CardTitle>
                 {loadingActive && (
@@ -271,7 +271,7 @@ export function AttendanceManager() {
                 <Button
                   key={session.id}
                   variant="outline"
-                  className="h-auto p-4 flex flex-col items-start bg-white dark:bg-gray-950 hover:bg-orange-50 dark:hover:bg-orange-950/20 border-orange-200 dark:border-orange-800"
+                  className="h-auto p-4 flex flex-col items-start bg-white dark:bg-gray-950 hover:bg-blue-50 dark:hover:bg-blue-950/20 border-blue-200 dark:border-blue-800"
                   onClick={() => {
                     setClassId(session.class_id);
                     setSessionId(session.id);
@@ -418,25 +418,15 @@ export function AttendanceManager() {
               { label: "Late", value: lateCount, color: "amber" },
             ] as const
           ).map(({ label, value, color }) => (
-            <Card
-              key={label}
-              className={cn(
-                "border text-center",
-                color === "green" &&
-                  "border-green-200 dark:border-green-800 bg-green-50 dark:bg-green-950/30",
-                color === "red" &&
-                  "border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-950/30",
-                color === "amber" &&
-                  "border-amber-200 dark:border-amber-800 bg-amber-50 dark:bg-amber-950/30",
-              )}
-            >
+            <Card key={label} className="border text-center bg-card">
               <CardContent className="pt-4 pb-3">
                 <p
                   className={cn(
                     "text-3xl font-bold",
-                    color === "green" && "text-green-700 dark:text-green-300",
-                    color === "red" && "text-red-700 dark:text-red-300",
-                    color === "amber" && "text-amber-700 dark:text-amber-300",
+                    color === "green" && "text-green-600 dark:text-green-400",
+                    color === "red" && "text-red-600 dark:text-red-400",
+                    color === "amber" && "text-amber-600 dark:text-amber-400",
+                    color === "slate" && "text-foreground",
                   )}
                 >
                   {value}
@@ -502,9 +492,12 @@ export function AttendanceManager() {
                     key={s.student_id}
                     className={cn(
                       "flex items-center justify-between px-4 py-3 rounded-xl border transition-colors",
-                      s.status === "PRESENT" && "bg-green-50 border-green-200",
-                      s.status === "ABSENT" && "bg-red-50 border-red-200",
-                      s.status === "LATE" && "bg-amber-50 border-amber-200",
+                      s.status === "PRESENT" &&
+                        "bg-green-50 dark:bg-green-950/20 border-green-200 dark:border-green-800",
+                      s.status === "ABSENT" &&
+                        "bg-red-50 dark:bg-red-950/20 border-red-200 dark:border-red-800",
+                      s.status === "LATE" &&
+                        "bg-amber-50 dark:bg-amber-950/20 border-amber-200 dark:border-amber-800",
                       !s.status && "bg-card hover:bg-accent/30",
                     )}
                   >
@@ -513,11 +506,11 @@ export function AttendanceManager() {
                         className={cn(
                           "h-9 w-9 rounded-full flex items-center justify-center text-sm font-bold flex-shrink-0",
                           s.status === "PRESENT"
-                            ? "bg-green-200 text-green-800"
+                            ? "bg-green-200 dark:bg-green-800 text-green-800 dark:text-green-200"
                             : s.status === "ABSENT"
-                              ? "bg-red-200 text-red-800"
+                              ? "bg-red-200 dark:bg-red-800 text-red-800 dark:text-red-200"
                               : s.status === "LATE"
-                                ? "bg-amber-200 text-amber-800"
+                                ? "bg-amber-200 dark:bg-amber-800 text-amber-800 dark:text-amber-200"
                                 : "bg-muted text-muted-foreground",
                         )}
                       >

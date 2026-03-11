@@ -166,19 +166,6 @@ export default function SessionsPage() {
         </div>
         <div className="flex items-center gap-2">
           <Button
-            variant="outline"
-            size="sm"
-            onClick={loadSessions}
-            disabled={refreshing}
-          >
-            {refreshing ? (
-              <Loader2 className="h-4 w-4 animate-spin mr-2" />
-            ) : (
-              <RefreshCw className="h-4 w-4 mr-2" />
-            )}
-            Refresh
-          </Button>
-          <Button
             size="sm"
             onClick={handleGenerateWeeklySessions}
             disabled={actionLoading === "generate"}

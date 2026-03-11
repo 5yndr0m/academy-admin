@@ -286,6 +286,11 @@ export const sessionService = {
 
   cancel: (sessionId: string) =>
     apiClient.delete<{ message: string }>(`/sessions/${sessionId}/cancel`),
+
+  getByDateRange: (startDate: string, endDate: string) =>
+    apiClient.get<ClassSession[]>(
+      `/sessions/range?start_date=${startDate}&end_date=${endDate}`,
+    ),
 };
 
 export const studentService = {

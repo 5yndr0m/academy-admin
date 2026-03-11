@@ -104,13 +104,29 @@ export function SessionManager({ onSessionChange }: SessionManagerProps) {
   const loadData = useCallback(async () => {
     try {
       setRefreshing(true);
-      const [dashboardData, classesData, classroomsData] = await Promise.all([
-        dashboardService.get(),
-        classService.getAll(),
-        classroomService.getAll(),
-      ]);
 
-      setTodaySessions(dashboardData.today_sessions || []);
+      // Get date range for next 7 days
+      const today = new Date();
+      const nextWeek = new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000);
+      const startDate = today.toISOString().split("T")[0];
+      const endDate = nextWeek.toISOString().split("T")[0];
+
+      const [todayData, activeData, futureData, classesData, classroomsData] =
+        await Promise.all([
+          sessionService.getToday(),
+          sessionService.getActive(),
+          sessionService.getByDateRange(startDate, endDate),
+          classService.getAll(),
+          classroomService.getAll(),
+        ]);
+
+      // Combine all sessions, removing duplicates
+      const allSessions = [...todayData, ...activeData, ...futureData].filter(
+        (session, index, self) =>
+          index === self.findIndex((s) => s.id === session.id),
+      );
+
+      setTodaySessions(allSessions || []);
       setClasses(classesData.filter((c) => c.status === "ACTIVE"));
       setClassrooms(classroomsData.filter((c) => c.is_usable));
     } catch (error) {
@@ -200,8 +216,18 @@ export function SessionManager({ onSessionChange }: SessionManagerProps) {
     );
   }
 
-  const actualSessions = todaySessions.filter((s) => !s.is_schedule);
-  const scheduledClasses = todaySessions.filter((s) => s.is_schedule);
+  // Filter sessions by status and time
+  const now = new Date();
+  const today = now.toISOString().split("T")[0];
+  const currentTime = now.toTimeString().slice(0, 5);
+
+  const activeSessions = todaySessions.filter((s) => s.status === "ACTIVE");
+  const scheduledSessions = todaySessions.filter(
+    (s) => s.status === "SCHEDULED",
+  );
+  const completedSessions = todaySessions.filter(
+    (s) => s.status === "COMPLETED",
+  );
 
   return (
     <div className="space-y-6">
@@ -397,14 +423,14 @@ export function SessionManager({ onSessionChange }: SessionManagerProps) {
         <CardContent>
           <div className="space-y-6">
             {/* Active Sessions */}
-            {actualSessions.length > 0 && (
+            {activeSessions.length > 0 && (
               <div>
                 <h3 className="text-sm font-medium mb-3 flex items-center gap-2">
                   <CheckCircle className="h-4 w-4 text-green-600" />
-                  Active Sessions ({actualSessions.length})
+                  Active Sessions ({activeSessions.length})
                 </h3>
                 <div className="grid gap-3">
-                  {actualSessions.map((session) => (
+                  {activeSessions.map((session) => (
                     <div
                       key={session.id}
                       className="flex items-center justify-between p-3 border rounded-lg bg-green-50 dark:bg-green-950/30 border-green-200 dark:border-green-800"
@@ -423,6 +449,9 @@ export function SessionManager({ onSessionChange }: SessionManagerProps) {
                           <p className="text-xs text-muted-foreground">
                             {session.classroom?.name || "No room"} •{" "}
                             {session.class?.teacher?.full_name || "No teacher"}
+                          </p>
+                          <p className="text-xs text-green-600">
+                            {session.session_date || today} • Active
                           </p>
                         </div>
                       </div>
@@ -445,43 +474,56 @@ export function SessionManager({ onSessionChange }: SessionManagerProps) {
               </div>
             )}
 
-            {/* Scheduled Classes (from recurring schedules) */}
-            {scheduledClasses.length > 0 && (
+            {/* Scheduled Sessions (Future) */}
+            {scheduledSessions.length > 0 && (
               <div>
                 <h3 className="text-sm font-medium mb-3 flex items-center gap-2">
-                  <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400" />
-                  Scheduled Classes ({scheduledClasses.length})
-                  <Badge variant="secondary" className="text-xs">
-                    From recurring schedules
-                  </Badge>
+                  <Clock className="h-4 w-4 text-blue-600" />
+                  Scheduled Sessions ({scheduledSessions.length})
                 </h3>
                 <div className="grid gap-3">
-                  {scheduledClasses.map((schedule) => (
+                  {scheduledSessions.map((session) => (
                     <div
-                      key={schedule.id}
-                      className="flex items-center justify-between p-3 border rounded-lg bg-amber-50 dark:bg-amber-950/30 border-amber-200 dark:border-amber-800"
+                      key={session.id}
+                      className="flex items-center justify-between p-3 border rounded-lg bg-blue-50 dark:bg-blue-950/30 border-blue-200 dark:border-blue-800"
                     >
                       <div className="flex items-center gap-4">
                         <Badge
                           variant="outline"
-                          className="bg-amber-100 dark:bg-amber-900 text-amber-700 dark:text-amber-300 border-amber-300 dark:border-amber-700"
+                          className="bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 border-blue-300 dark:border-blue-700"
                         >
-                          {schedule.start_time} - {schedule.end_time}
+                          {session.start_time} - {session.end_time}
                         </Badge>
                         <div>
                           <p className="font-medium text-sm">
-                            {schedule.class?.name || "Unknown Class"}
+                            {session.class?.name || "Unknown Class"}
                           </p>
                           <p className="text-xs text-muted-foreground">
-                            {schedule.classroom?.name || "No room"} •{" "}
-                            {schedule.class?.teacher?.full_name || "No teacher"}
+                            {session.classroom?.name || "No room"} •{" "}
+                            {session.class?.teacher?.full_name || "No teacher"}
+                          </p>
+                          <p className="text-xs text-blue-600">
+                            {session.session_date || today} • Scheduled
                           </p>
                         </div>
                       </div>
                       <div className="flex items-center gap-2">
-                        <Badge variant="secondary" className="text-xs">
-                          Not generated
+                        <Badge variant="outline" className="text-xs">
+                          Scheduled
                         </Badge>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleCancelSession(session.id)}
+                          disabled={cancelling === session.id}
+                          className="text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-950/30"
+                        >
+                          {cancelling === session.id ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <X className="h-4 w-4" />
+                          )}
+                        </Button>
                       </div>
                     </div>
                   ))}
@@ -489,10 +531,58 @@ export function SessionManager({ onSessionChange }: SessionManagerProps) {
               </div>
             )}
 
+            {/* Completed Sessions */}
+            {completedSessions.length > 0 && (
+              <div>
+                <h3 className="text-sm font-medium mb-3 flex items-center gap-2">
+                  <CheckCircle className="h-4 w-4 text-gray-600" />
+                  Completed Sessions ({completedSessions.length})
+                </h3>
+                <div className="grid gap-3">
+                  {completedSessions.slice(0, 5).map((session) => (
+                    <div
+                      key={session.id}
+                      className="flex items-center justify-between p-3 border rounded-lg bg-gray-50 dark:bg-gray-950/30 border-gray-200 dark:border-gray-800"
+                    >
+                      <div className="flex items-center gap-4">
+                        <Badge
+                          variant="outline"
+                          className="bg-gray-100 dark:bg-gray-900 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-700"
+                        >
+                          {session.start_time} - {session.end_time}
+                        </Badge>
+                        <div>
+                          <p className="font-medium text-sm">
+                            {session.class?.name || "Unknown Class"}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {session.classroom?.name || "No room"} •{" "}
+                            {session.class?.teacher?.full_name || "No teacher"}
+                          </p>
+                          <p className="text-xs text-gray-600">
+                            {session.session_date || today} • Completed
+                          </p>
+                        </div>
+                      </div>
+                      <Badge variant="secondary" className="text-xs">
+                        Completed
+                      </Badge>
+                    </div>
+                  ))}
+                  {completedSessions.length > 5 && (
+                    <p className="text-xs text-center text-muted-foreground">
+                      Showing recent 5 of {completedSessions.length} completed
+                      sessions
+                    </p>
+                  )}
+                </div>
+              </div>
+            )}
+
             {todaySessions.length === 0 && (
               <div className="text-center py-8 text-muted-foreground">
                 <Clock className="h-12 w-12 mx-auto opacity-20 dark:opacity-10 mb-3" />
-                <p className="text-sm">No sessions scheduled for today</p>
+                <p className="text-sm">No sessions found</p>
                 <p className="text-xs">
                   Create a manual session or generate from schedules
                 </p>
