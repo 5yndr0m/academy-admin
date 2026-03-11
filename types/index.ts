@@ -14,7 +14,7 @@ export interface User {
   email: string;
   role: UserRole;
   contact_number: string;
-  commission_percentage: number;
+  commission_percentage?: number;
   status: "ACTIVE" | "INACTIVE";
   created_at: string;
   updated_at: string;

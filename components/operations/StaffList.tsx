@@ -38,7 +38,15 @@ import {
 } from "@/components/ui/select";
 import { userService } from "@/lib/data";
 import { User } from "@/types";
-import { Plus, Loader2, ShieldCheck, Phone, UserCog, Mail } from "lucide-react";
+import {
+  Plus,
+  Loader2,
+  ShieldCheck,
+  Phone,
+  Mail,
+  Search,
+  Edit,
+} from "lucide-react";
 
 function AddStaffDialog({ onAdded }: { onAdded: () => void }) {
   const [open, setOpen] = useState(false);
@@ -233,17 +241,165 @@ function AddStaffDialog({ onAdded }: { onAdded: () => void }) {
   );
 }
 
+function UpdateStaffDialog({
+  user,
+  onUpdated,
+}: {
+  user: User;
+  onUpdated: () => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [form, setForm] = useState({
+    name: user.name,
+    email: user.email,
+    contact_number: user.contact_number,
+    commission_percentage: user.commission_percentage?.toString() || "",
+  });
+
+  const reset = () => {
+    setForm({
+      name: user.name,
+      email: user.email,
+      contact_number: user.contact_number,
+      commission_percentage: user.commission_percentage?.toString() || "",
+    });
+    setError(null);
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError(null);
+    try {
+      await userService.update(user.id, {
+        name: form.name,
+        email: form.email,
+        contact_number: form.contact_number,
+        commission_percentage: form.commission_percentage
+          ? Number(form.commission_percentage)
+          : 0,
+      });
+      setOpen(false);
+      reset();
+      onUpdated();
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Failed to update user");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <Dialog
+      open={open}
+      onOpenChange={(v) => {
+        setOpen(v);
+        if (!v) reset();
+      }}
+    >
+      <DialogTrigger asChild>
+        <Button variant="ghost" size="sm">
+          <Edit className="h-4 w-4" />
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="sm:max-w-[460px]">
+        <form onSubmit={handleSubmit}>
+          <DialogHeader>
+            <DialogTitle>Update Staff Member</DialogTitle>
+            <DialogDescription>
+              Update details for {user.username} ({user.role}).
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid gap-2">
+              <Label>Full Name</Label>
+              <Input
+                value={form.name}
+                onChange={(e) => setForm({ ...form, name: e.target.value })}
+                required
+                placeholder="John Doe"
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label>Email</Label>
+              <Input
+                type="email"
+                value={form.email}
+                onChange={(e) => setForm({ ...form, email: e.target.value })}
+                required
+                placeholder="john@academy.com"
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label>Contact Number</Label>
+              <Input
+                value={form.contact_number}
+                onChange={(e) =>
+                  setForm({ ...form, contact_number: e.target.value })
+                }
+                required
+                placeholder="07XXXXXXXX"
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label>
+                Commission %{" "}
+                <span className="text-muted-foreground text-xs">
+                  (0 for no commission)
+                </span>
+              </Label>
+              <Input
+                type="number"
+                min="0"
+                max="100"
+                value={form.commission_percentage}
+                onChange={(e) =>
+                  setForm({ ...form, commission_percentage: e.target.value })
+                }
+                placeholder="0"
+              />
+            </div>
+            {error && <p className="text-sm text-destructive">{error}</p>}
+          </div>
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button type="submit" disabled={loading}>
+              {loading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Updating…
+                </>
+              ) : (
+                "Update"
+              )}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
 export function StaffList() {
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [togglingId, setTogglingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [searching, setSearching] = useState(false);
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (search?: string) => {
     setLoading(true);
     setError(null);
     try {
-      const data = await userService.getAll();
+      const data = await userService.getAll(search);
       setUsers(data);
     } catch {
       setError("Failed to load staff");
@@ -251,6 +407,18 @@ export function StaffList() {
       setLoading(false);
     }
   }, []);
+
+  const handleSearch = async () => {
+    if (searching) return;
+    setSearching(true);
+    await load(searchTerm || undefined);
+    setSearching(false);
+  };
+
+  const handleClearSearch = async () => {
+    setSearchTerm("");
+    await load();
+  };
 
   useEffect(() => {
     load();
@@ -291,14 +459,49 @@ export function StaffList() {
 
   return (
     <Card>
-      <CardHeader className="flex flex-row items-center justify-between">
-        <div>
-          <CardTitle>Staff &amp; Administrators</CardTitle>
-          <CardDescription>
-            Manage system users, roles, and account access.
-          </CardDescription>
+      <CardHeader>
+        <div className="flex flex-row items-center justify-between">
+          <div>
+            <CardTitle>Staff &amp; Administrators</CardTitle>
+            <CardDescription>
+              Manage system users, roles, and account access.
+            </CardDescription>
+          </div>
+          <AddStaffDialog onAdded={() => load()} />
         </div>
-        <AddStaffDialog onAdded={load} />
+        <div className="flex items-center gap-2 mt-4">
+          <div className="relative flex-1 max-w-sm">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search staff by name, email, username, or contact..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10"
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  handleSearch();
+                }
+              }}
+            />
+          </div>
+          <Button
+            onClick={handleSearch}
+            disabled={searching}
+            variant="outline"
+            size="sm"
+          >
+            {searching ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              "Search"
+            )}
+          </Button>
+          {searchTerm && (
+            <Button onClick={handleClearSearch} variant="ghost" size="sm">
+              Clear
+            </Button>
+          )}
+        </div>
       </CardHeader>
       <CardContent>
         {error && (
@@ -367,20 +570,26 @@ export function StaffList() {
                     </Badge>
                   </TableCell>
                   <TableCell className="text-right">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      disabled={togglingId === u.id}
-                      onClick={() => handleToggle(u.id)}
-                    >
-                      {togglingId === u.id ? (
-                        <Loader2 className="h-4 w-4 animate-spin" />
-                      ) : u.status === "ACTIVE" ? (
-                        "Deactivate"
-                      ) : (
-                        "Activate"
-                      )}
-                    </Button>
+                    <div className="flex items-center gap-1 justify-end">
+                      <UpdateStaffDialog
+                        user={u}
+                        onUpdated={() => load(searchTerm || undefined)}
+                      />
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        disabled={togglingId === u.id}
+                        onClick={() => handleToggle(u.id)}
+                      >
+                        {togglingId === u.id ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : u.status === "ACTIVE" ? (
+                          "Deactivate"
+                        ) : (
+                          "Activate"
+                        )}
+                      </Button>
+                    </div>
                   </TableCell>
                 </TableRow>
               ))

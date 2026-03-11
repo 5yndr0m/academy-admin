@@ -38,7 +38,10 @@ export const authService = {
 };
 
 export const userService = {
-  getAll: () => apiClient.get<User[]>("/admin/users"),
+  getAll: (search?: string) => {
+    const params = search ? `?search=${encodeURIComponent(search)}` : "";
+    return apiClient.get<User[]>(`/admin/users${params}`);
+  },
 
   getById: (id: string) => apiClient.get<User>(`/admin/users/${id}`),
 
