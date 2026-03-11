@@ -82,6 +82,11 @@ export function UpdateTeacherDialog({
         email: email.trim() || undefined,
       });
 
+      // Update subject assignments
+      await teacherService.updateSubjects(teacher.id, {
+        subject_ids: selectedIds,
+      });
+
       setOpen(false);
       onUpdated();
     } catch (err: unknown) {
@@ -189,9 +194,15 @@ export function UpdateTeacherDialog({
                   </div>
                 )}
                 {!subjectsLoading && subjects.length > 0 && (
-                  <p className="text-xs text-muted-foreground mt-2">
-                    Note: Subject assignments will be updated separately.
-                  </p>
+                  <div className="mt-2 p-2 bg-muted/50 rounded text-xs">
+                    <p className="font-medium text-foreground mb-1">
+                      Selected: {selectedIds.length} subject
+                      {selectedIds.length !== 1 ? "s" : ""}
+                    </p>
+                    <p className="text-muted-foreground">
+                      Changes will be saved when you click "Update Teacher"
+                    </p>
+                  </div>
                 )}
               </div>
             </div>

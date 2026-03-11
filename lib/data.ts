@@ -131,6 +131,17 @@ export const teacherService = {
       `/teachers/${id}/toggle`,
     ),
 
+  updateSubjects: (
+    id: string,
+    data: {
+      subject_ids: string[];
+    },
+  ) =>
+    apiClient.put<{ message: string; subjects: Subject[] }>(
+      `/teachers/${id}/subjects`,
+      data,
+    ),
+
   search: (q: string) =>
     apiClient.get<SearchResult<Teacher>>(
       `/search/teachers?q=${encodeURIComponent(q)}`,
