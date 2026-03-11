@@ -273,8 +273,8 @@ export function StudentDetailsModal({
                         className={cn(
                           "text-[10px] h-5 font-semibold",
                           student.admission_fee_paid
-                            ? "bg-green-100 text-green-700 border-green-200"
-                            : "bg-amber-100 text-amber-700 border-amber-200",
+                            ? "bg-green-100 text-green-700 border-green-200 dark:bg-green-950 dark:text-green-300 dark:border-green-800"
+                            : "bg-amber-100 text-amber-700 border-amber-200 dark:bg-amber-950 dark:text-amber-300 dark:border-amber-800",
                         )}
                         variant="outline"
                       >
@@ -926,10 +926,10 @@ function StatusBadge({ status }: { status: string }) {
       className={cn(
         "text-[10px] font-bold",
         status === "ACTIVE" || status === "PAID"
-          ? "text-green-700 bg-green-50 border-green-200"
+          ? "text-green-700 bg-green-50 border-green-200 dark:text-green-300 dark:bg-green-950 dark:border-green-800"
           : status === "OVERDUE" || status === "FAILED"
-            ? "text-red-700 bg-red-50 border-red-200"
-            : "text-amber-700 bg-amber-50 border-amber-200",
+            ? "text-red-700 bg-red-50 border-red-200 dark:text-red-300 dark:bg-red-950 dark:border-red-800"
+            : "text-amber-700 bg-amber-50 border-amber-200 dark:text-amber-300 dark:bg-amber-950 dark:border-amber-800",
       )}
     >
       {status}

@@ -5,7 +5,7 @@ export default function StudentsPage() {
     <div className="space-y-6">
       <div>
         <h2 className="text-3xl font-bold tracking-tight">Students</h2>
-        <p className="text-slate-500">
+        <p className="text-muted-foreground">
           Manage student enrollment and fee payments.
         </p>
       </div>

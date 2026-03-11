@@ -35,7 +35,7 @@ import {
   Calendar,
   CheckCircle2,
   XCircle,
-  AlertCircle
+  AlertCircle,
 } from "lucide-react";
 
 interface AdmissionFeeDialogProps {
@@ -47,7 +47,7 @@ interface AdmissionFeeDialogProps {
 export function AdmissionFeeDialog({
   student,
   onUpdate,
-  trigger
+  trigger,
 }: AdmissionFeeDialogProps) {
   const { userId } = useAuth();
   const [open, setOpen] = useState(false);
@@ -96,7 +96,9 @@ export function AdmissionFeeDialog({
           payment_status: paymentStatus,
           payment_method: paymentStatus === "PAID" ? paymentMethod : undefined,
           notes: notes,
-          due_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0] // 30 days from now
+          due_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+            .toISOString()
+            .split("T")[0], // 30 days from now
         });
       }
 
@@ -105,7 +107,7 @@ export function AdmissionFeeDialog({
         admission_fee_paid: paymentStatus === "PAID",
         admission_fee_amount: admissionAmount,
         payment_method: paymentStatus === "PAID" ? paymentMethod : undefined,
-        notes: notes
+        notes: notes,
       });
 
       setOpen(false);
@@ -113,7 +115,7 @@ export function AdmissionFeeDialog({
       onUpdate?.();
     } catch (err: unknown) {
       setError(
-        err instanceof Error ? err.message : "Failed to process admission fee"
+        err instanceof Error ? err.message : "Failed to process admission fee",
       );
     } finally {
       setLoading(false);
@@ -122,9 +124,11 @@ export function AdmissionFeeDialog({
 
   const getStatusIcon = () => {
     if (student.admission_fee_paid) {
-      return <CheckCircle2 className="h-5 w-5 text-green-600" />;
+      return (
+        <CheckCircle2 className="h-5 w-5 text-green-600 dark:text-green-400" />
+      );
     }
-    return <XCircle className="h-5 w-5 text-red-600" />;
+    return <XCircle className="h-5 w-5 text-red-600 dark:text-red-400" />;
   };
 
   const getStatusText = () => {
@@ -163,7 +167,8 @@ export function AdmissionFeeDialog({
             Admission Fee Management
           </DialogTitle>
           <DialogDescription>
-            Manage admission fee payment status and create invoices for <strong>{student.fullname}</strong>
+            Manage admission fee payment status and create invoices for{" "}
+            <strong>{student.fullname}</strong>
           </DialogDescription>
         </DialogHeader>
 
@@ -183,9 +188,7 @@ export function AdmissionFeeDialog({
                 </div>
                 <div className="flex items-center gap-2">
                   {getStatusIcon()}
-                  <Badge className={getStatusColor()}>
-                    {getStatusText()}
-                  </Badge>
+                  <Badge className={getStatusColor()}>{getStatusText()}</Badge>
                 </div>
               </div>
             </div>
@@ -225,8 +228,7 @@ export function AdmissionFeeDialog({
               <p className="text-xs text-muted-foreground px-3">
                 {createInvoice
                   ? "An admission fee invoice will be created for record keeping"
-                  : "Only update the student's payment status"
-                }
+                  : "Only update the student's payment status"}
               </p>
             </div>
 
@@ -235,7 +237,9 @@ export function AdmissionFeeDialog({
               <Label>Payment Status *</Label>
               <Select
                 value={paymentStatus}
-                onValueChange={(value: "PAID" | "UNPAID") => setPaymentStatus(value)}
+                onValueChange={(value: "PAID" | "UNPAID") =>
+                  setPaymentStatus(value)
+                }
               >
                 <SelectTrigger>
                   <SelectValue />
@@ -243,13 +247,13 @@ export function AdmissionFeeDialog({
                 <SelectContent>
                   <SelectItem value="PAID">
                     <div className="flex items-center gap-2">
-                      <CheckCircle2 className="h-4 w-4 text-green-600" />
+                      <CheckCircle2 className="h-4 w-4 text-green-600 dark:text-green-400" />
                       Paid
                     </div>
                   </SelectItem>
                   <SelectItem value="UNPAID">
                     <div className="flex items-center gap-2">
-                      <XCircle className="h-4 w-4 text-red-600" />
+                      <XCircle className="h-4 w-4 text-red-600 dark:text-red-400" />
                       Unpaid
                     </div>
                   </SelectItem>
@@ -288,10 +292,11 @@ export function AdmissionFeeDialog({
 
             {/* Warning for already paid */}
             {student.admission_fee_paid && paymentStatus === "PAID" && (
-              <div className="flex items-center gap-2 p-3 bg-amber-50 border border-amber-200 rounded-lg">
-                <AlertCircle className="h-4 w-4 text-amber-600" />
-                <p className="text-sm text-amber-800">
-                  This student's admission fee is already marked as paid. This will update the records.
+              <div className="flex items-center gap-2 p-3 bg-amber-50 border border-amber-200 rounded-lg dark:bg-amber-950/30 dark:border-amber-800">
+                <AlertCircle className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+                <p className="text-sm text-amber-800 dark:text-amber-300">
+                  This student's admission fee is already marked as paid. This
+                  will update the records.
                 </p>
               </div>
             )}
@@ -312,10 +317,7 @@ export function AdmissionFeeDialog({
             >
               Cancel
             </Button>
-            <Button
-              type="submit"
-              disabled={loading}
-            >
+            <Button type="submit" disabled={loading}>
               {loading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
