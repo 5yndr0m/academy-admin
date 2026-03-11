@@ -29,6 +29,7 @@ import {
   InvoiceStatus,
   EnrollmentStatus,
 } from "@/types";
+import { useRouter } from "next/navigation";
 import {
   studentService,
   invoiceService,
@@ -38,6 +39,7 @@ import { EnrollStudentDialog } from "./EnrollStudentDialog";
 import { AdmissionFeeDialog } from "./AdmissionFeeDialog";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { StudentFeeHistory } from "./StudentFeeHistory";
+import { MultiRecordInvoiceDialog } from "./MultiRecordInvoiceDialog";
 import { VisuallyHidden } from "@/components/ui/visually-hidden";
 import {
   Eye,
@@ -61,6 +63,8 @@ import {
   Edit,
   Save,
   X,
+  Home,
+  ChevronRight,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -87,6 +91,7 @@ export function StudentDetailsModal({
   onUpdate,
 }: StudentDetailsModalProps) {
   const { role } = useAuth();
+  const router = useRouter();
   const [open, setOpen] = useState(false);
   const [student, setStudent] = useState<Student | null>(null);
   const [enrollments, setEnrollments] = useState<Enrollment[]>([]);
@@ -240,6 +245,18 @@ export function StudentDetailsModal({
           </div>
         ) : (
           <div className="flex flex-col h-full overflow-hidden">
+            {/* Breadcrumb Navigation */}
+            <div className="px-8 py-3 border-b bg-muted/30 flex-shrink-0">
+              <nav className="flex items-center gap-2 text-sm">
+                <Home className="h-4 w-4 text-muted-foreground" />
+                <span className="text-muted-foreground">Students</span>
+                <ChevronRight className="h-3 w-3 text-muted-foreground" />
+                <span className="font-medium">
+                  {student?.fullname ?? "Student Details"}
+                </span>
+              </nav>
+            </div>
+
             {/* Hero Banner */}
             <div className="bg-gradient-to-r from-primary/10 via-primary/5 to-transparent px-8 py-6 flex-shrink-0 border-b">
               <div className="flex items-start justify-between gap-6">
@@ -506,19 +523,23 @@ export function StudentDetailsModal({
                   <Separator />
 
                   {/* Action Buttons */}
-                  <div className="space-y-3 p-4 bg-muted/30 rounded-lg">
-                    <h3 className="text-sm font-medium flex items-center gap-2">
+                  <div className="space-y-4 p-4 bg-muted/30 rounded-lg border">
+                    <h3 className="text-sm font-medium flex items-center gap-2 text-foreground">
                       <Plus className="h-4 w-4" />
                       Quick Actions
                     </h3>
-                    <div className="flex flex-wrap gap-2">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                       {student && (
                         <>
                           <EnrollStudentDialog
                             student={student}
                             onEnrolled={load}
                             trigger={
-                              <Button variant="outline" size="sm">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="w-full justify-start"
+                              >
                                 <GraduationCap className="h-4 w-4 mr-2" />
                                 Enroll in Class
                               </Button>
@@ -528,11 +549,41 @@ export function StudentDetailsModal({
                             student={student}
                             onUpdate={load}
                             trigger={
-                              <Button variant="outline" size="sm">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="w-full justify-start"
+                              >
                                 <CreditCard className="h-4 w-4 mr-2" />
-                                Manage Admission Fee
+                                Admission Fee
                               </Button>
                             }
+                          />
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="w-full justify-start"
+                            onClick={() =>
+                              router.push(
+                                `/finance?tab=invoices&student_id=${student.id}`,
+                              )
+                            }
+                          >
+                            <Receipt className="h-4 w-4 mr-2" />
+                            All Invoices
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="w-full justify-start"
+                            onClick={() => setIsEditing(true)}
+                          >
+                            <Edit className="h-4 w-4 mr-2" />
+                            Edit Details
+                          </Button>
+                          <MultiRecordInvoiceDialog
+                            student={student}
+                            onInvoiceCreated={load}
                           />
                         </>
                       )}
@@ -682,6 +733,56 @@ export function StudentDetailsModal({
 
                     {/* Invoices */}
                     <TabsContent value="invoices" className="mt-4 space-y-3">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm text-muted-foreground">
+                            Student invoice records and payments
+                          </p>
+                          {invoices.length > 0 && (
+                            <div className="flex items-center gap-4 mt-1">
+                              <span className="text-xs text-muted-foreground">
+                                Total: Rs.{" "}
+                                {invoices
+                                  .reduce(
+                                    (sum, inv) => sum + inv.total_amount,
+                                    0,
+                                  )
+                                  .toLocaleString()}
+                              </span>
+                              <span className="text-xs text-green-600">
+                                Paid:{" "}
+                                {
+                                  invoices.filter(
+                                    (inv) => inv.payment_status === "PAID",
+                                  ).length
+                                }
+                              </span>
+                              <span className="text-xs text-amber-600">
+                                Pending:{" "}
+                                {
+                                  invoices.filter(
+                                    (inv) => inv.payment_status !== "PAID",
+                                  ).length
+                                }
+                              </span>
+                            </div>
+                          )}
+                        </div>
+                        {invoices.length > 0 && student && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() =>
+                              router.push(
+                                `/finance?tab=invoices&student_id=${student.id}`,
+                              )
+                            }
+                          >
+                            <Receipt className="h-4 w-4 mr-1" />
+                            Manage All
+                          </Button>
+                        )}
+                      </div>
                       {invoices.length === 0 ? (
                         <EmptyState
                           icon={<CreditCard />}
