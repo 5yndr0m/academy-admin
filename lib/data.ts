@@ -674,7 +674,7 @@ export const invoiceService = {
   }) => apiClient.post<Invoice>("/invoices/admission", data),
 
   markPaid: (id: string, paid_at?: string) =>
-    apiClient.patch(`/invoices/${id}/pay`, paid_at ? { paid_at } : undefined),
+    apiClient.patch(`/invoices/${id}/pay`, paid_at ? { paid_at } : {}),
 
   update: (
     id: string,
