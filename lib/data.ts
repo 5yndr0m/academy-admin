@@ -14,6 +14,8 @@ import type {
   AttendanceSummary,
   SessionWithAttendance,
   Invoice,
+  InvoiceItem,
+  MultiRecordInvoiceRequest,
   InvoiceType,
   InvoiceStatus,
   Expense,
@@ -732,6 +734,9 @@ export const invoiceService = {
       "/invoices/generate-pdf",
       { invoice_ids },
     ),
+
+  createMultiRecord: (data: MultiRecordInvoiceRequest) =>
+    apiClient.post<Invoice>("/invoices/multi-record", data),
 
   bulkAction: (data: {
     action: "PAY" | "SEND" | "GENERATE_PDF" | "DELETE";

@@ -217,6 +217,41 @@ export interface Invoice {
   class?: Class;
   collected_by_user?: User;
   created_by_user?: User;
+  invoice_items?: InvoiceItem[];
+}
+
+export interface InvoiceItem {
+  id: string;
+  invoice_id: string;
+  description: string;
+  amount: number;
+  quantity: number;
+  unit_price: number;
+  item_type: string;
+  enrollment_id?: string;
+  class_id?: string;
+  billing_period?: string;
+  created_at: string;
+  updated_at: string;
+  enrollment?: Enrollment;
+  class?: Class;
+}
+
+export interface InvoiceItemRequest {
+  description: string;
+  amount: number;
+  quantity: number;
+  item_type: string;
+  enrollment_id?: string;
+  class_id?: string;
+}
+
+export interface MultiRecordInvoiceRequest {
+  student_id: string;
+  billing_month: string;
+  due_date?: string;
+  notes?: string;
+  items: InvoiceItemRequest[];
 }
 
 export type ExpenseCategory =
