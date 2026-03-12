@@ -53,7 +53,7 @@ export function ClassroomStatusGrid({ status = [] }: ClassroomStatusGridProps) {
               ) : (
                 <Badge
                   variant="secondary"
-                  className="text-[10px] h-5 bg-green-100 text-green-700"
+                  className="text-[10px] h-5 bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-100"
                 >
                   Free
                 </Badge>
