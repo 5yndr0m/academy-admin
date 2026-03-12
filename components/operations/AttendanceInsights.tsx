@@ -25,226 +25,441 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { classService, attendanceService } from "@/lib/data";
-import { Class } from "@/types";
-import { Loader2, Users, TrendingUp, TrendingDown, Minus } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { classService, attendanceService, studentService } from "@/lib/data";
+import { Class, Student } from "@/types";
+import {
+  Loader2,
+  Users,
+  TrendingUp,
+  TrendingDown,
+  Calendar,
+  BarChart3,
+  AlertTriangle,
+  CheckCircle,
+  Clock,
+  Search,
+  X,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 
-interface StudentSummary {
+interface ClassOverview {
+  class_id: string;
+  class_name: string;
+  teacher_name: string;
+  total_students: number;
+  average_attendance: number;
+  excellent_students: number;
+  good_students: number;
+  poor_students: number;
+  critical_students: number;
+}
+
+interface WeeklyClassData {
   student_id: string;
-  full_name: string;
-  present: number;
-  absent: number;
-  late: number;
-  total: number;
+  student_name: string;
+  admission_no: string;
+  total_sessions: number;
+  present_count: number;
+  absent_count: number;
+  late_count: number;
+  attendance_rate: number;
+  status: string;
+}
+
+interface StudentOverview {
+  student_id: string;
+  student_name: string;
+  admission_no: string;
+  total_classes: number;
+  total_sessions: number;
+  total_present: number;
+  total_absent: number;
+  total_late: number;
+  overall_attendance: number;
+  status: string;
 }
 
 export function AttendanceInsights() {
   const [classes, setClasses] = useState<Class[]>([]);
-  const [classId, setClassId] = useState("");
-  const [month, setMonth] = useState(new Date().toISOString().slice(0, 7));
-  const [summary, setSummary] = useState<StudentSummary[]>([]);
+  const [selectedClassId, setSelectedClassId] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [filteredStudents, setFilteredStudents] = useState<Student[]>([]);
+  const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
+  const [dateRange, setDateRange] = useState({
+    from: new Date(new Date().getFullYear(), new Date().getMonth(), 1)
+      .toISOString()
+      .split("T")[0],
+    to: new Date().toISOString().split("T")[0],
+  });
+
+  const [classOverview, setClassOverview] = useState<ClassOverview | null>(
+    null,
+  );
+  const [weeklyData, setWeeklyData] = useState<WeeklyClassData[] | null>(null);
+  const [studentOverview, setStudentOverview] =
+    useState<StudentOverview | null>(null);
+
   const [loading, setLoading] = useState(false);
-  const [loadingCl, setLoadingCl] = useState(true);
+  const [loadingClasses, setLoadingClasses] = useState(true);
+  const [searchLoading, setSearchLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Load classes once
+  // Load classes on mount
   useEffect(() => {
     classService
       .getAll()
-      .then((data) => {
-        setClasses(data.filter((c) => c.status === "ACTIVE"));
-        if (data.length > 0) setClassId(data[0].id);
+      .then((classData) => {
+        const activeClasses = classData.filter((c) => c.status === "ACTIVE");
+        setClasses(activeClasses);
+        if (activeClasses.length > 0) {
+          setSelectedClassId(activeClasses[0].id);
+        }
       })
       .catch(() => setError("Failed to load classes"))
-      .finally(() => setLoadingCl(false));
+      .finally(() => setLoadingClasses(false));
   }, []);
 
-  // Load attendance summary when class or month changes
-  const loadSummary = useCallback(async () => {
-    if (!classId) return;
+  // Search students
+  const searchStudents = useCallback(async (query: string) => {
+    if (query.length < 2) {
+      setFilteredStudents([]);
+      return;
+    }
+
+    setSearchLoading(true);
+    try {
+      const searchResult = await studentService.search(query);
+      setFilteredStudents(searchResult.results.slice(0, 10)); // Limit to 10 results
+    } catch (error) {
+      setFilteredStudents([]);
+    } finally {
+      setSearchLoading(false);
+    }
+  }, []);
+
+  // Debounced search
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      searchStudents(searchQuery);
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [searchQuery, searchStudents]);
+
+  // Load class overview data
+  const loadClassOverview = useCallback(async () => {
+    if (!selectedClassId) return;
     setLoading(true);
     setError(null);
-    setSummary([]);
     try {
-      // Get all sessions for this class, filter by month client-side
-      // then aggregate attendance per student
-      const [sessionsRaw, enrollmentsRaw] = await Promise.all([
-        // sessions/class returns all sessions — we filter by month
-        fetch(`/api/sessions/class/${classId}`, {
-          headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
-        }).then((r) => r.json()),
-        fetch(`/api/enrollments/class/${classId}`, {
-          headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
-        }).then((r) => r.json()),
-      ]);
-
-      const sessions = (Array.isArray(sessionsRaw) ? sessionsRaw : []).filter(
-        (s: any) => (s.session_date ?? "").startsWith(month),
+      const overview = await attendanceService.getClassOverview(
+        selectedClassId,
+        dateRange.from,
+        dateRange.to,
       );
-
-      const enrollments = Array.isArray(enrollmentsRaw) ? enrollmentsRaw : [];
-
-      // For each session get attendance records
-      const allAttendance: any[] = [];
-      await Promise.all(
-        sessions.map(async (s: any) => {
-          try {
-            const recs = await attendanceService.getBySession(s.id);
-            allAttendance.push(...recs);
-          } catch {
-            /* skip failed sessions */
-          }
-        }),
-      );
-
-      // Aggregate by student
-      const map: Record<string, StudentSummary> = {};
-      enrollments.forEach((e: any) => {
-        const name =
-          e.student?.full_name ?? (e.student as any)?.fullname ?? e.student_id;
-        map[e.student_id] = {
-          student_id: e.student_id,
-          full_name: name,
-          present: 0,
-          absent: 0,
-          late: 0,
-          total: sessions.length,
-        };
-      });
-
-      allAttendance.forEach((a: any) => {
-        if (!map[a.student_id]) return;
-        if (a.status === "PRESENT") map[a.student_id].present++;
-        else if (a.status === "ABSENT") map[a.student_id].absent++;
-        else if (a.status === "LATE") map[a.student_id].late++;
-      });
-
-      setSummary(Object.values(map).sort((a, b) => b.present - a.present));
+      setClassOverview(overview);
     } catch {
-      setError("Failed to load attendance data");
+      setError("Failed to load class overview");
+      setClassOverview(null);
     } finally {
       setLoading(false);
     }
-  }, [classId, month]);
+  }, [selectedClassId, dateRange]);
 
+  // Load weekly class data - using week_start parameter (required by backend)
+  const loadWeeklyClassData = useCallback(async () => {
+    if (!selectedClassId) return;
+    setLoading(true);
+    setError(null);
+    setWeeklyData(null);
+
+    try {
+      // Ensure we have a valid date
+      const weekStart = dateRange.from;
+      if (!weekStart) {
+        throw new Error("Week start date is required");
+      }
+
+      const data = await attendanceService.getWeeklyForClass(
+        selectedClassId,
+        weekStart,
+      );
+
+      if (data === null || data === undefined) {
+        setWeeklyData([]);
+        setError(
+          "No attendance data found for this class and week. The class may not have sessions scheduled during this period.",
+        );
+      } else if (Array.isArray(data)) {
+        if (data.length === 0) {
+          setError(
+            "No students found or no attendance data available for the selected week.",
+          );
+        }
+        setWeeklyData(data);
+      } else {
+        setWeeklyData([]);
+        setError("Received unexpected data format from server.");
+      }
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : String(error);
+      if (errorMessage.includes("week_start parameter is required")) {
+        setError("Invalid date format. Please select a valid week start date.");
+      } else if (
+        errorMessage.includes("Not Found") ||
+        errorMessage.includes("404")
+      ) {
+        setError(
+          "Endpoint not found. Please check if the attendance API is available.",
+        );
+      } else if (errorMessage.includes("Invalid class ID")) {
+        setError("Invalid class selected. Please try a different class.");
+      } else {
+        setError(`API Error: ${errorMessage}`);
+      }
+      setWeeklyData([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [selectedClassId, dateRange.from]);
+
+  // Load student overview data
+  const loadStudentOverview = useCallback(async () => {
+    if (!selectedStudent) return;
+    setLoading(true);
+    setError(null);
+    try {
+      const overview = await attendanceService.getStudentOverall(
+        selectedStudent.id,
+        dateRange.from,
+        dateRange.to,
+      );
+      setStudentOverview(overview);
+    } catch {
+      setError("Failed to load student overview");
+      setStudentOverview(null);
+    } finally {
+      setLoading(false);
+    }
+  }, [selectedStudent, dateRange]);
+
+  // Auto-load data when dependencies change
   useEffect(() => {
-    loadSummary();
-  }, [loadSummary]);
+    loadClassOverview();
+  }, [loadClassOverview]);
 
-  const classAvg =
-    summary.length > 0
-      ? Math.round(
-          (summary.reduce(
-            (s, r) => s + (r.total > 0 ? r.present / r.total : 0),
-            0,
-          ) /
-            summary.length) *
-            100,
-        )
-      : null;
+  const getAttendanceStatusBadge = (rate: number, status: string) => {
+    if (rate >= 90) {
+      return (
+        <Badge className="bg-green-100 dark:bg-green-950 text-green-700 dark:text-green-300 border-green-300 dark:border-green-700">
+          <CheckCircle className="h-3 w-3 mr-1" />
+          Excellent
+        </Badge>
+      );
+    } else if (rate >= 75) {
+      return (
+        <Badge className="bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-300 border-blue-300 dark:border-blue-700">
+          <TrendingUp className="h-3 w-3 mr-1" />
+          Good
+        </Badge>
+      );
+    } else if (rate >= 50) {
+      return (
+        <Badge className="bg-amber-100 dark:bg-amber-950 text-amber-700 dark:text-amber-300 border-amber-300 dark:border-amber-700">
+          <Clock className="h-3 w-3 mr-1" />
+          Needs Improvement
+        </Badge>
+      );
+    } else {
+      return (
+        <Badge className="bg-red-100 dark:bg-red-950 text-red-700 dark:text-red-300 border-red-300 dark:border-red-700">
+          <AlertTriangle className="h-3 w-3 mr-1" />
+          Critical
+        </Badge>
+      );
+    }
+  };
 
-  const AttIcon =
-    classAvg == null ? Minus : classAvg >= 80 ? TrendingUp : TrendingDown;
-  const attColor =
-    classAvg == null
-      ? ""
-      : classAvg >= 80
-        ? "text-green-600"
-        : classAvg >= 60
-          ? "text-amber-600"
-          : "text-red-600";
+  const getProgressBarColor = (rate: number) => {
+    if (rate >= 90) return "bg-green-500";
+    if (rate >= 75) return "bg-blue-500";
+    if (rate >= 50) return "bg-amber-500";
+    return "bg-red-500";
+  };
 
   return (
-    <div className="space-y-4">
-      {/* Controls */}
+    <div className="space-y-6">
+      {/* Date Range Controls */}
       <div className="flex flex-col sm:flex-row gap-3 items-start sm:items-center">
-        <Select value={classId} onValueChange={setClassId} disabled={loadingCl}>
-          <SelectTrigger className="w-[260px]">
-            <SelectValue placeholder="Select a class…" />
-          </SelectTrigger>
-          <SelectContent>
-            {classes.map((c) => (
-              <SelectItem key={c.id} value={c.id}>
-                {c.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <Input
-          type="month"
-          value={month}
-          onChange={(e) => setMonth(e.target.value)}
-          className="w-[160px] h-9"
-        />
+        <div className="flex gap-2 items-center">
+          <Calendar className="h-4 w-4 text-muted-foreground" />
+          <Input
+            type="date"
+            value={dateRange.from}
+            onChange={(e) =>
+              setDateRange((prev) => ({ ...prev, from: e.target.value }))
+            }
+            className="w-[140px]"
+          />
+          <span className="text-muted-foreground text-sm">to</span>
+          <Input
+            type="date"
+            value={dateRange.to}
+            onChange={(e) =>
+              setDateRange((prev) => ({ ...prev, to: e.target.value }))
+            }
+            className="w-[140px]"
+          />
+        </div>
       </div>
 
-      {/* Summary cards */}
-      {!loading && summary.length > 0 && (
-        <div className="grid grid-cols-4 gap-3">
-          {[
-            { label: "Students", value: summary.length, color: "slate" },
-            {
-              label: "Avg Attendance",
-              value: classAvg != null ? `${classAvg}%` : "—",
-              color: classAvg != null && classAvg >= 80 ? "green" : "amber",
-            },
-            {
-              label: "Perfect (100%)",
-              value: summary.filter((s) => s.total > 0 && s.present === s.total)
-                .length,
-              color: "green",
-            },
-            {
-              label: "At Risk (<60%)",
-              value: summary.filter(
-                (s) => s.total > 0 && s.present / s.total < 0.6,
-              ).length,
-              color: "red",
-            },
-          ].map(({ label, value, color }) => (
-            <Card
-              key={label}
-              className={cn(
-                "border text-center",
-                color === "green" && "border-green-200 bg-green-50",
-                color === "red" && "border-red-200 bg-red-50",
-                color === "amber" && "border-amber-200 bg-amber-50",
-              )}
+      <Tabs defaultValue="class-overview" className="space-y-4">
+        <TabsList className="grid w-full grid-cols-3">
+          <TabsTrigger value="class-overview">Class Overview</TabsTrigger>
+          <TabsTrigger value="student-details">Student Details</TabsTrigger>
+          <TabsTrigger value="student-overview">Individual Student</TabsTrigger>
+        </TabsList>
+
+        {/* Class Overview Tab */}
+        <TabsContent value="class-overview" className="space-y-4">
+          <div className="flex gap-3">
+            <Select
+              value={selectedClassId}
+              onValueChange={setSelectedClassId}
+              disabled={loadingClasses}
             >
-              <CardContent className="pt-4 pb-3">
-                <p
-                  className={cn(
-                    "text-3xl font-bold",
-                    color === "green" && "text-green-700",
-                    color === "red" && "text-red-700",
-                    color === "amber" && "text-amber-700",
-                  )}
-                >
-                  {value}
-                </p>
-                <p className="text-xs text-muted-foreground mt-0.5">{label}</p>
+              <SelectTrigger className="w-[260px]">
+                <SelectValue placeholder="Select a class…" />
+              </SelectTrigger>
+              <SelectContent>
+                {classes.map((c) => (
+                  <SelectItem key={c.id} value={c.id}>
+                    {c.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Button
+              onClick={loadClassOverview}
+              disabled={loading || !selectedClassId}
+              size="sm"
+            >
+              {loading ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                "Refresh"
+              )}
+            </Button>
+          </div>
+
+          {classOverview && (
+            <>
+              {/* Class Summary Cards */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <Card className="text-center bg-card">
+                  <CardContent className="pt-4 pb-3">
+                    <p className="text-2xl font-bold text-foreground">
+                      {classOverview.total_students}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Total Students
+                    </p>
+                  </CardContent>
+                </Card>
+                <Card className="text-center bg-card">
+                  <CardContent className="pt-4 pb-3">
+                    <p className="text-2xl font-bold text-green-600 dark:text-green-400">
+                      {Math.round(classOverview.average_attendance)}%
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Avg Attendance
+                    </p>
+                  </CardContent>
+                </Card>
+                <Card className="text-center bg-card">
+                  <CardContent className="pt-4 pb-3">
+                    <p className="text-2xl font-bold text-green-600 dark:text-green-400">
+                      {classOverview.excellent_students}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Excellent (&ge;90%)
+                    </p>
+                  </CardContent>
+                </Card>
+                <Card className="text-center bg-card">
+                  <CardContent className="pt-4 pb-3">
+                    <p className="text-2xl font-bold text-red-600 dark:text-red-400">
+                      {classOverview.critical_students}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      Critical (&lt;50%)
+                    </p>
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Performance Breakdown */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Performance Distribution</CardTitle>
+                  <CardDescription>
+                    Student attendance performance breakdown for{" "}
+                    {classOverview.class_name}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    <div className="text-center p-4 border rounded-lg">
+                      <CheckCircle className="h-8 w-8 text-green-500 mx-auto mb-2" />
+                      <p className="text-2xl font-bold text-green-600">
+                        {classOverview.excellent_students}
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        Excellent (90%+)
+                      </p>
+                    </div>
+                    <div className="text-center p-4 border rounded-lg">
+                      <TrendingUp className="h-8 w-8 text-blue-500 mx-auto mb-2" />
+                      <p className="text-2xl font-bold text-blue-600">
+                        {classOverview.good_students}
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        Good (75-89%)
+                      </p>
+                    </div>
+                    <div className="text-center p-4 border rounded-lg">
+                      <Clock className="h-8 w-8 text-amber-500 mx-auto mb-2" />
+                      <p className="text-2xl font-bold text-amber-600">
+                        {classOverview.poor_students}
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        Poor (50-74%)
+                      </p>
+                    </div>
+                    <div className="text-center p-4 border rounded-lg">
+                      <AlertTriangle className="h-8 w-8 text-red-500 mx-auto mb-2" />
+                      <p className="text-2xl font-bold text-red-600">
+                        {classOverview.critical_students}
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        Critical (&lt;50%)
+                      </p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </>
+          )}
+
+          {!loading && error && (
+            <Card>
+              <CardContent className="pt-6">
+                <p className="text-sm text-destructive text-center">{error}</p>
               </CardContent>
             </Card>
-          ))}
-        </div>
-      )}
-
-      {/* Student table */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Users className="h-5 w-5" /> Student Attendance — {month}
-          </CardTitle>
-          <CardDescription>
-            {classId
-              ? `${classes.find((c) => c.id === classId)?.name ?? ""} · Based on ${summary[0]?.total ?? 0} sessions this month`
-              : "Select a class to view attendance."}
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {error && (
-            <p className="text-sm text-destructive text-center py-4">{error}</p>
           )}
 
           {loading && (
@@ -252,97 +467,378 @@ export function AttendanceInsights() {
               <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
             </div>
           )}
+        </TabsContent>
 
-          {!loading && summary.length === 0 && !error && (
-            <p className="text-sm text-muted-foreground text-center py-10">
-              {classId
-                ? "No attendance data for this class and month."
-                : "Select a class above."}
-            </p>
-          )}
+        {/* Student Details Tab */}
+        <TabsContent value="student-details" className="space-y-4">
+          <div className="flex gap-3">
+            <Select
+              value={selectedClassId}
+              onValueChange={setSelectedClassId}
+              disabled={loadingClasses}
+            >
+              <SelectTrigger className="w-[260px]">
+                <SelectValue placeholder="Select a class…" />
+              </SelectTrigger>
+              <SelectContent>
+                {classes.map((c) => (
+                  <SelectItem key={c.id} value={c.id}>
+                    {c.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Button
+              onClick={() => {
+                if (!selectedClassId) {
+                  return;
+                }
+                if (!dateRange.from) {
+                  setError("Please select a valid week start date");
+                  return;
+                }
+                loadWeeklyClassData();
+              }}
+              disabled={loading || !selectedClassId || !dateRange.from}
+              size="sm"
+            >
+              {loading ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                "Load Details"
+              )}
+            </Button>
+          </div>
 
-          {!loading && summary.length > 0 && (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Student</TableHead>
-                  <TableHead>Present</TableHead>
-                  <TableHead>Absent</TableHead>
-                  <TableHead>Late</TableHead>
-                  <TableHead>Rate</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {summary.map((s) => {
-                  const rate =
-                    s.total > 0 ? Math.round((s.present / s.total) * 100) : 0;
-                  const rateColor =
-                    rate >= 80
-                      ? "text-green-700"
-                      : rate >= 60
-                        ? "text-amber-600"
-                        : "text-red-600";
-                  const barColor =
-                    rate >= 80
-                      ? "bg-green-500"
-                      : rate >= 60
-                        ? "bg-amber-500"
-                        : "bg-red-500";
-                  return (
-                    <TableRow key={s.student_id}>
-                      <TableCell className="font-medium text-sm">
-                        {s.full_name}
-                      </TableCell>
-                      <TableCell>
-                        <Badge
-                          variant="outline"
-                          className="bg-green-50 text-green-700 border-green-200 text-[10px]"
-                        >
-                          {s.present}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <Badge
-                          variant="outline"
-                          className="bg-red-50 text-red-700 border-red-200 text-[10px]"
-                        >
-                          {s.absent}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <Badge
-                          variant="outline"
-                          className="bg-amber-50 text-amber-700 border-amber-200 text-[10px]"
-                        >
-                          {s.late}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="min-w-[160px]">
-                        <div className="flex items-center gap-2">
-                          <div className="h-2 flex-1 bg-muted rounded-full overflow-hidden">
-                            <div
-                              className={cn("h-full transition-all", barColor)}
-                              style={{ width: `${rate}%` }}
-                            />
-                          </div>
-                          <span
-                            className={cn(
-                              "text-xs font-bold w-10 text-right",
-                              rateColor,
-                            )}
-                          >
-                            {s.total > 0 ? `${rate}%` : "—"}
-                          </span>
-                        </div>
-                      </TableCell>
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <BarChart3 className="h-5 w-5" />
+                Student Attendance Details
+              </CardTitle>
+              <CardDescription>
+                Individual student performance in selected class for the week
+                starting {dateRange.from}
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {loading ? (
+                <div className="flex justify-center py-10">
+                  <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                </div>
+              ) : weeklyData &&
+                Array.isArray(weeklyData) &&
+                weeklyData.length > 0 ? (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Student</TableHead>
+                      <TableHead>Admission No</TableHead>
+                      <TableHead>Sessions</TableHead>
+                      <TableHead>Present</TableHead>
+                      <TableHead>Absent</TableHead>
+                      <TableHead>Late</TableHead>
+                      <TableHead>Rate</TableHead>
+                      <TableHead>Status</TableHead>
                     </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {weeklyData
+                      .sort((a, b) => b.attendance_rate - a.attendance_rate)
+                      .map((student) => (
+                        <TableRow key={student.student_id}>
+                          <TableCell className="font-medium">
+                            {student.student_name}
+                          </TableCell>
+                          <TableCell className="font-mono text-sm">
+                            {student.admission_no}
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant="outline">
+                              {student.total_sessions}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <Badge
+                              variant="outline"
+                              className="bg-green-50 dark:bg-green-950/20 text-green-700 dark:text-green-300 border-green-200 dark:border-green-800"
+                            >
+                              {student.present_count}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <Badge
+                              variant="outline"
+                              className="bg-red-50 dark:bg-red-950/20 text-red-700 dark:text-red-300 border-red-200 dark:border-red-800"
+                            >
+                              {student.absent_count}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <Badge
+                              variant="outline"
+                              className="bg-amber-50 dark:bg-amber-950/20 text-amber-700 dark:text-amber-300 border-amber-200 dark:border-amber-800"
+                            >
+                              {student.late_count}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-2">
+                              <div className="h-2 w-16 bg-muted rounded-full overflow-hidden">
+                                <div
+                                  className={cn(
+                                    "h-full transition-all",
+                                    getProgressBarColor(
+                                      student.attendance_rate,
+                                    ),
+                                  )}
+                                  style={{
+                                    width: `${student.attendance_rate}%`,
+                                  }}
+                                />
+                              </div>
+                              <span className="text-xs font-medium w-12 text-right">
+                                {Math.round(student.attendance_rate)}%
+                              </span>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            {getAttendanceStatusBadge(
+                              student.attendance_rate,
+                              student.status,
+                            )}
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                  </TableBody>
+                </Table>
+              ) : error ? (
+                <div className="text-center py-10 space-y-2">
+                  <AlertTriangle className="h-8 w-8 mx-auto text-destructive" />
+                  <p className="text-sm text-destructive font-medium">
+                    {error}
+                  </p>
+                  <div className="text-xs text-muted-foreground">
+                    <p>
+                      Make sure the class has sessions scheduled for this week
+                    </p>
+                    <p>and students are enrolled in the selected class.</p>
+                  </div>
+                </div>
+              ) : (
+                <div className="text-center py-10">
+                  <Calendar className="h-12 w-12 mx-auto text-muted-foreground/30 mb-4" />
+                  <p className="text-sm text-muted-foreground">
+                    {!selectedClassId
+                      ? "Select a class to view student attendance data."
+                      : weeklyData === null
+                        ? 'Click "Load Details" to view student attendance data.'
+                        : "No students found for the selected class and week."}
+                  </p>
+                  {selectedClassId && weeklyData !== null && (
+                    <p className="text-xs text-muted-foreground mt-2">
+                      Try selecting a different week or check if students are
+                      enrolled in this class.
+                    </p>
+                  )}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Individual Student Overview Tab */}
+        <TabsContent value="student-overview" className="space-y-4">
+          <div className="flex gap-3">
+            <div className="relative flex-1 max-w-sm">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search students..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-10 pr-10"
+              />
+              {searchQuery && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    setSearchQuery("");
+                    setSelectedStudent(null);
+                    setStudentOverview(null);
+                  }}
+                  className="absolute right-1 top-1/2 transform -translate-y-1/2 h-6 w-6 p-0"
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              )}
+
+              {/* Search Results Dropdown */}
+              {searchQuery && filteredStudents.length > 0 && (
+                <div className="absolute top-full left-0 right-0 mt-1 bg-background border rounded-md shadow-lg z-10 max-h-48 overflow-y-auto">
+                  {filteredStudents.map((student) => (
+                    <div
+                      key={student.id}
+                      className="px-3 py-2 hover:bg-accent cursor-pointer border-b last:border-b-0"
+                      onClick={() => {
+                        setSelectedStudent(student);
+                        setSearchQuery(student.fullname);
+                        setFilteredStudents([]);
+                      }}
+                    >
+                      <p className="font-medium text-sm">{student.fullname}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {student.admission_no}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {selectedStudent && (
+              <Button
+                onClick={loadStudentOverview}
+                disabled={loading}
+                size="sm"
+              >
+                {loading ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  "Load Overview"
+                )}
+              </Button>
+            )}
+          </div>
+
+          {/* Selected Student Info */}
+          {selectedStudent && (
+            <Card>
+              <CardContent className="pt-4">
+                <div className="flex items-center gap-3">
+                  <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
+                    <span className="font-semibold text-primary">
+                      {selectedStudent.fullname?.charAt(0).toUpperCase() || "?"}
+                    </span>
+                  </div>
+                  <div>
+                    <h3 className="font-semibold">
+                      {selectedStudent.fullname}
+                    </h3>
+                    <p className="text-sm text-muted-foreground">
+                      {selectedStudent.admission_no}
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
           )}
-        </CardContent>
-      </Card>
+
+          {/* Student Overview Data */}
+          {studentOverview && (
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <Card className="text-center bg-card">
+                <CardContent className="pt-4 pb-3">
+                  <p className="text-2xl font-bold text-foreground">
+                    {studentOverview.total_classes}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Classes Enrolled
+                  </p>
+                </CardContent>
+              </Card>
+              <Card className="text-center bg-card">
+                <CardContent className="pt-4 pb-3">
+                  <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">
+                    {studentOverview.total_sessions}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Total Sessions
+                  </p>
+                </CardContent>
+              </Card>
+              <Card className="text-center bg-card">
+                <CardContent className="pt-4 pb-3">
+                  <p className="text-2xl font-bold text-green-600 dark:text-green-400">
+                    {studentOverview.total_present}
+                  </p>
+                  <p className="text-xs text-muted-foreground">Present</p>
+                </CardContent>
+              </Card>
+              <Card className="text-center bg-card">
+                <CardContent className="pt-4 pb-3">
+                  <p className="text-2xl font-bold text-green-600 dark:text-green-400">
+                    {Math.round(studentOverview.overall_attendance)}%
+                  </p>
+                  <p className="text-xs text-muted-foreground">Overall Rate</p>
+                </CardContent>
+              </Card>
+            </div>
+          )}
+
+          {/* Loading State */}
+          {loading && (
+            <div className="flex justify-center py-10">
+              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+            </div>
+          )}
+
+          {/* Error State */}
+          {!loading && error && (
+            <Card>
+              <CardContent className="pt-6">
+                <p className="text-sm text-destructive text-center">{error}</p>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Empty States */}
+          {!loading && !error && !selectedStudent && (
+            <Card>
+              <CardContent className="pt-6">
+                <div className="text-center py-8">
+                  <Search className="h-12 w-12 mx-auto text-muted-foreground/30 mb-4" />
+                  <p className="text-sm text-muted-foreground">
+                    Search for a student to view their attendance overview
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {!loading && !error && selectedStudent && !studentOverview && (
+            <Card>
+              <CardContent className="pt-6">
+                <p className="text-sm text-muted-foreground text-center">
+                  Click "Load Overview" to view attendance data for{" "}
+                  {selectedStudent.fullname}
+                </p>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Loading Indicator for Search */}
+          {searchLoading && searchQuery && (
+            <div className="absolute top-full left-0 right-0 mt-1 bg-background border rounded-md shadow-lg z-10 p-3">
+              <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                Searching...
+              </div>
+            </div>
+          )}
+
+          {/* No Results Message */}
+          {searchQuery.length >= 2 &&
+            !searchLoading &&
+            filteredStudents.length === 0 && (
+              <div className="absolute top-full left-0 right-0 mt-1 bg-background border rounded-md shadow-lg z-10 p-3">
+                <div className="text-sm text-muted-foreground text-center">
+                  No students found for "{searchQuery}"
+                </div>
+              </div>
+            )}
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
