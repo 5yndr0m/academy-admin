@@ -29,6 +29,19 @@ import type {
   DashboardData,
   SearchResult,
   AuditLog,
+  StudentPaymentRecord,
+  TeacherPayoutRecord,
+  StaffCommissionRecord,
+  ExpenseRecord,
+  CreateStudentPaymentRequest,
+  CreateTeacherPayoutRequest,
+  CreateStaffCommissionRequest,
+  CreateExpenseRecordRequest,
+  FinancialRecordFilters,
+  PaginatedFinancialResponse,
+  PayoutCalculationRequest,
+  CommissionCalculationRequest,
+  CalculationResponse,
 } from "@/types";
 
 export const authService = {
@@ -750,7 +763,7 @@ export const invoiceService = {
   bulkAction: (data: {
     action: "PAY" | "SEND" | "GENERATE_PDF" | "DELETE";
     invoice_ids: string[];
-    params?: Record<string, any>;
+    params?: Record<string, unknown>;
   }) =>
     apiClient.post<{ message: string; processed: number }>(
       "/invoices/bulk-action",
@@ -1084,8 +1097,138 @@ export const dashboardService = {
 };
 
 export const auditService = {
-  getRecent: async (): Promise<AuditLog[]> => {
+  getRecent: async () => {
     const dashboard = await dashboardService.get();
     return dashboard.recent_audit_logs;
   },
+};
+
+export const studentPaymentRecordService = {
+  getAll: (filters: FinancialRecordFilters = {}) => {
+    const params = new URLSearchParams();
+    if (filters.from_date) params.append("from_date", filters.from_date);
+    if (filters.to_date) params.append("to_date", filters.to_date);
+    if (filters.month) params.append("month", filters.month);
+    if (filters.student_id) params.append("student_id", filters.student_id);
+    if (filters.class_id) params.append("class_id", filters.class_id);
+    if (filters.payment_method)
+      params.append("payment_method", filters.payment_method);
+    if (filters.page) params.append("page", filters.page.toString());
+    if (filters.limit) params.append("limit", filters.limit.toString());
+
+    const qs = params.toString();
+    return apiClient.get<PaginatedFinancialResponse<StudentPaymentRecord>>(
+      `/student-payments${qs ? `?${qs}` : ""}`,
+    );
+  },
+
+  getById: (id: string) =>
+    apiClient.get<StudentPaymentRecord>(`/student-payments/${id}`),
+
+  create: (data: CreateStudentPaymentRequest) =>
+    apiClient.post<StudentPaymentRecord>("/student-payments", data),
+
+  update: (id: string, data: Partial<CreateStudentPaymentRequest>) =>
+    apiClient.put<StudentPaymentRecord>(`/student-payments/${id}`, data),
+
+  delete: (id: string) => apiClient.delete(`/student-payments/${id}`),
+};
+
+export const teacherPayoutRecordService = {
+  getAll: (filters: FinancialRecordFilters = {}) => {
+    const params = new URLSearchParams();
+    if (filters.from_date) params.append("from_date", filters.from_date);
+    if (filters.to_date) params.append("to_date", filters.to_date);
+    if (filters.month) params.append("month", filters.month);
+    if (filters.teacher_id) params.append("teacher_id", filters.teacher_id);
+    if (filters.class_id) params.append("class_id", filters.class_id);
+    if (filters.payment_method)
+      params.append("payment_method", filters.payment_method);
+    if (filters.page) params.append("page", filters.page.toString());
+    if (filters.limit) params.append("limit", filters.limit.toString());
+
+    const qs = params.toString();
+    return apiClient.get<PaginatedFinancialResponse<TeacherPayoutRecord>>(
+      `/teacher-payouts${qs ? `?${qs}` : ""}`,
+    );
+  },
+
+  getById: (id: string) =>
+    apiClient.get<TeacherPayoutRecord>(`/teacher-payouts/${id}`),
+
+  create: (data: CreateTeacherPayoutRequest) =>
+    apiClient.post<TeacherPayoutRecord>("/teacher-payouts", data),
+
+  update: (id: string, data: Partial<CreateTeacherPayoutRequest>) =>
+    apiClient.put<TeacherPayoutRecord>(`/teacher-payouts/${id}`, data),
+
+  delete: (id: string) => apiClient.delete(`/teacher-payouts/${id}`),
+
+  calculatePayout: (data: PayoutCalculationRequest) =>
+    apiClient.post<CalculationResponse>("/teacher-payouts/calculate", data),
+};
+
+export const staffCommissionRecordService = {
+  getAll: (filters: FinancialRecordFilters = {}) => {
+    const params = new URLSearchParams();
+    if (filters.from_date) params.append("from_date", filters.from_date);
+    if (filters.to_date) params.append("to_date", filters.to_date);
+    if (filters.month) params.append("month", filters.month);
+    if (filters.staff_id) params.append("staff_id", filters.staff_id);
+    if (filters.payment_method)
+      params.append("payment_method", filters.payment_method);
+    if (filters.page) params.append("page", filters.page.toString());
+    if (filters.limit) params.append("limit", filters.limit.toString());
+
+    const qs = params.toString();
+    return apiClient.get<PaginatedFinancialResponse<StaffCommissionRecord>>(
+      `/staff-commissions${qs ? `?${qs}` : ""}`,
+    );
+  },
+
+  getById: (id: string) =>
+    apiClient.get<StaffCommissionRecord>(`/staff-commissions/${id}`),
+
+  create: (data: CreateStaffCommissionRequest) =>
+    apiClient.post<StaffCommissionRecord>("/staff-commissions", data),
+
+  update: (id: string, data: Partial<CreateStaffCommissionRequest>) =>
+    apiClient.put<StaffCommissionRecord>(`/staff-commissions/${id}`, data),
+
+  delete: (id: string) => apiClient.delete(`/staff-commissions/${id}`),
+
+  calculateCommission: (data: CommissionCalculationRequest) =>
+    apiClient.post<CalculationResponse>("/staff-commissions/calculate", data),
+};
+
+export const expenseRecordService = {
+  getAll: (filters: FinancialRecordFilters = {}) => {
+    const params = new URLSearchParams();
+    if (filters.from_date) params.append("from_date", filters.from_date);
+    if (filters.to_date) params.append("to_date", filters.to_date);
+    if (filters.month) params.append("month", filters.month);
+    if (filters.category) params.append("category", filters.category);
+    if (filters.payment_method)
+      params.append("payment_method", filters.payment_method);
+    if (filters.page) params.append("page", filters.page.toString());
+    if (filters.limit) params.append("limit", filters.limit.toString());
+
+    const qs = params.toString();
+    return apiClient.get<PaginatedFinancialResponse<ExpenseRecord>>(
+      `/expense-records${qs ? `?${qs}` : ""}`,
+    );
+  },
+
+  getById: (id: string) =>
+    apiClient.get<ExpenseRecord>(`/expense-records/${id}`),
+
+  create: (data: CreateExpenseRecordRequest) =>
+    apiClient.post<ExpenseRecord>("/expense-records", data),
+
+  update: (id: string, data: Partial<CreateExpenseRecordRequest>) =>
+    apiClient.put<ExpenseRecord>(`/expense-records/${id}`, data),
+
+  delete: (id: string) => apiClient.delete(`/expense-records/${id}`),
+
+  getCategories: () => apiClient.get<string[]>("/expense-records/categories"),
 };

@@ -6,7 +6,7 @@ import { UpcomingClasses } from "@/components/dashboard/UpcomingClasses";
 import { ClassroomStatusGrid } from "@/components/dashboard/ClassroomStatusGrid";
 import { ActivityFeed } from "@/components/dashboard/ActivityFeed";
 import { WeekTimetable } from "@/components/dashboard/WeekTimetable";
-import { DashboardFinanceSummary } from "@/components/dashboard/DashboardFinanceSummary";
+import { FinancialDashboard } from "@/components/finance/FinancialDashboard";
 import { dashboardService } from "@/lib/data";
 import { DashboardData } from "@/types";
 import { Loader2 } from "lucide-react";
@@ -90,7 +90,7 @@ export default function Home() {
 
         {role === "ADMIN" && (
           <TabsContent value="financial">
-            <DashboardFinanceSummary financial={data.financial_summary} />
+            <FinancialDashboard />
           </TabsContent>
         )}
       </Tabs>

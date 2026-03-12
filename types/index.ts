@@ -454,3 +454,187 @@ export interface StaffPayment {
   created_by_user?: User;
   invoice?: Invoice;
 }
+
+export interface StudentPaymentRecord {
+  id: string;
+  student_id: string;
+  class_id: string;
+  amount: number;
+  payment_date: string; // YYYY-MM-DD
+  payment_month: string; // YYYY-MM
+  payment_method: "CASH" | "BANK_TRANSFER" | "CHEQUE";
+  recorded_by: string;
+  notes: string;
+  created_at: string;
+  updated_at: string;
+  student?: Student;
+  class?: Class;
+  recorded_by_user?: User;
+}
+
+export interface TeacherPayoutRecord {
+  id: string;
+  teacher_id: string;
+  class_id: string;
+  amount: number;
+  total_revenue_collected: number;
+  payout_percentage: number;
+  payout_date: string; // YYYY-MM-DD
+  payout_month: string; // YYYY-MM
+  payment_method: "CASH" | "BANK_TRANSFER" | "CHEQUE";
+  recorded_by: string;
+  student_count: number;
+  notes: string;
+  created_at: string;
+  updated_at: string;
+  teacher?: Teacher;
+  class?: Class;
+  recorded_by_user?: User;
+}
+
+export interface StaffCommissionRecord {
+  id: string;
+  staff_id: string;
+  amount: number;
+  total_revenue_collected: number;
+  total_teacher_payouts: number;
+  net_revenue: number;
+  commission_percentage: number;
+  payment_date: string; // YYYY-MM-DD
+  payment_month: string; // YYYY-MM
+  payment_method: "CASH" | "BANK_TRANSFER" | "CHEQUE";
+  recorded_by: string;
+  notes: string;
+  created_at: string;
+  updated_at: string;
+  staff?: User;
+  recorded_by_user?: User;
+}
+
+export interface ExpenseRecord {
+  id: string;
+  category:
+    | "UTILITIES"
+    | "MAINTENANCE"
+    | "SUPPLIES"
+    | "RENT"
+    | "INSURANCE"
+    | "MARKETING"
+    | "SALARY"
+    | "OTHER";
+  description: string;
+  amount: number;
+  vendor: string;
+  expense_date: string; // YYYY-MM-DD
+  payment_method: "CASH" | "BANK_TRANSFER" | "CHEQUE" | "CARD";
+  recorded_by: string;
+  receipt_ref: string;
+  notes: string;
+  created_at: string;
+  updated_at: string;
+  recorded_by_user?: User;
+}
+
+// Request/Response types for the new financial system
+export interface CreateStudentPaymentRequest {
+  student_id: string;
+  class_id: string;
+  amount: number;
+  payment_date: string; // YYYY-MM-DD
+  payment_month: string; // YYYY-MM
+  payment_method: "CASH" | "BANK_TRANSFER" | "CHEQUE";
+  notes?: string;
+}
+
+export interface CreateTeacherPayoutRequest {
+  teacher_id: string;
+  class_id: string;
+  amount: number;
+  total_revenue_collected: number;
+  payout_percentage: number;
+  payout_date: string; // YYYY-MM-DD
+  payout_month: string; // YYYY-MM
+  payment_method: "CASH" | "BANK_TRANSFER" | "CHEQUE";
+  student_count?: number;
+  notes?: string;
+}
+
+export interface CreateStaffCommissionRequest {
+  staff_id: string;
+  amount: number;
+  total_revenue_collected: number;
+  total_teacher_payouts: number;
+  net_revenue: number;
+  commission_percentage: number;
+  payment_date: string; // YYYY-MM-DD
+  payment_month: string; // YYYY-MM
+  payment_method: "CASH" | "BANK_TRANSFER" | "CHEQUE";
+  notes?: string;
+}
+
+export interface CreateExpenseRecordRequest {
+  category:
+    | "UTILITIES"
+    | "MAINTENANCE"
+    | "SUPPLIES"
+    | "RENT"
+    | "INSURANCE"
+    | "MARKETING"
+    | "SALARY"
+    | "OTHER";
+  description: string;
+  amount: number;
+  vendor?: string;
+  expense_date: string; // YYYY-MM-DD
+  payment_method: "CASH" | "BANK_TRANSFER" | "CHEQUE" | "CARD";
+  receipt_ref?: string;
+  notes?: string;
+}
+
+export interface FinancialRecordFilters {
+  from_date?: string; // YYYY-MM-DD
+  to_date?: string; // YYYY-MM-DD
+  month?: string; // YYYY-MM
+  student_id?: string;
+  teacher_id?: string;
+  staff_id?: string;
+  class_id?: string;
+  category?: string; // For expenses
+  payment_method?: string;
+  page?: number;
+  limit?: number;
+}
+
+export interface FinancialRecordStats {
+  total_count: number;
+  total_amount: number;
+  average_amount: number;
+  payment_method_cash: number;
+  payment_method_bank: number;
+  payment_method_other: number;
+}
+
+export interface PaginatedFinancialResponse<T> {
+  data: T[];
+  total_count: number;
+  page: number;
+  limit: number;
+  total_pages: number;
+  stats?: FinancialRecordStats;
+}
+
+export interface PayoutCalculationRequest {
+  total_revenue: number;
+  payout_percentage: number;
+}
+
+export interface CommissionCalculationRequest {
+  total_revenue: number;
+  total_teacher_payouts: number;
+  commission_percentage: number;
+}
+
+export interface CalculationResponse {
+  amount: number;
+  net_revenue?: number; // For commission calculations
+}

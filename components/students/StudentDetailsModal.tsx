@@ -21,10 +21,10 @@ import {
   studentService,
   enrollmentService,
   attendanceService,
-  studentFeePaymentService,
 } from "@/lib/data";
 import { Student, Enrollment, EnrollmentStatus } from "@/types";
 import { EnrollStudentDialog } from "./EnrollStudentDialog";
+import { StudentPaymentHistory } from "./StudentPaymentHistory";
 import {
   Select,
   SelectContent,
@@ -54,15 +54,6 @@ interface StudentDetailsModalProps {
   onUpdate?: () => void;
 }
 
-interface PaymentStatus {
-  month: string;
-  class_id: string;
-  class_name: string;
-  amount: number;
-  paid: boolean;
-  payment_status: string;
-}
-
 interface AttendanceData {
   class_id: string;
   class_name: string;
@@ -80,15 +71,6 @@ const formatDate = (dateString?: string | null) => {
   });
 };
 
-const formatMonth = (monthString: string) => {
-  const [year, month] = monthString.split("-");
-  const date = new Date(parseInt(year), parseInt(month) - 1);
-  return date.toLocaleDateString("en-GB", {
-    month: "long",
-    year: "numeric",
-  });
-};
-
 export function StudentDetailsModal({
   studentId,
   trigger,
@@ -97,7 +79,7 @@ export function StudentDetailsModal({
   const [open, setOpen] = useState(false);
   const [student, setStudent] = useState<Student | null>(null);
   const [enrollments, setEnrollments] = useState<Enrollment[]>([]);
-  const [payments, setPayments] = useState<PaymentStatus[]>([]);
+
   const [attendance, setAttendance] = useState<AttendanceData[]>([]);
   const [loading, setLoading] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
@@ -129,43 +111,6 @@ export function StudentDetailsModal({
         guardian_contact: studentData.student.guardian_contact || "",
         guardian_email: studentData.student.guardian_email || "",
       });
-
-      // Load payment history
-      try {
-        const paymentData =
-          await studentFeePaymentService.getStudentFeeHistory(studentId);
-        const paymentStatusList: PaymentStatus[] = [];
-
-        // Process payments and missed months
-        paymentData.payments.forEach((payment: any) => {
-          paymentStatusList.push({
-            month: payment.payment_month,
-            class_id: payment.class_id,
-            class_name: payment.class?.name || "Unknown Class",
-            amount: payment.amount,
-            paid: payment.payment_status === "PAID",
-            payment_status: payment.payment_status,
-          });
-        });
-
-        paymentData.missed_months.forEach((missed: any) => {
-          paymentStatusList.push({
-            month: missed.month,
-            class_id: missed.class_id,
-            class_name: missed.class_name,
-            amount: missed.expected_amount,
-            paid: false,
-            payment_status: "UNPAID",
-          });
-        });
-
-        setPayments(
-          paymentStatusList.sort((a, b) => b.month.localeCompare(a.month)),
-        );
-      } catch (error) {
-        console.error("Failed to load payment data:", error);
-        setPayments([]);
-      }
 
       // Load attendance data
       try {
@@ -276,20 +221,6 @@ export function StudentDetailsModal({
       loadStudentData();
     }
   }, [open, loadStudentData]);
-
-  const getPaymentStatusBadge = (status: string, paid: boolean) => {
-    if (paid || status === "PAID") {
-      return (
-        <Badge className="bg-green-100 text-green-800 border-green-200">
-          Paid
-        </Badge>
-      );
-    } else {
-      return (
-        <Badge className="bg-red-100 text-red-800 border-red-200">Unpaid</Badge>
-      );
-    }
-  };
 
   const getAttendanceColor = (percentage: number) => {
     if (percentage >= 85) return "bg-green-500";
@@ -631,48 +562,10 @@ export function StudentDetailsModal({
                   value="payments"
                   className="flex-1 overflow-auto p-6"
                 >
-                  <div className="space-y-4">
-                    <h3 className="font-semibold">Payment History</h3>
-
-                    {payments.length === 0 ? (
-                      <Card>
-                        <CardContent className="text-center py-8">
-                          <DollarSign className="h-12 w-12 mx-auto mb-4 text-muted-foreground opacity-50" />
-                          <p className="text-muted-foreground">
-                            No payment records found
-                          </p>
-                        </CardContent>
-                      </Card>
-                    ) : (
-                      <div className="space-y-3">
-                        {payments.map((payment, index) => (
-                          <Card key={index}>
-                            <CardContent className="p-4">
-                              <div className="flex justify-between items-center">
-                                <div className="space-y-1">
-                                  <div className="flex items-center gap-2">
-                                    <span className="font-medium">
-                                      {formatMonth(payment.month)}
-                                    </span>
-                                    <span className="text-sm text-muted-foreground">
-                                      - {payment.class_name}
-                                    </span>
-                                  </div>
-                                  <p className="font-mono text-sm">
-                                    LKR {payment.amount.toLocaleString()}
-                                  </p>
-                                </div>
-                                {getPaymentStatusBadge(
-                                  payment.payment_status,
-                                  payment.paid,
-                                )}
-                              </div>
-                            </CardContent>
-                          </Card>
-                        ))}
-                      </div>
-                    )}
-                  </div>
+                  <StudentPaymentHistory
+                    studentId={studentId}
+                    studentName={student.fullname}
+                  />
                 </TabsContent>
 
                 {/* Attendance Tab */}

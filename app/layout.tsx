@@ -5,6 +5,7 @@ import { Sidebar } from "@/components/layout/Sidebar";
 import { Topbar } from "@/components/layout/Topbar";
 import { ThemeProvider } from "@/components/theme-provider";
 import { AuthProvider } from "@/components/auth/AuthProvider";
+import { ToastProvider } from "@/components/ui/toast";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -29,7 +30,9 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           <AuthProvider>
-            <LayoutContent>{children}</LayoutContent>
+            <ToastProvider>
+              <LayoutContent>{children}</LayoutContent>
+            </ToastProvider>
           </AuthProvider>
         </ThemeProvider>
       </body>

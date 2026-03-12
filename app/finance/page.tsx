@@ -3,47 +3,50 @@
 import { useState, useEffect, Suspense } from "react";
 import {
   ShieldAlert,
-  Banknote,
+  DollarSign,
   Users,
-  Wallet,
-  BarChart,
+  Receipt,
   ArrowLeft,
   User,
-  Plus,
+  GraduationCap,
 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { StaffPayoutsTable } from "@/components/finance/StaffPayoutsTable";
-import { TeacherPayoutTable } from "@/components/finance/TeacherPayoutTable";
-import { StudentInvoiceTable } from "@/components/finance/StudentInvoiceTable";
-import { MonthlyReportView } from "@/components/finance/MonthlyReportView";
-import { InvoiceCreationHub } from "@/components/finance/InvoiceCreationHub";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
+
+// Import new financial components
+import { StudentPaymentRecordsTable } from "@/components/finance/StudentPaymentRecordsTable";
+import { TeacherPayoutRecordsTable } from "@/components/finance/TeacherPayoutRecordsTable";
+import { StaffCommissionRecordsTable } from "@/components/finance/StaffCommissionRecordsTable";
+import { ExpenseRecordsTable } from "@/components/finance/ExpenseRecordsTable";
 
 function FinanceContent() {
   const { role } = useAuth();
   const [mounted, setMounted] = useState(false);
   const searchParams = useSearchParams();
 
-  // Get tab from URL parameters, default to 'create'
-  const defaultTab = searchParams.get("tab") || "create";
+  // Get tab from URL parameters, default to 'payments'
+  const defaultTab = searchParams.get("tab") || "payments";
   const studentId = searchParams.get("student_id");
 
   useEffect(() => {
-    setMounted(true);
+    // Use a timer to avoid setState in effect warning
+    const timer = setTimeout(() => setMounted(true), 0);
+    return () => clearTimeout(timer);
   }, []);
 
-  // Before mount, render the authorised shell so server & client HTML match
+  // Before mount, render the authorized shell so server & client HTML match
   if (!mounted) {
     return (
       <div className="space-y-6">
         <div>
-          <h2 className="text-3xl font-bold tracking-tight">Financial Hub</h2>
+          <h2 className="text-3xl font-bold tracking-tight">
+            Financial Management
+          </h2>
           <p className="text-muted-foreground">
-            Staff payouts, teacher payouts, student invoices, and monthly
-            revenue reports.
+            Simplified cash-based transaction recording and financial tracking.
           </p>
         </div>
       </div>
@@ -86,7 +89,7 @@ function FinanceContent() {
           )}
           <div className="flex-1">
             <h2 className="text-3xl font-bold tracking-tight">
-              Financial Hub
+              Financial Management
               {studentId && (
                 <span className="text-xl font-normal text-muted-foreground ml-3">
                   Student View
@@ -95,8 +98,8 @@ function FinanceContent() {
             </h2>
             <p className="text-muted-foreground">
               {studentId
-                ? "Invoice and payment management for selected student"
-                : "Staff payouts, teacher payouts, student invoices, and monthly revenue reports"}
+                ? "Financial records for selected student"
+                : "Simplified cash transaction recording and financial tracking"}
             </p>
           </div>
         </div>
@@ -104,13 +107,14 @@ function FinanceContent() {
           <div className="flex items-center gap-2 p-3 bg-blue-50 border border-blue-200 rounded-lg dark:bg-blue-950/30 dark:border-blue-800">
             <User className="h-4 w-4 text-blue-600 dark:text-blue-400" />
             <p className="text-sm text-blue-800 dark:text-blue-300">
-              Viewing invoices for Student ID: {studentId.slice(0, 8)}...
+              Viewing financial records for Student ID: {studentId.slice(0, 8)}
+              ...
               <Button
                 variant="link"
                 size="sm"
                 className="h-auto p-0 ml-2 text-blue-600 dark:text-blue-400"
                 onClick={() =>
-                  window.history.replaceState({}, "", "/finance?tab=invoices")
+                  window.history.replaceState({}, "", "/finance?tab=payments")
                 }
               >
                 Clear filter
@@ -124,52 +128,46 @@ function FinanceContent() {
         <div className="w-full overflow-x-auto pb-1">
           <TabsList className="bg-muted/60 p-1 inline-flex w-full justify-start md:w-fit">
             <TabsTrigger
-              value="create"
+              value="payments"
               className="flex items-center gap-2 whitespace-nowrap"
             >
-              <Plus className="h-4 w-4" /> Create Invoices
-            </TabsTrigger>
-            <TabsTrigger
-              value="invoices"
-              className="flex items-center gap-2 whitespace-nowrap"
-            >
-              <Banknote className="h-4 w-4" /> Student Invoices
+              <DollarSign className="h-4 w-4" /> Student Payments
             </TabsTrigger>
             <TabsTrigger
               value="payouts"
               className="flex items-center gap-2 whitespace-nowrap"
             >
-              <Wallet className="h-4 w-4" /> Teacher Payouts
+              <GraduationCap className="h-4 w-4" /> Teacher Payouts
             </TabsTrigger>
             <TabsTrigger
-              value="staff"
+              value="commissions"
               className="flex items-center gap-2 whitespace-nowrap"
             >
-              <Users className="h-4 w-4" /> Staff Payouts
+              <Users className="h-4 w-4" /> Staff Commissions
             </TabsTrigger>
             <TabsTrigger
-              value="reports"
+              value="expenses"
               className="flex items-center gap-2 whitespace-nowrap"
             >
-              <BarChart className="h-4 w-4" /> Monthly Report
+              <Receipt className="h-4 w-4" /> Expenses
             </TabsTrigger>
           </TabsList>
         </div>
 
-        <TabsContent value="create">
-          <InvoiceCreationHub />
+        <TabsContent value="payments" className="space-y-4">
+          <StudentPaymentRecordsTable />
         </TabsContent>
-        <TabsContent value="invoices">
-          <StudentInvoiceTable />
+
+        <TabsContent value="payouts" className="space-y-4">
+          <TeacherPayoutRecordsTable />
         </TabsContent>
-        <TabsContent value="payouts">
-          <TeacherPayoutTable />
+
+        <TabsContent value="commissions" className="space-y-4">
+          <StaffCommissionRecordsTable />
         </TabsContent>
-        <TabsContent value="staff">
-          <StaffPayoutsTable />
-        </TabsContent>
-        <TabsContent value="reports">
-          <MonthlyReportView />
+
+        <TabsContent value="expenses" className="space-y-4">
+          <ExpenseRecordsTable />
         </TabsContent>
       </Tabs>
     </div>
@@ -178,7 +176,7 @@ function FinanceContent() {
 
 export default function FinancePage() {
   return (
-    <Suspense fallback={<div>Loading...</div>}>
+    <Suspense fallback={<div>Loading financial management...</div>}>
       <FinanceContent />
     </Suspense>
   );
