@@ -19,6 +19,23 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { Teacher, Class, Classroom, ClassSchedule } from "@/types";
 import { classService, scheduleService, classroomService } from "@/lib/data";
 import {
@@ -28,6 +45,9 @@ import {
   AlertTriangle,
   Check,
   MapPin,
+  MoreHorizontal,
+  UserX,
+  Pencil,
 } from "lucide-react";
 
 interface ScheduleManagerProps {
@@ -64,34 +84,48 @@ export function ScheduleManager({ teacher, onUpdate }: ScheduleManagerProps) {
   const [addLoading, setAddLoading] = useState(false);
   const [addError, setAddError] = useState<string | null>(null);
 
+  // Edit state
+  const [editingSchedule, setEditingSchedule] = useState<ClassSchedule | null>(
+    null,
+  );
+
   // Conflict detection
   const [conflicts, setConflicts] = useState<string[]>([]);
   const [availableRooms, setAvailableRooms] = useState<Classroom[]>([]);
   const [checkingConflicts, setCheckingConflicts] = useState(false);
 
-  // Load teacher's classes + all classrooms when dialog opens
-  useEffect(() => {
-    if (!open) return;
+  // Extract load function to be reusable
+  const loadData = async () => {
     setLoading(true);
     setError(null);
 
-    Promise.all([classService.getAll(), classroomService.getAll()])
-      .then(([allClasses, allRooms]) => {
-        // Filter to only this teacher's classes
-        const mine = allClasses.filter((c) => c.teacher_id === teacher.id);
-        setClasses(mine);
-        setClassrooms(allRooms.filter((r) => r.is_usable));
+    try {
+      const [allClasses, allRooms] = await Promise.all([
+        classService.getAll(),
+        classroomService.getAll(),
+      ]);
 
-        // Load schedules for all of this teacher's classes
-        return Promise.all(mine.map((c) => scheduleService.getByClass(c.id)));
-      })
-      .then((scheduleArrays) => {
-        setSchedules(scheduleArrays.flat());
-      })
-      .catch((err) => {
-        setError(err instanceof Error ? err.message : "Failed to load data");
-      })
-      .finally(() => setLoading(false));
+      // Filter to only this teacher's classes
+      const mine = allClasses.filter((c) => c.teacher_id === teacher.id);
+      setClasses(mine);
+      setClassrooms(allRooms.filter((r) => r.is_usable));
+
+      // Load schedules for all of this teacher's classes
+      const scheduleArrays = await Promise.all(
+        mine.map((c) => scheduleService.getByClass(c.id)),
+      );
+      setSchedules(scheduleArrays.flat());
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to load data");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Load teacher's classes + all classrooms when dialog opens
+  useEffect(() => {
+    if (!open) return;
+    loadData();
   }, [open, teacher.id]);
 
   // Check for conflicts when form data changes
@@ -150,14 +184,33 @@ export function ScheduleManager({ teacher, onUpdate }: ScheduleManagerProps) {
     setAddLoading(true);
     setAddError(null);
     try {
-      const newSchedule = await scheduleService.create({
-        class_id: classId,
-        classroom_id: classroomId,
-        day_of_week: parseInt(dayOfWeek),
-        start_time: startTime,
-        end_time: endTime,
-      });
-      setSchedules((prev) => [...prev, newSchedule]);
+      if (editingSchedule) {
+        // Update existing schedule
+        const updatedSchedule = await scheduleService.update(
+          editingSchedule.id,
+          {
+            class_id: classId,
+            classroom_id: classroomId,
+            day_of_week: parseInt(dayOfWeek),
+            start_time: startTime,
+            end_time: endTime,
+          },
+        );
+        setSchedules((prev) =>
+          prev.map((s) => (s.id === editingSchedule.id ? updatedSchedule : s)),
+        );
+        setEditingSchedule(null);
+      } else {
+        // Create new schedule
+        const newSchedule = await scheduleService.create({
+          class_id: classId,
+          classroom_id: classroomId,
+          day_of_week: parseInt(dayOfWeek),
+          start_time: startTime,
+          end_time: endTime,
+        });
+        setSchedules((prev) => [...prev, newSchedule]);
+      }
       // Reset form
       setClassId("");
       setClassroomId("");
@@ -167,11 +220,55 @@ export function ScheduleManager({ teacher, onUpdate }: ScheduleManagerProps) {
       onUpdate?.();
     } catch (err: unknown) {
       setAddError(
-        err instanceof Error ? err.message : "Failed to add schedule",
+        err instanceof Error
+          ? err.message
+          : editingSchedule
+            ? "Failed to update schedule"
+            : "Failed to add schedule",
       );
     } finally {
       setAddLoading(false);
     }
+  };
+
+  const handleEditSchedule = (schedule: ClassSchedule) => {
+    // Pre-fill form with current schedule data
+    setClassId(schedule.class_id);
+    setClassroomId(schedule.classroom_id);
+    setDayOfWeek(schedule.day_of_week.toString());
+    setStartTime(schedule.start_time);
+    setEndTime(schedule.end_time);
+    setEditingSchedule(schedule);
+  };
+
+  const handleRemoveSchedule = async (
+    scheduleId: string,
+    className: string,
+    dayTime: string,
+  ) => {
+    try {
+      await scheduleService.delete(scheduleId);
+      // Refresh schedules to reflect the change
+      if (open) {
+        await loadData();
+      }
+      onUpdate?.();
+    } catch (err: unknown) {
+      setError(
+        err instanceof Error ? err.message : "Failed to remove schedule",
+      );
+    }
+  };
+
+  const handleCancelEdit = () => {
+    setEditingSchedule(null);
+    // Reset form
+    setClassId("");
+    setClassroomId("");
+    setStartTime("");
+    setEndTime("");
+    setDayOfWeek("1");
+    setAddError(null);
   };
 
   return (
@@ -185,7 +282,14 @@ export function ScheduleManager({ teacher, onUpdate }: ScheduleManagerProps) {
 
       <DialogContent className="sm:max-w-4xl">
         <DialogHeader>
-          <DialogTitle>Schedules — {teacher.full_name}</DialogTitle>
+          <DialogTitle>
+            Schedules — {teacher.full_name}
+            {editingSchedule && (
+              <span className="text-sm font-normal text-muted-foreground ml-2">
+                (Editing)
+              </span>
+            )}
+          </DialogTitle>
         </DialogHeader>
 
         {loading ? (
@@ -369,30 +473,46 @@ export function ScheduleManager({ teacher, onUpdate }: ScheduleManagerProps) {
                     <p className="text-xs text-destructive">{addError}</p>
                   )}
 
-                  <Button
-                    type="submit"
-                    disabled={
-                      addLoading || !isFormValid || startTime >= endTime
-                    }
-                    className="w-full"
-                  >
-                    {addLoading ? (
-                      <>
-                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        Adding Schedule...
-                      </>
-                    ) : conflicts.length > 0 ? (
-                      <>
-                        <AlertTriangle className="mr-2 h-4 w-4" />
-                        Resolve Conflicts
-                      </>
-                    ) : (
-                      <>
-                        <Check className="mr-2 h-4 w-4" />
-                        Add Recurring Schedule
-                      </>
+                  <div className="space-y-2">
+                    <Button
+                      type="submit"
+                      disabled={
+                        addLoading || !isFormValid || startTime >= endTime
+                      }
+                      className="w-full"
+                    >
+                      {addLoading ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          {editingSchedule
+                            ? "Updating Schedule..."
+                            : "Adding Schedule..."}
+                        </>
+                      ) : conflicts.length > 0 ? (
+                        <>
+                          <AlertTriangle className="mr-2 h-4 w-4" />
+                          Resolve Conflicts
+                        </>
+                      ) : (
+                        <>
+                          <Check className="mr-2 h-4 w-4" />
+                          {editingSchedule
+                            ? "Update Schedule"
+                            : "Add Recurring Schedule"}
+                        </>
+                      )}
+                    </Button>
+                    {editingSchedule && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={handleCancelEdit}
+                        className="w-full"
+                      >
+                        Cancel Edit
+                      </Button>
                     )}
-                  </Button>
+                  </div>
                 </form>
               )}
             </div>
@@ -487,13 +607,67 @@ export function ScheduleManager({ teacher, onUpdate }: ScheduleManagerProps) {
                             </div>
                           </div>
                           <div className="opacity-0 group-hover:opacity-100 transition-opacity">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-7 w-7 p-0"
-                            >
-                              <span className="text-xs">⋯</span>
-                            </Button>
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="h-7 w-7 p-0"
+                                >
+                                  <MoreHorizontal className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem
+                                  onClick={() => handleEditSchedule(slot)}
+                                >
+                                  <Pencil className="mr-2 h-4 w-4" />
+                                  Edit Schedule
+                                </DropdownMenuItem>
+                                <AlertDialog>
+                                  <AlertDialogTrigger asChild>
+                                    <DropdownMenuItem
+                                      onSelect={(e) => e.preventDefault()}
+                                      className="text-destructive focus:text-destructive"
+                                    >
+                                      <UserX className="mr-2 h-4 w-4" />
+                                      Remove Schedule
+                                    </DropdownMenuItem>
+                                  </AlertDialogTrigger>
+                                  <AlertDialogContent>
+                                    <AlertDialogHeader>
+                                      <AlertDialogTitle>
+                                        Remove Schedule
+                                      </AlertDialogTitle>
+                                      <AlertDialogDescription>
+                                        Are you sure you want to remove the
+                                        recurring schedule for "{className}" on{" "}
+                                        {DAY_NAMES[slot.day_of_week]}{" "}
+                                        {slot.start_time}–{slot.end_time}? This
+                                        will not affect existing sessions.
+                                      </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                      <AlertDialogCancel>
+                                        Cancel
+                                      </AlertDialogCancel>
+                                      <AlertDialogAction
+                                        onClick={() =>
+                                          handleRemoveSchedule(
+                                            slot.id,
+                                            className,
+                                            `${DAY_NAMES[slot.day_of_week]} ${slot.start_time}–${slot.end_time}`,
+                                          )
+                                        }
+                                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                      >
+                                        Remove
+                                      </AlertDialogAction>
+                                    </AlertDialogFooter>
+                                  </AlertDialogContent>
+                                </AlertDialog>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
                           </div>
                         </div>
                       );
