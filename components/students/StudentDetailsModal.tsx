@@ -87,7 +87,9 @@ export function StudentDetailsModal({
   const [saving, setSaving] = useState(false);
   const [editForm, setEditForm] = useState({
     fullname: "",
-    contact_number: "",
+    nic_no: "",
+    occupation: "",
+    home_contact: "",
     address: "",
     guardian_name: "",
     guardian_contact: "",
@@ -108,7 +110,9 @@ export function StudentDetailsModal({
       // Set edit form
       setEditForm({
         fullname: studentData.student.fullname || "",
-        contact_number: studentData.student.contact_number || "",
+        nic_no: studentData.student.nic_no || "",
+        occupation: studentData.student.occupation || "",
+        home_contact: studentData.student.home_contact || "",
         address: studentData.student.address || "",
         guardian_name: studentData.student.guardian_name || "",
         guardian_contact: studentData.student.guardian_contact || "",
@@ -167,7 +171,9 @@ export function StudentDetailsModal({
     try {
       await studentService.update(student.id, {
         full_name: editForm.fullname,
-        contact_number: editForm.contact_number,
+        nic_no: editForm.nic_no || null,
+        occupation: editForm.occupation || null,
+        home_contact: editForm.home_contact,
         address: editForm.address,
         guardian_name: editForm.guardian_name,
         guardian_contact: editForm.guardian_contact,
@@ -190,7 +196,9 @@ export function StudentDetailsModal({
     if (student) {
       setEditForm({
         fullname: student.fullname || "",
-        contact_number: student.contact_number || "",
+        nic_no: student.nic_no || "",
+        occupation: student.occupation || "",
+        home_contact: student.home_contact || "",
         address: student.address || "",
         guardian_name: student.guardian_name || "",
         guardian_contact: student.guardian_contact || "",
@@ -326,20 +334,20 @@ export function StudentDetailsModal({
 
                     <div className="grid grid-cols-2 gap-4">
                       <div>
-                        <Label>Contact Number</Label>
+                        <Label>Home Contact</Label>
                         {isEditing ? (
                           <Input
-                            value={editForm.contact_number}
+                            value={editForm.home_contact}
                             onChange={(e) =>
                               setEditForm({
                                 ...editForm,
-                                contact_number: e.target.value,
+                                home_contact: e.target.value,
                               })
                             }
                           />
                         ) : (
                           <p className="p-2 border rounded">
-                            {student.contact_number}
+                            {student.home_contact}
                           </p>
                         )}
                       </div>
@@ -373,11 +381,46 @@ export function StudentDetailsModal({
 
                     <div className="grid grid-cols-2 gap-4">
                       <div>
-                        <Label>NIC Number</Label>
-                        <p className="p-2 border rounded">
-                          {student.nic_no || "Not provided"}
-                        </p>
+                        <Label>NIC / Birth Certificate</Label>
+                        {isEditing ? (
+                          <Input
+                            value={editForm.nic_no}
+                            onChange={(e) =>
+                              setEditForm({
+                                ...editForm,
+                                nic_no: e.target.value,
+                              })
+                            }
+                            placeholder="Optional"
+                          />
+                        ) : (
+                          <p className="p-2 border rounded">
+                            {student.nic_no || "Not provided"}
+                          </p>
+                        )}
                       </div>
+                      <div>
+                        <Label>Occupation</Label>
+                        {isEditing ? (
+                          <Input
+                            value={editForm.occupation}
+                            onChange={(e) =>
+                              setEditForm({
+                                ...editForm,
+                                occupation: e.target.value,
+                              })
+                            }
+                            placeholder="Optional"
+                          />
+                        ) : (
+                          <p className="p-2 border rounded">
+                            {student.occupation || "Not provided"}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 gap-4">
                       <div>
                         <Label>Registered Date</Label>
                         <p className="p-2 border rounded">

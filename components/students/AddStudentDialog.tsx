@@ -45,10 +45,11 @@ export function AddStudentDialog({ onAdded }: { onAdded?: () => void }) {
   const [admissionNo, setAdmissionNo] = useState("");
   const [fullName, setFullName] = useState("");
   const [nicNo, setNicNo] = useState("");
+  const [occupation, setOccupation] = useState("");
   const [gender, setGender] = useState<"M" | "F">("M");
   const [dob, setDob] = useState("");
   const [address, setAddress] = useState("");
-  const [contactNumber, setContactNumber] = useState("");
+  const [homeContact, setHomeContact] = useState("");
   const [guardianName, setGuardianName] = useState("");
   const [guardianContact, setGuardianContact] = useState("");
   const [guardianEmail, setGuardianEmail] = useState("");
@@ -63,10 +64,11 @@ export function AddStudentDialog({ onAdded }: { onAdded?: () => void }) {
     setAdmissionNo("");
     setFullName("");
     setNicNo("");
+    setOccupation("");
     setGender("M");
     setDob("");
     setAddress("");
-    setContactNumber("");
+    setHomeContact("");
     setGuardianName("");
     setGuardianContact("");
     setGuardianEmail("");
@@ -92,11 +94,12 @@ export function AddStudentDialog({ onAdded }: { onAdded?: () => void }) {
       await studentService.create({
         admission_no: admissionNo,
         full_name: fullName,
-        nic_no: nicNo,
+        nic_no: nicNo || null,
+        occupation: occupation || null,
         gender,
         date_of_birth: dob,
         address,
-        contact_number: contactNumber,
+        home_contact: homeContact,
         guardian_name: guardianName,
         guardian_contact: guardianContact,
         guardian_email: guardianEmail,
@@ -173,12 +176,20 @@ export function AddStudentDialog({ onAdded }: { onAdded?: () => void }) {
                   />
                 </div>
                 <div className="space-y-1">
-                  <Label className="text-sm">NIC / Birth Certificate *</Label>
+                  <Label className="text-sm">NIC / Birth Certificate</Label>
                   <Input
                     value={nicNo}
                     onChange={(e) => setNicNo(e.target.value)}
-                    placeholder="NIC or Birth Cert No."
-                    required
+                    placeholder="NIC or Birth Cert No. (Optional)"
+                    className="h-9"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-sm">Occupation</Label>
+                  <Input
+                    value={occupation}
+                    onChange={(e) => setOccupation(e.target.value)}
+                    placeholder="Student's occupation (Optional)"
                     className="h-9"
                   />
                 </div>
@@ -211,10 +222,10 @@ export function AddStudentDialog({ onAdded }: { onAdded?: () => void }) {
                   />
                 </div>
                 <div className="space-y-1">
-                  <Label className="text-sm">Contact Number *</Label>
+                  <Label className="text-sm">Home Contact *</Label>
                   <Input
-                    value={contactNumber}
-                    onChange={(e) => setContactNumber(e.target.value)}
+                    value={homeContact}
+                    onChange={(e) => setHomeContact(e.target.value)}
                     placeholder="0771234567"
                     required
                     className="h-9"

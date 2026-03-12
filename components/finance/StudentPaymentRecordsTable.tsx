@@ -80,6 +80,7 @@ export function StudentPaymentRecordsTable() {
   const [formData, setFormData] = useState<CreateStudentPaymentRequest>({
     student_id: "",
     class_id: "",
+    payment_type: "CLASS_PAYMENT",
     amount: 0,
     payment_date: new Date().toISOString().split("T")[0],
     payment_month: new Date().toISOString().substring(0, 7), // YYYY-MM

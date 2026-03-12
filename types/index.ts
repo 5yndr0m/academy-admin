@@ -115,11 +115,12 @@ export interface Student {
   id: string;
   admission_no: string;
   fullname: string; // Backend uses 'fullname' not 'full_name'
-  nic_no: string;
+  nic_no?: string;
+  occupation?: string;
   gender: "M" | "F";
   date_of_birth: string; // "YYYY-MM-DD"
   address: string;
-  contact_number: string;
+  home_contact: string;
   guardian_name: string;
   guardian_contact: string;
   guardian_email: string;
@@ -460,10 +461,12 @@ export interface StaffPayment {
 export interface StudentPaymentRecord {
   id: string;
   student_id: string;
-  class_id: string;
+  class_id?: string;
+  class_name?: string;
+  payment_type: "CLASS_PAYMENT" | "ADMISSION_FEE";
   amount: number;
   payment_date: string; // YYYY-MM-DD
-  payment_month: string; // YYYY-MM
+  payment_month?: string; // YYYY-MM
   payment_method: "CASH" | "BANK_TRANSFER" | "CHEQUE";
   recorded_by: string;
   notes: string;
@@ -540,10 +543,11 @@ export interface ExpenseRecord {
 // Request/Response types for the new financial system
 export interface CreateStudentPaymentRequest {
   student_id: string;
-  class_id: string;
+  class_id?: string;
+  payment_type: "CLASS_PAYMENT" | "ADMISSION_FEE";
   amount: number;
   payment_date: string; // YYYY-MM-DD
-  payment_month: string; // YYYY-MM
+  payment_month?: string; // YYYY-MM
   payment_method: "CASH" | "BANK_TRANSFER" | "CHEQUE";
   notes?: string;
 }

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Eye, Loader2, Plus } from "lucide-react";
+import { Eye, Loader2, Plus, CheckCircle2, AlertCircle } from "lucide-react";
 import {
   Table,
   TableBody,
@@ -125,9 +125,10 @@ export function StudentList() {
               <TableRow>
                 <TableHead>Admission No</TableHead>
                 <TableHead>Student Name</TableHead>
-                <TableHead>Contact Number</TableHead>
+                <TableHead>Home Contact</TableHead>
                 <TableHead>Guardian Name</TableHead>
                 <TableHead>Guardian Contact</TableHead>
+                <TableHead>Admission Fee</TableHead>
                 <TableHead>Registered Date</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
@@ -141,9 +142,24 @@ export function StudentList() {
                   <TableCell className="font-medium">
                     {student.fullname}
                   </TableCell>
-                  <TableCell>{student.contact_number}</TableCell>
+                  <TableCell>{student.home_contact}</TableCell>
                   <TableCell>{student.guardian_name}</TableCell>
                   <TableCell>{student.guardian_contact}</TableCell>
+                  <TableCell>
+                    <div className="flex items-center">
+                      {student.admission_fee_paid ? (
+                        <div className="flex items-center text-green-600">
+                          <CheckCircle2 className="h-4 w-4 mr-1" />
+                          <span className="text-sm">Paid</span>
+                        </div>
+                      ) : (
+                        <div className="flex items-center text-amber-600">
+                          <AlertCircle className="h-4 w-4 mr-1" />
+                          <span className="text-sm">Pending</span>
+                        </div>
+                      )}
+                    </div>
+                  </TableCell>
                   <TableCell>
                     {formatDate(
                       student.registration_date || student.created_at,
