@@ -94,7 +94,10 @@ export function InvoiceCreationHub() {
   }, []);
 
   // Search functionality
-  const searchUsers = async (query: string, type: "student" | "teacher" | "staff") => {
+  const searchUsers = async (
+    query: string,
+    type: "student" | "teacher" | "staff",
+  ) => {
     if (query.length < 2) {
       setSearchResults([]);
       return;
@@ -117,21 +120,22 @@ export function InvoiceCreationHub() {
         results = teacherResults.results.map((t: Teacher) => ({
           id: t.id,
           name: t.full_name,
-          identifier: t.employee_id,
+          identifier: t.contact_number,
           type: "teacher" as const,
         }));
       } else if (type === "staff") {
         const staffResults = await userService.getAll();
         results = staffResults
-          .filter((u: User) =>
-            u.role === "ADMIN" &&
-            (u.name.toLowerCase().includes(query.toLowerCase()) ||
-             u.user_name.toLowerCase().includes(query.toLowerCase()))
+          .filter(
+            (u: User) =>
+              u.role === "ADMIN" &&
+              (u.name.toLowerCase().includes(query.toLowerCase()) ||
+                u.username.toLowerCase().includes(query.toLowerCase())),
           )
           .map((u: User) => ({
             id: u.id,
             name: u.name,
-            identifier: u.user_name,
+            identifier: u.username,
             type: "staff" as const,
           }));
       }
@@ -217,7 +221,9 @@ export function InvoiceCreationHub() {
   const handleBulkGenerate = async () => {
     setLoading(true);
     try {
-      const result = await invoiceService.generateMonthly(formData.billingMonth);
+      const result = await invoiceService.generateMonthly(
+        formData.billingMonth,
+      );
       setCreatedInvoice({ created: result.created, skipped: result.skipped });
       setSuccess(true);
     } catch (error) {
@@ -239,7 +245,8 @@ export function InvoiceCreationHub() {
       title: "Student Invoice",
       description: "Create individual student payment invoices",
       icon: GraduationCap,
-      color: "bg-blue-50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-800",
+      color:
+        "bg-blue-50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-800",
       iconColor: "text-blue-600 dark:text-blue-400",
     },
     {
@@ -247,7 +254,8 @@ export function InvoiceCreationHub() {
       title: "Teacher Payout",
       description: "Generate teacher salary and commission invoices",
       icon: UserIcon,
-      color: "bg-green-50 dark:bg-green-950/20 border-green-200 dark:border-green-800",
+      color:
+        "bg-green-50 dark:bg-green-950/20 border-green-200 dark:border-green-800",
       iconColor: "text-green-600 dark:text-green-400",
     },
     {
@@ -255,7 +263,8 @@ export function InvoiceCreationHub() {
       title: "Staff Commission",
       description: "Create staff commission and bonus invoices",
       icon: Users,
-      color: "bg-purple-50 dark:bg-purple-950/20 border-purple-200 dark:border-purple-800",
+      color:
+        "bg-purple-50 dark:bg-purple-950/20 border-purple-200 dark:border-purple-800",
       iconColor: "text-purple-600 dark:text-purple-400",
     },
     {
@@ -263,7 +272,8 @@ export function InvoiceCreationHub() {
       title: "Bulk Generation",
       description: "Generate monthly invoices for all students",
       icon: Zap,
-      color: "bg-orange-50 dark:bg-orange-950/20 border-orange-200 dark:border-orange-800",
+      color:
+        "bg-orange-50 dark:bg-orange-950/20 border-orange-200 dark:border-orange-800",
       iconColor: "text-orange-600 dark:text-orange-400",
     },
   ] as const;
@@ -289,7 +299,9 @@ export function InvoiceCreationHub() {
                 onClick={() => setActiveCard(type.id)}
               >
                 <CardContent className="p-6 text-center">
-                  <type.icon className={`h-8 w-8 mx-auto mb-3 ${type.iconColor}`} />
+                  <type.icon
+                    className={`h-8 w-8 mx-auto mb-3 ${type.iconColor}`}
+                  />
                   <h3 className="font-semibold mb-2">{type.title}</h3>
                   <p className="text-sm text-muted-foreground">
                     {type.description}
@@ -312,10 +324,14 @@ export function InvoiceCreationHub() {
               {activeCard === "bulk" && "Generate Bulk Invoices"}
             </DialogTitle>
             <DialogDescription>
-              {activeCard === "student" && "Create a payment invoice for a specific student"}
-              {activeCard === "teacher" && "Generate a payout invoice for teacher salary/commission"}
-              {activeCard === "staff" && "Create a commission invoice for staff member"}
-              {activeCard === "bulk" && "Generate monthly invoices for all active students"}
+              {activeCard === "student" &&
+                "Create a payment invoice for a specific student"}
+              {activeCard === "teacher" &&
+                "Generate a payout invoice for teacher salary/commission"}
+              {activeCard === "staff" &&
+                "Create a commission invoice for staff member"}
+              {activeCard === "bulk" &&
+                "Generate monthly invoices for all active students"}
             </DialogDescription>
           </DialogHeader>
 
@@ -325,7 +341,12 @@ export function InvoiceCreationHub() {
               {activeCard !== "bulk" && (
                 <div className="space-y-3">
                   <Label>
-                    Search {activeCard === "student" ? "Student" : activeCard === "teacher" ? "Teacher" : "Staff Member"}
+                    Search{" "}
+                    {activeCard === "student"
+                      ? "Student"
+                      : activeCard === "teacher"
+                        ? "Teacher"
+                        : "Staff Member"}
                   </Label>
                   <div className="relative">
                     <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -351,7 +372,9 @@ export function InvoiceCreationHub() {
                           }}
                         >
                           <p className="font-medium text-sm">{user.name}</p>
-                          <p className="text-xs text-muted-foreground">{user.identifier}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {user.identifier}
+                          </p>
                         </div>
                       ))}
                     </div>
@@ -363,13 +386,23 @@ export function InvoiceCreationHub() {
                       <CardContent className="pt-4">
                         <div className="flex items-center gap-3">
                           <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
-                            {activeCard === "student" && <GraduationCap className="h-5 w-5 text-primary" />}
-                            {activeCard === "teacher" && <UserIcon className="h-5 w-5 text-primary" />}
-                            {activeCard === "staff" && <Users className="h-5 w-5 text-primary" />}
+                            {activeCard === "student" && (
+                              <GraduationCap className="h-5 w-5 text-primary" />
+                            )}
+                            {activeCard === "teacher" && (
+                              <UserIcon className="h-5 w-5 text-primary" />
+                            )}
+                            {activeCard === "staff" && (
+                              <Users className="h-5 w-5 text-primary" />
+                            )}
                           </div>
                           <div>
-                            <h3 className="font-semibold">{selectedUser.name}</h3>
-                            <p className="text-sm text-muted-foreground">{selectedUser.identifier}</p>
+                            <h3 className="font-semibold">
+                              {selectedUser.name}
+                            </h3>
+                            <p className="text-sm text-muted-foreground">
+                              {selectedUser.identifier}
+                            </p>
                           </div>
                         </div>
                       </CardContent>
@@ -386,7 +419,12 @@ export function InvoiceCreationHub() {
                     type="number"
                     placeholder="0.00"
                     value={formData.amount}
-                    onChange={(e) => setFormData(prev => ({ ...prev, amount: e.target.value }))}
+                    onChange={(e) =>
+                      setFormData((prev) => ({
+                        ...prev,
+                        amount: e.target.value,
+                      }))
+                    }
                     className="mt-1"
                   />
                 </div>
@@ -397,7 +435,12 @@ export function InvoiceCreationHub() {
                     <Input
                       type="date"
                       value={formData.dueDate}
-                      onChange={(e) => setFormData(prev => ({ ...prev, dueDate: e.target.value }))}
+                      onChange={(e) =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          dueDate: e.target.value,
+                        }))
+                      }
                       className="mt-1"
                     />
                   </div>
@@ -407,7 +450,12 @@ export function InvoiceCreationHub() {
                     <Input
                       type="month"
                       value={formData.billingMonth}
-                      onChange={(e) => setFormData(prev => ({ ...prev, billingMonth: e.target.value }))}
+                      onChange={(e) =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          billingMonth: e.target.value,
+                        }))
+                      }
                       className="mt-1"
                     />
                   </div>
@@ -421,7 +469,10 @@ export function InvoiceCreationHub() {
                     <Select
                       value={formData.paymentStatus}
                       onValueChange={(value: "PAID" | "UNPAID") =>
-                        setFormData(prev => ({ ...prev, paymentStatus: value }))
+                        setFormData((prev) => ({
+                          ...prev,
+                          paymentStatus: value,
+                        }))
                       }
                     >
                       <SelectTrigger className="mt-1">
@@ -437,14 +488,21 @@ export function InvoiceCreationHub() {
                     <Label>Payment Method (if paid)</Label>
                     <Select
                       value={formData.paymentMethod}
-                      onValueChange={(value) => setFormData(prev => ({ ...prev, paymentMethod: value }))}
+                      onValueChange={(value) =>
+                        setFormData((prev) => ({
+                          ...prev,
+                          paymentMethod: value,
+                        }))
+                      }
                     >
                       <SelectTrigger className="mt-1">
                         <SelectValue placeholder="Select method" />
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="CASH">Cash</SelectItem>
-                        <SelectItem value="BANK_TRANSFER">Bank Transfer</SelectItem>
+                        <SelectItem value="BANK_TRANSFER">
+                          Bank Transfer
+                        </SelectItem>
                         <SelectItem value="CARD">Card</SelectItem>
                         <SelectItem value="ONLINE">Online</SelectItem>
                       </SelectContent>
@@ -458,7 +516,9 @@ export function InvoiceCreationHub() {
                 <Textarea
                   placeholder="Additional notes or description..."
                   value={formData.notes}
-                  onChange={(e) => setFormData(prev => ({ ...prev, notes: e.target.value }))}
+                  onChange={(e) =>
+                    setFormData((prev) => ({ ...prev, notes: e.target.value }))
+                  }
                   className="mt-1"
                 />
               </div>
@@ -481,13 +541,17 @@ export function InvoiceCreationHub() {
                         <CardContent className="p-3">
                           <div className="flex items-center justify-between">
                             <div>
-                              <h4 className="font-medium text-sm">{template.name}</h4>
+                              <h4 className="font-medium text-sm">
+                                {template.name}
+                              </h4>
                               <p className="text-xs text-muted-foreground">
                                 {template.description}
                               </p>
                             </div>
                             {template.is_default && (
-                              <Badge variant="secondary" className="text-xs">Default</Badge>
+                              <Badge variant="secondary" className="text-xs">
+                                Default
+                              </Badge>
                             )}
                           </div>
                         </CardContent>
@@ -502,11 +566,13 @@ export function InvoiceCreationHub() {
             <div className="text-center space-y-4">
               <CheckCircle className="h-12 w-12 text-green-500 mx-auto" />
               <div>
-                <h3 className="font-semibold text-lg">Invoice Created Successfully!</h3>
+                <h3 className="font-semibold text-lg">
+                  Invoice Created Successfully!
+                </h3>
                 {activeCard === "bulk" ? (
                   <p className="text-muted-foreground">
-                    Generated {createdInvoice?.created || 0} invoices,
-                    skipped {createdInvoice?.skipped || 0} existing ones
+                    Generated {createdInvoice?.created || 0} invoices, skipped{" "}
+                    {createdInvoice?.skipped || 0} existing ones
                   </p>
                 ) : (
                   <p className="text-muted-foreground">
@@ -539,7 +605,11 @@ export function InvoiceCreationHub() {
                   Cancel
                 </Button>
                 <Button
-                  onClick={activeCard === "bulk" ? handleBulkGenerate : handleCreateInvoice}
+                  onClick={
+                    activeCard === "bulk"
+                      ? handleBulkGenerate
+                      : handleCreateInvoice
+                  }
                   disabled={
                     loading ||
                     (activeCard !== "bulk" && !selectedUser) ||
@@ -552,13 +622,13 @@ export function InvoiceCreationHub() {
                   ) : (
                     <FileText className="mr-2 h-4 w-4" />
                   )}
-                  {activeCard === "bulk" ? "Generate Invoices" : "Create Invoice"}
+                  {activeCard === "bulk"
+                    ? "Generate Invoices"
+                    : "Create Invoice"}
                 </Button>
               </div>
             ) : (
-              <Button onClick={resetAndClose}>
-                Create Another Invoice
-              </Button>
+              <Button onClick={resetAndClose}>Create Another Invoice</Button>
             )}
           </DialogFooter>
         </DialogContent>
