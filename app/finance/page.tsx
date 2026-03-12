@@ -9,6 +9,7 @@ import {
   BarChart,
   ArrowLeft,
   User,
+  Plus,
 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -16,6 +17,7 @@ import { StaffPayoutsTable } from "@/components/finance/StaffPayoutsTable";
 import { TeacherPayoutTable } from "@/components/finance/TeacherPayoutTable";
 import { StudentInvoiceTable } from "@/components/finance/StudentInvoiceTable";
 import { MonthlyReportView } from "@/components/finance/MonthlyReportView";
+import { InvoiceCreationHub } from "@/components/finance/InvoiceCreationHub";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
@@ -25,8 +27,8 @@ function FinanceContent() {
   const [mounted, setMounted] = useState(false);
   const searchParams = useSearchParams();
 
-  // Get tab from URL parameters, default to 'staff'
-  const defaultTab = searchParams.get("tab") || "staff";
+  // Get tab from URL parameters, default to 'create'
+  const defaultTab = searchParams.get("tab") || "create";
   const studentId = searchParams.get("student_id");
 
   useEffect(() => {
@@ -122,10 +124,16 @@ function FinanceContent() {
         <div className="w-full overflow-x-auto pb-1">
           <TabsList className="bg-muted/60 p-1 inline-flex w-full justify-start md:w-fit">
             <TabsTrigger
-              value="staff"
+              value="create"
               className="flex items-center gap-2 whitespace-nowrap"
             >
-              <Users className="h-4 w-4" /> Staff Payouts
+              <Plus className="h-4 w-4" /> Create Invoices
+            </TabsTrigger>
+            <TabsTrigger
+              value="invoices"
+              className="flex items-center gap-2 whitespace-nowrap"
+            >
+              <Banknote className="h-4 w-4" /> Student Invoices
             </TabsTrigger>
             <TabsTrigger
               value="payouts"
@@ -134,10 +142,10 @@ function FinanceContent() {
               <Wallet className="h-4 w-4" /> Teacher Payouts
             </TabsTrigger>
             <TabsTrigger
-              value="invoices"
+              value="staff"
               className="flex items-center gap-2 whitespace-nowrap"
             >
-              <Banknote className="h-4 w-4" /> Student Invoices
+              <Users className="h-4 w-4" /> Staff Payouts
             </TabsTrigger>
             <TabsTrigger
               value="reports"
@@ -148,14 +156,17 @@ function FinanceContent() {
           </TabsList>
         </div>
 
-        <TabsContent value="staff">
-          <StaffPayoutsTable />
+        <TabsContent value="create">
+          <InvoiceCreationHub />
+        </TabsContent>
+        <TabsContent value="invoices">
+          <StudentInvoiceTable />
         </TabsContent>
         <TabsContent value="payouts">
           <TeacherPayoutTable />
         </TabsContent>
-        <TabsContent value="invoices">
-          <StudentInvoiceTable />
+        <TabsContent value="staff">
+          <StaffPayoutsTable />
         </TabsContent>
         <TabsContent value="reports">
           <MonthlyReportView />
