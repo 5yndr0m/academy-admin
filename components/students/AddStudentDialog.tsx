@@ -52,6 +52,8 @@ export function AddStudentDialog({ onAdded }: { onAdded?: () => void }) {
   const [guardianName, setGuardianName] = useState("");
   const [guardianContact, setGuardianContact] = useState("");
   const [guardianEmail, setGuardianEmail] = useState("");
+  const [guardianEmailConsent, setGuardianEmailConsent] = useState(false);
+  const [guardianWhatsAppConsent, setGuardianWhatsAppConsent] = useState(false);
   const [admissionFeePaid, setAdmissionFeePaid] = useState(false);
   const [registrationDate, setRegistrationDate] = useState(
     new Date().toISOString().split("T")[0],
@@ -68,6 +70,8 @@ export function AddStudentDialog({ onAdded }: { onAdded?: () => void }) {
     setGuardianName("");
     setGuardianContact("");
     setGuardianEmail("");
+    setGuardianEmailConsent(false);
+    setGuardianWhatsAppConsent(false);
     setAdmissionFeePaid(false);
     setRegistrationDate(new Date().toISOString().split("T")[0]);
     setError(null);
@@ -96,6 +100,8 @@ export function AddStudentDialog({ onAdded }: { onAdded?: () => void }) {
         guardian_name: guardianName,
         guardian_contact: guardianContact,
         guardian_email: guardianEmail,
+        guardian_email_consent: guardianEmailConsent,
+        guardian_whatsapp_consent: guardianWhatsAppConsent,
         admission_fee_paid: admissionFeePaid,
         registration_date: registrationDate,
         authorized_by: userId,
@@ -266,6 +272,39 @@ export function AddStudentDialog({ onAdded }: { onAdded?: () => void }) {
                     required
                     className="h-9"
                   />
+                </div>
+
+                {/* Communication Permissions */}
+                <div className="space-y-3 pt-2 border-t border-border/50">
+                  <Label className="text-sm font-medium">
+                    Communication Permissions
+                  </Label>
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <Label className="text-sm">Email Notifications</Label>
+                        <p className="text-xs text-muted-foreground">
+                          Send updates and announcements via email
+                        </p>
+                      </div>
+                      <Switch
+                        checked={guardianEmailConsent}
+                        onCheckedChange={setGuardianEmailConsent}
+                      />
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <Label className="text-sm">WhatsApp Messages</Label>
+                        <p className="text-xs text-muted-foreground">
+                          Send reminders and quick updates via WhatsApp
+                        </p>
+                      </div>
+                      <Switch
+                        checked={guardianWhatsAppConsent}
+                        onCheckedChange={setGuardianWhatsAppConsent}
+                      />
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>

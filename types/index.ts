@@ -123,6 +123,8 @@ export interface Student {
   guardian_name: string;
   guardian_contact: string;
   guardian_email: string;
+  guardian_email_consent: boolean;
+  guardian_whatsapp_consent: boolean;
   admission_fee_paid: boolean;
   registration_date: string;
   authorized_by: string;

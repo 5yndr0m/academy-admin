@@ -13,6 +13,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
@@ -91,6 +92,8 @@ export function StudentDetailsModal({
     guardian_name: "",
     guardian_contact: "",
     guardian_email: "",
+    guardian_email_consent: false,
+    guardian_whatsapp_consent: false,
   });
 
   const loadStudentData = useCallback(async () => {
@@ -110,6 +113,10 @@ export function StudentDetailsModal({
         guardian_name: studentData.student.guardian_name || "",
         guardian_contact: studentData.student.guardian_contact || "",
         guardian_email: studentData.student.guardian_email || "",
+        guardian_email_consent:
+          studentData.student.guardian_email_consent || false,
+        guardian_whatsapp_consent:
+          studentData.student.guardian_whatsapp_consent || false,
       });
 
       // Load attendance data
@@ -165,6 +172,8 @@ export function StudentDetailsModal({
         guardian_name: editForm.guardian_name,
         guardian_contact: editForm.guardian_contact,
         guardian_email: editForm.guardian_email,
+        guardian_email_consent: editForm.guardian_email_consent,
+        guardian_whatsapp_consent: editForm.guardian_whatsapp_consent,
       });
       setIsEditing(false);
       await loadStudentData();
@@ -186,6 +195,8 @@ export function StudentDetailsModal({
         guardian_name: student.guardian_name || "",
         guardian_contact: student.guardian_contact || "",
         guardian_email: student.guardian_email || "",
+        guardian_email_consent: student.guardian_email_consent || false,
+        guardian_whatsapp_consent: student.guardian_whatsapp_consent || false,
       });
     }
   };
@@ -443,6 +454,78 @@ export function StudentDetailsModal({
                         <p className="p-2 border rounded">
                           {student.guardian_email}
                         </p>
+                      )}
+                    </div>
+
+                    {/* Communication Permissions */}
+                    <div className="space-y-3 pt-3 border-t border-border/50">
+                      <h4 className="font-medium text-sm">
+                        Communication Permissions
+                      </h4>
+                      {isEditing ? (
+                        <div className="space-y-3">
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <Label className="text-sm">
+                                Email Notifications
+                              </Label>
+                              <p className="text-xs text-muted-foreground">
+                                Send updates and announcements via email
+                              </p>
+                            </div>
+                            <Switch
+                              checked={editForm.guardian_email_consent}
+                              onCheckedChange={(checked) =>
+                                setEditForm({
+                                  ...editForm,
+                                  guardian_email_consent: checked,
+                                })
+                              }
+                            />
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <Label className="text-sm">
+                                WhatsApp Messages
+                              </Label>
+                              <p className="text-xs text-muted-foreground">
+                                Send reminders and quick updates via WhatsApp
+                              </p>
+                            </div>
+                            <Switch
+                              checked={editForm.guardian_whatsapp_consent}
+                              onCheckedChange={(checked) =>
+                                setEditForm({
+                                  ...editForm,
+                                  guardian_whatsapp_consent: checked,
+                                })
+                              }
+                            />
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm">Email Notifications</span>
+                            <span
+                              className={`text-xs px-2 py-1 rounded ${student.guardian_email_consent ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-700"}`}
+                            >
+                              {student.guardian_email_consent
+                                ? "Allowed"
+                                : "Not Allowed"}
+                            </span>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <span className="text-sm">WhatsApp Messages</span>
+                            <span
+                              className={`text-xs px-2 py-1 rounded ${student.guardian_whatsapp_consent ? "bg-green-100 text-green-700" : "bg-gray-100 text-gray-700"}`}
+                            >
+                              {student.guardian_whatsapp_consent
+                                ? "Allowed"
+                                : "Not Allowed"}
+                            </span>
+                          </div>
+                        </div>
                       )}
                     </div>
                   </div>

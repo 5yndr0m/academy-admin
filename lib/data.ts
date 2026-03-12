@@ -245,6 +245,20 @@ export const scheduleService = {
     end_time: string; // "HH:mm"
   }) => apiClient.post<ClassSchedule>("/schedules", data),
 
+  update: (
+    id: string,
+    data: {
+      class_id: string;
+      classroom_id: string;
+      day_of_week: number;
+      start_time: string; // "HH:mm"
+      end_time: string; // "HH:mm"
+    },
+  ) => apiClient.put<ClassSchedule>(`/schedules/${id}`, data),
+
+  delete: (id: string) =>
+    apiClient.delete<{ message: string; id: string }>(`/schedules/${id}`),
+
   getByClass: (classId: string) =>
     apiClient.get<ClassSchedule[]>(`/schedules/class/${classId}`),
 
