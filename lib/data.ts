@@ -44,6 +44,54 @@ import type {
   CalculationResponse,
 } from "@/types";
 
+// Email service types
+export interface SendPaymentReceiptEmailRequest {
+  student_id: string;
+  amount: number;
+  payment_date: string;
+  payment_method: string;
+  class_name?: string;
+}
+
+export interface SendClassCancellationEmailRequest {
+  class_id: string;
+  cancellation_date: string;
+  reason: string;
+}
+
+export interface SendCustomEmailRequest {
+  recipients: string[];
+  subject: string;
+  body: string;
+  is_html: boolean;
+}
+
+export interface EmailLogResponse {
+  id: string;
+  recipient_email: string;
+  recipient_type: string;
+  recipient_id?: string;
+  subject: string;
+  email_type: string;
+  purpose: string;
+  status: string;
+  sent_at?: string;
+  delivered_at?: string;
+  error_message?: string;
+  retry_count: number;
+  sent_by_name: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface EmailServiceStats {
+  total_emails: number;
+  sent_emails: number;
+  failed_emails: number;
+  pending_emails: number;
+  success_rate: number;
+}
+
 export const authService = {
   login: (username: string, password: string) =>
     apiClient.post<{
@@ -335,14 +383,17 @@ export const studentService = {
   create: (data: {
     admission_no: string;
     full_name: string;
-    nic_no: string;
+    nic_no?: string | null;
+    occupation?: string | null;
     gender: "M" | "F";
     date_of_birth: string; // "YYYY-MM-DD"
     address: string;
-    contact_number: string;
+    home_contact: string;
     guardian_name: string;
     guardian_contact: string;
     guardian_email: string;
+    guardian_email_consent: boolean;
+    guardian_whatsapp_consent: boolean;
     admission_fee_paid: boolean;
     registration_date: string;
     authorized_by: string;
@@ -352,11 +403,15 @@ export const studentService = {
     id: string,
     data: {
       full_name: string;
+      nic_no?: string | null;
+      occupation?: string | null;
       address: string;
-      contact_number: string;
+      home_contact: string;
       guardian_name: string;
       guardian_contact: string;
       guardian_email: string;
+      guardian_email_consent: boolean;
+      guardian_whatsapp_consent: boolean;
     },
   ) => apiClient.put<Student>(`/students/${id}`, data),
 
@@ -1245,4 +1300,229 @@ export const expenseRecordService = {
   delete: (id: string) => apiClient.delete(`/expense-records/${id}`),
 
   getCategories: () => apiClient.get<string[]>("/expense-records/categories"),
+};
+
+export const emailService = {
+  // Send payment receipt email to guardian (enhanced with Resend v3)
+  sendPaymentReceipt: (data: SendPaymentReceiptEmailRequest) =>
+    apiClient.post<{ message: string; email_id: string }>(
+      "/emails/payment-receipt",
+      data,
+    ),
+
+  // Send enhanced payment receipt with better styling
+  sendEnhancedReceipt: (data: SendPaymentReceiptEmailRequest) =>
+    apiClient.post<{ message: string; email_id: string }>(
+      "/emails/enhanced-receipt",
+      data,
+    ),
+
+  // Send class cancellation email to guardians
+  sendClassCancellation: (data: SendClassCancellationEmailRequest) =>
+    apiClient.post<{
+      message: string;
+      emails_sent: number;
+      emails_failed: number;
+    }>("/emails/class-cancellation", data),
+
+  // Send custom email to specific recipients
+  sendCustomEmail: (data: SendCustomEmailRequest) =>
+    apiClient.post<{
+      message: string;
+      emails_sent: number;
+      emails_failed: number;
+    }>("/emails/custom", data),
+
+  // Get email logs with filtering
+  getLogs: (
+    filters: {
+      recipient_email?: string;
+      email_type?: string;
+      status?: string;
+      from_date?: string;
+      to_date?: string;
+      recipient_id?: string;
+      page?: number;
+      limit?: number;
+    } = {},
+  ) => {
+    const params = new URLSearchParams();
+    if (filters.recipient_email)
+      params.append("recipient_email", filters.recipient_email);
+    if (filters.email_type) params.append("email_type", filters.email_type);
+    if (filters.status) params.append("status", filters.status);
+    if (filters.from_date) params.append("from_date", filters.from_date);
+    if (filters.to_date) params.append("to_date", filters.to_date);
+    if (filters.recipient_id)
+      params.append("recipient_id", filters.recipient_id);
+    if (filters.page) params.append("page", filters.page.toString());
+    if (filters.limit) params.append("limit", filters.limit.toString());
+
+    const qs = params.toString();
+    return apiClient.get<{
+      data: EmailLogResponse[];
+      total_count: number;
+      page: number;
+      limit: number;
+      total_pages: number;
+    }>(`/emails/logs${qs ? `?${qs}` : ""}`);
+  },
+
+  // Test email service configuration (Resend v3)
+  testService: () => apiClient.post<{ message: string }>("/emails/test"),
+
+  // Get email service statistics
+  getStats: () => apiClient.get<EmailServiceStats>("/emails/stats"),
+
+  // Send welcome email to new students
+  sendWelcomeEmail: (studentId: string) =>
+    apiClient.post<{ message: string }>("/emails/welcome", {
+      student_id: studentId,
+    }),
+};
+
+// Draft Student Registration Types and Service
+export interface DraftStudent {
+  id: string;
+  full_name: string;
+  nic_no?: string;
+  occupation?: string;
+  gender: string;
+  date_of_birth: string;
+  address: string;
+  home_contact: string;
+  guardian_name: string;
+  guardian_contact: string;
+  guardian_email: string;
+  guardian_email_consent: boolean;
+  guardian_whatsapp_consent: boolean;
+  preferred_class_type?: string;
+  additional_notes?: string;
+  status: "pending" | "approved" | "rejected";
+  submission_date: string;
+  reviewed_at?: string;
+  review_notes?: string;
+  reviewed_by_user?: {
+    id: string;
+    full_name: string;
+  };
+  created_student?: {
+    id: string;
+    admission_no: string;
+  };
+}
+
+export interface DraftStudentListResponse {
+  draft_students: DraftStudent[];
+  total: number;
+  pending_count: number;
+  approved_count: number;
+  rejected_count: number;
+}
+
+export interface RegistrationFormConfig {
+  public_form_url: string;
+  qr_code_data: string;
+  qr_code_url: string;
+  registration_token: string;
+  institute_info: {
+    name: string;
+    address: string;
+    phone: string;
+    email: string;
+    website?: string;
+    description?: string;
+  };
+}
+
+export const draftStudentService = {
+  // Get all draft students with optional filtering
+  getAll: (filters?: { status?: string; limit?: number; offset?: number }) => {
+    const params = new URLSearchParams();
+    if (filters?.status) params.set("status", filters.status);
+    if (filters?.limit) params.set("limit", filters.limit.toString());
+    if (filters?.offset) params.set("offset", filters.offset.toString());
+    const qs = params.toString();
+    return apiClient.get<DraftStudentListResponse>(
+      `/draft-students${qs ? `?${qs}` : ""}`,
+    );
+  },
+
+  // Get single draft student by ID
+  getById: (id: string) => apiClient.get<DraftStudent>(`/draft-students/${id}`),
+
+  // Approve draft student and create real student account
+  approve: (
+    id: string,
+    data: {
+      admission_no: string;
+      admission_fee_paid: boolean;
+      admission_fee_amount?: number;
+      admission_fee_payment_method?: string;
+      admission_fee_notes?: string;
+      registration_date?: string;
+      authorized_by: string;
+      review_notes?: string;
+    },
+  ) =>
+    apiClient.post<{
+      message: string;
+      student_id: string;
+      admission_no: string;
+      draft_student_id: string;
+    }>(`/draft-students/${id}/approve`, data),
+
+  // Reject draft student application
+  reject: (
+    id: string,
+    data: {
+      status: "rejected";
+      review_notes: string;
+      reviewed_by: string;
+    },
+  ) =>
+    apiClient.post<{
+      message: string;
+      id: string;
+    }>(`/draft-students/${id}/reject`, data),
+
+  // Get registration form configuration (URL, QR code, etc.)
+  getFormConfig: () =>
+    apiClient.get<RegistrationFormConfig>("/draft-students/config/form"),
+
+  // Public submission (no auth required)
+  submitRegistration: (data: {
+    full_name: string;
+    nic_no?: string;
+    occupation?: string;
+    gender: "M" | "F";
+    date_of_birth: string;
+    address: string;
+    home_contact: string;
+    guardian_name: string;
+    guardian_contact: string;
+    guardian_email: string;
+    guardian_email_consent: boolean;
+    guardian_whatsapp_consent: boolean;
+    preferred_class_type?: string;
+    additional_notes?: string;
+    registration_token?: string;
+  }) => {
+    // This endpoint doesn't require auth, so we'll use fetch directly
+    const baseUrl =
+      process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000/api";
+    return fetch(`${baseUrl}/register/student`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(data),
+    }).then(async (response) => {
+      const result = await response.json();
+      if (!response.ok) {
+        throw new Error(result.error || "Failed to submit registration");
+      }
+      return result;
+    });
+  },
 };
