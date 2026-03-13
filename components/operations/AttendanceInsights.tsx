@@ -34,7 +34,7 @@ import {
 interface ClassOverview {
   class_id: string;
   class_name: string;
-  teacher_name: string;
+  teacher_name?: string;
   total_students: number;
   average_attendance: number;
   excellent_students: number;
@@ -210,7 +210,7 @@ export function AttendanceInsights() {
                 <div className="text-center">
                   <Users className="h-8 w-8 text-purple-500 mx-auto mb-2" />
                   <p className="text-lg font-bold">
-                    {classOverview.teacher_name}
+                    {classOverview.teacher_name || "Unknown Teacher"}
                   </p>
                   <p className="text-sm text-muted-foreground">Teacher</p>
                 </div>

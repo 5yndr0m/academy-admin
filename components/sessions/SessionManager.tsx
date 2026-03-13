@@ -451,7 +451,7 @@ export function SessionManager({ onSessionChange }: SessionManagerProps) {
                             {session.class?.teacher?.full_name || "No teacher"}
                           </p>
                           <p className="text-xs text-green-600">
-                            {session.session_date || today} • Active
+                            {today} • Active
                           </p>
                         </div>
                       </div>
@@ -503,7 +503,7 @@ export function SessionManager({ onSessionChange }: SessionManagerProps) {
                             {session.class?.teacher?.full_name || "No teacher"}
                           </p>
                           <p className="text-xs text-blue-600">
-                            {session.session_date || today} • Scheduled
+                            {today} • Scheduled
                           </p>
                         </div>
                       </div>
@@ -560,7 +560,7 @@ export function SessionManager({ onSessionChange }: SessionManagerProps) {
                             {session.class?.teacher?.full_name || "No teacher"}
                           </p>
                           <p className="text-xs text-gray-600">
-                            {session.session_date || today} • Completed
+                            {today} • Completed
                           </p>
                         </div>
                       </div>

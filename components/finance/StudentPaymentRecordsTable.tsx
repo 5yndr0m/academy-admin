@@ -29,7 +29,19 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
-import { Plus, Search, Edit, Trash2, User, GraduationCap } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Plus,
+  Search,
+  Edit,
+  Trash2,
+  User,
+  GraduationCap,
+  Mail,
+  Send,
+  CheckSquare,
+  Square,
+} from "lucide-react";
 import { format } from "date-fns";
 import { useToast } from "@/components/ui/use-toast";
 import {
@@ -45,6 +57,7 @@ import type {
   Student,
   Class,
 } from "@/types";
+import { SendEmailDialog } from "@/components/emails/SendEmailDialog";
 
 const PAYMENT_METHODS = ["CASH", "BANK_TRANSFER", "CHEQUE"] as const;
 
@@ -61,6 +74,10 @@ export function StudentPaymentRecordsTable() {
   const [editingRecord, setEditingRecord] =
     useState<StudentPaymentRecord | null>(null);
 
+  // Selection states
+  const [selectedRecords, setSelectedRecords] = useState<string[]>([]);
+  const [bulkEmailMode, setBulkEmailMode] = useState(false);
+
   // Filter states
   const [filters, setFilters] = useState<FinancialRecordFilters>({
     page: 1,
@@ -75,6 +92,44 @@ export function StudentPaymentRecordsTable() {
   const [dateTo, setDateTo] = useState("");
 
   const { toast } = useToast();
+
+  // Email dialog state
+  const [emailDialogOpen, setEmailDialogOpen] = useState(false);
+  const [emailData, setEmailData] = useState<{
+    student_id?: string;
+    student_name?: string;
+    guardian_email?: string;
+    amount?: number;
+    payment_date?: string;
+    payment_method?: string;
+    class_name?: string;
+  }>({});
+
+  // Update email data for bulk selection
+  const getBulkEmailData = () => {
+    return selectedRecords
+      .map((recordId) => {
+        const record = records.find((r) => r.id === recordId);
+        const student = students.find((s) => s.id === record?.student_id);
+        if (!record || !student) return null;
+
+        return {
+          id: record.id,
+          student_id: record.student_id,
+          student_name: student.fullname,
+          guardian_email: student.guardian_email,
+          class_id: record.class_id,
+          class_name:
+            record.class_name ||
+            classes.find((c) => c.id === record.class_id)?.name,
+          amount: record.amount,
+          payment_date: record.payment_date,
+          payment_method: record.payment_method,
+          guardian_email_consent: student.guardian_email_consent,
+        };
+      })
+      .filter((item): item is NonNullable<typeof item> => item !== null);
+  };
 
   // Form state for create/edit
   const [formData, setFormData] = useState<CreateStudentPaymentRequest>({
@@ -259,6 +314,7 @@ export function StudentPaymentRecordsTable() {
     setFormData({
       student_id: record.student_id,
       class_id: record.class_id,
+      payment_type: record.payment_type,
       amount: record.amount,
       payment_date: record.payment_date,
       payment_month: record.payment_month,
@@ -281,6 +337,40 @@ export function StudentPaymentRecordsTable() {
     }
   };
 
+  const openEmailDialog = (record?: StudentPaymentRecord) => {
+    if (record) {
+      // Single record mode
+      const student = students.find((s) => s.id === record.student_id);
+      if (!student?.guardian_email_consent) {
+        toast({
+          title: "Email Not Allowed",
+          description: "Guardian has not consented to email communications.",
+          variant: "destructive",
+        });
+        return;
+      }
+      setSelectedRecords([record.id]);
+    }
+    // Bulk mode uses selectedRecords as-is
+    setEmailDialogOpen(true);
+  };
+
+  const toggleRecordSelection = (recordId: string) => {
+    setSelectedRecords((prev) =>
+      prev.includes(recordId)
+        ? prev.filter((id) => id !== recordId)
+        : [...prev, recordId],
+    );
+  };
+
+  const toggleAllSelection = () => {
+    if (selectedRecords.length === records.length) {
+      setSelectedRecords([]);
+    } else {
+      setSelectedRecords(records.map((r) => r.id));
+    }
+  };
+
   const handlePageChange = (page: number) => {
     setFilters({ ...filters, page });
   };
@@ -292,7 +382,8 @@ export function StudentPaymentRecordsTable() {
       : "Unknown Student";
   };
 
-  const getClassName = (classId: string) => {
+  const getClassName = (classId: string | undefined) => {
+    if (!classId) return "No Class (Admission Fee)";
     const cls = classes.find((c) => c.id === classId);
     return cls ? cls.name : "Unknown Class";
   };
@@ -589,8 +680,44 @@ export function StudentPaymentRecordsTable() {
         <CardHeader>
           <CardTitle className="flex items-center justify-between">
             <span>Payment Records ({totalCount} total)</span>
-            <div className="text-sm font-normal text-muted-foreground">
-              Page {currentPage} of {totalPages}
+            <div className="flex items-center gap-2">
+              {!bulkEmailMode && (
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setBulkEmailMode(true)}
+                  disabled={records.length === 0}
+                >
+                  <CheckSquare className="h-4 w-4 mr-1" />
+                  Bulk Email
+                </Button>
+              )}
+              {bulkEmailMode && (
+                <>
+                  <Button
+                    size="sm"
+                    variant="default"
+                    onClick={() => openEmailDialog()}
+                    disabled={selectedRecords.length === 0}
+                  >
+                    <Send className="h-4 w-4 mr-1" />
+                    Send Receipts ({selectedRecords.length})
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => {
+                      setBulkEmailMode(false);
+                      setSelectedRecords([]);
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                </>
+              )}
+              <div className="text-sm font-normal text-muted-foreground">
+                Page {currentPage} of {totalPages}
+              </div>
             </div>
           </CardTitle>
         </CardHeader>
@@ -602,6 +729,17 @@ export function StudentPaymentRecordsTable() {
               <Table>
                 <TableHeader>
                   <TableRow>
+                    {bulkEmailMode && (
+                      <TableHead className="w-12">
+                        <Checkbox
+                          checked={
+                            selectedRecords.length === records.length &&
+                            records.length > 0
+                          }
+                          onCheckedChange={toggleAllSelection}
+                        />
+                      </TableHead>
+                    )}
                     <TableHead>Date</TableHead>
                     <TableHead>Month</TableHead>
                     <TableHead>Student</TableHead>
@@ -615,13 +753,26 @@ export function StudentPaymentRecordsTable() {
                 <TableBody>
                   {records.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={8} className="text-center py-8">
+                      <TableCell
+                        colSpan={bulkEmailMode ? 9 : 8}
+                        className="text-center py-8"
+                      >
                         No payment records found
                       </TableCell>
                     </TableRow>
                   ) : (
                     records.map((record) => (
                       <TableRow key={record.id}>
+                        {bulkEmailMode && (
+                          <TableCell>
+                            <Checkbox
+                              checked={selectedRecords.includes(record.id)}
+                              onCheckedChange={() =>
+                                toggleRecordSelection(record.id)
+                              }
+                            />
+                          </TableCell>
+                        )}
                         <TableCell>
                           {format(
                             new Date(record.payment_date),
@@ -665,6 +816,16 @@ export function StudentPaymentRecordsTable() {
                         </TableCell>
                         <TableCell className="text-right">
                           <div className="flex items-center gap-2 justify-end">
+                            {!bulkEmailMode && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => openEmailDialog(record)}
+                                title="Send payment receipt email"
+                              >
+                                <Mail className="h-4 w-4" />
+                              </Button>
+                            )}
                             <Button
                               size="sm"
                               variant="outline"
@@ -871,6 +1032,21 @@ export function StudentPaymentRecordsTable() {
           </form>
         </DialogContent>
       </Dialog>
+
+      {/* Email Dialog */}
+      <SendEmailDialog
+        open={emailDialogOpen}
+        onOpenChange={(open) => {
+          setEmailDialogOpen(open);
+          if (!open) {
+            setSelectedRecords([]);
+            setBulkEmailMode(false);
+          }
+        }}
+        type="payment_receipt"
+        paymentRecords={getBulkEmailData()}
+        defaultData={emailData}
+      />
     </div>
   );
 }
