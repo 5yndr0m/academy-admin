@@ -26,6 +26,7 @@ import {
 import { Student, Enrollment, EnrollmentStatus } from "@/types";
 import { EnrollStudentDialog } from "./EnrollStudentDialog";
 import { StudentPaymentHistory } from "./StudentPaymentHistory";
+import { AdmissionFeeDialog } from "./AdmissionFeeDialog";
 import {
   Select,
   SelectContent,
@@ -260,10 +261,16 @@ export function StudentDetailsModal({
                   : "Student Details"}
               </span>
               {!isEditing && (
-                <Button variant="outline" onClick={() => setIsEditing(true)}>
-                  <Edit className="h-4 w-4 mr-1" />
-                  Edit
-                </Button>
+                <div className="flex gap-2">
+                  <Button variant="outline" onClick={() => setIsEditing(true)}>
+                    <Edit className="h-4 w-4 mr-1" />
+                    Edit
+                  </Button>
+                  <AdmissionFeeDialog
+                    student={student}
+                    onUpdate={loadStudentData}
+                  />
+                </div>
               )}
             </div>
             {isEditing && (

@@ -469,6 +469,7 @@ export interface StudentPaymentRecord {
   payment_month?: string; // YYYY-MM
   payment_method: "CASH" | "BANK_TRANSFER" | "CHEQUE";
   recorded_by: string;
+  recorded_by_name: string;
   notes: string;
   created_at: string;
   updated_at: string;
@@ -488,6 +489,7 @@ export interface TeacherPayoutRecord {
   payout_month: string; // YYYY-MM
   payment_method: "CASH" | "BANK_TRANSFER" | "CHEQUE";
   recorded_by: string;
+  recorded_by_name: string;
   student_count: number;
   notes: string;
   created_at: string;
@@ -509,6 +511,7 @@ export interface StaffCommissionRecord {
   payment_month: string; // YYYY-MM
   payment_method: "CASH" | "BANK_TRANSFER" | "CHEQUE";
   recorded_by: string;
+  recorded_by_name: string;
   notes: string;
   created_at: string;
   updated_at: string;
@@ -533,6 +536,7 @@ export interface ExpenseRecord {
   expense_date: string; // YYYY-MM-DD
   payment_method: "CASH" | "BANK_TRANSFER" | "CHEQUE" | "CARD";
   recorded_by: string;
+  recorded_by_name: string;
   receipt_ref: string;
   notes: string;
   created_at: string;

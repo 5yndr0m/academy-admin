@@ -167,9 +167,9 @@ export function StudentPaymentRecordsTable() {
     setFormData({
       student_id: "",
       class_id: "",
+      payment_type: "CLASS_PAYMENT",
       amount: 0,
       payment_date: new Date().toISOString().split("T")[0],
-      payment_month: new Date().toISOString().substring(0, 7),
       payment_method: "CASH",
       notes: "",
     });
@@ -178,7 +178,23 @@ export function StudentPaymentRecordsTable() {
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await studentPaymentRecordService.create(formData);
+      // Process form data based on payment type
+      const submitData: any = {
+        student_id: formData.student_id,
+        payment_type: formData.payment_type,
+        amount: formData.amount,
+        payment_date: formData.payment_date,
+        payment_method: formData.payment_method,
+        notes: formData.notes,
+      };
+
+      // Only include class_id and payment_month for class payments
+      if (formData.payment_type === "CLASS_PAYMENT") {
+        submitData.class_id = formData.class_id;
+        submitData.payment_month = formData.payment_month;
+      }
+
+      await studentPaymentRecordService.create(submitData);
       toast({
         title: "Success",
         description: "Student payment recorded successfully",
@@ -303,6 +319,33 @@ export function StudentPaymentRecordsTable() {
               <DialogTitle>Record Student Payment</DialogTitle>
             </DialogHeader>
             <form onSubmit={handleCreate} className="space-y-4">
+              <div>
+                <Label htmlFor="payment_type">Payment Type</Label>
+                <Select
+                  value={formData.payment_type}
+                  onValueChange={(value) =>
+                    setFormData({
+                      ...formData,
+                      payment_type: value as "CLASS_PAYMENT" | "ADMISSION_FEE",
+                      class_id:
+                        value === "ADMISSION_FEE" ? "" : formData.class_id,
+                      payment_month:
+                        value === "ADMISSION_FEE"
+                          ? undefined
+                          : new Date().toISOString().substring(0, 7),
+                    })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select payment type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="CLASS_PAYMENT">Class Payment</SelectItem>
+                    <SelectItem value="ADMISSION_FEE">Admission Fee</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="student_id">Student</Label>
@@ -324,26 +367,28 @@ export function StudentPaymentRecordsTable() {
                     </SelectContent>
                   </Select>
                 </div>
-                <div>
-                  <Label htmlFor="class_id">Class</Label>
-                  <Select
-                    value={formData.class_id}
-                    onValueChange={(value) =>
-                      setFormData({ ...formData, class_id: value })
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select class" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {classes.map((cls) => (
-                        <SelectItem key={cls.id} value={cls.id}>
-                          {cls.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+                {formData.payment_type === "CLASS_PAYMENT" && (
+                  <div>
+                    <Label htmlFor="class_id">Class</Label>
+                    <Select
+                      value={formData.class_id}
+                      onValueChange={(value) =>
+                        setFormData({ ...formData, class_id: value })
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select class" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {classes.map((cls) => (
+                          <SelectItem key={cls.id} value={cls.id}>
+                            {cls.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
               </div>
 
               <div className="grid grid-cols-2 gap-4">
@@ -401,21 +446,23 @@ export function StudentPaymentRecordsTable() {
                     required
                   />
                 </div>
-                <div>
-                  <Label htmlFor="payment_month">Payment Month</Label>
-                  <Input
-                    id="payment_month"
-                    type="month"
-                    value={formData.payment_month}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        payment_month: e.target.value,
-                      })
-                    }
-                    required
-                  />
-                </div>
+                {formData.payment_type === "CLASS_PAYMENT" && (
+                  <div>
+                    <Label htmlFor="payment_month">Payment Month</Label>
+                    <Input
+                      id="payment_month"
+                      type="month"
+                      value={formData.payment_month}
+                      onChange={(e) =>
+                        setFormData({
+                          ...formData,
+                          payment_month: e.target.value,
+                        })
+                      }
+                      required
+                    />
+                  </div>
+                )}
               </div>
 
               <div>
@@ -775,18 +822,23 @@ export function StudentPaymentRecordsTable() {
                   required
                 />
               </div>
-              <div>
-                <Label htmlFor="edit-payment_month">Payment Month</Label>
-                <Input
-                  id="edit-payment_month"
-                  type="month"
-                  value={formData.payment_month}
-                  onChange={(e) =>
-                    setFormData({ ...formData, payment_month: e.target.value })
-                  }
-                  required
-                />
-              </div>
+              {formData.payment_type === "CLASS_PAYMENT" && (
+                <div>
+                  <Label htmlFor="edit-payment_month">Payment Month</Label>
+                  <Input
+                    id="edit-payment_month"
+                    type="month"
+                    value={formData.payment_month}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        payment_month: e.target.value,
+                      })
+                    }
+                    required
+                  />
+                </div>
+              )}
             </div>
 
             <div>

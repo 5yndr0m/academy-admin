@@ -90,25 +90,30 @@ export function AdmissionFeeDialog({
     try {
       if (createInvoice) {
         // Create admission fee invoice
-        await invoiceService.createAdmissionInvoice({
-          student_id: student.id,
-          amount: admissionAmount,
-          payment_status: paymentStatus,
-          payment_method: paymentStatus === "PAID" ? paymentMethod : undefined,
-          notes: notes,
-          due_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
-            .toISOString()
-            .split("T")[0], // 30 days from now
-        });
+        if (student?.id) {
+          await invoiceService.createAdmissionInvoice({
+            student_id: student.id,
+            amount: admissionAmount,
+            payment_status: paymentStatus,
+            payment_method:
+              paymentStatus === "PAID" ? paymentMethod : undefined,
+            notes: notes,
+            due_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+              .toISOString()
+              .split("T")[0], // 30 days from now
+          });
+        }
       }
 
       // Update student admission fee status
-      await studentService.updateAdmissionFee(student.id, {
-        admission_fee_paid: paymentStatus === "PAID",
-        admission_fee_amount: admissionAmount,
-        payment_method: paymentStatus === "PAID" ? paymentMethod : undefined,
-        notes: notes,
-      });
+      if (student?.id) {
+        await studentService.updateAdmissionFee(student.id, {
+          admission_fee_paid: paymentStatus === "PAID",
+          admission_fee_amount: admissionAmount,
+          payment_method: paymentStatus === "PAID" ? paymentMethod : undefined,
+          notes: notes,
+        });
+      }
 
       setOpen(false);
       reset();
@@ -123,7 +128,7 @@ export function AdmissionFeeDialog({
   };
 
   const getStatusIcon = () => {
-    if (student.admission_fee_paid) {
+    if (student?.admission_fee_paid) {
       return (
         <CheckCircle2 className="h-5 w-5 text-green-600 dark:text-green-400" />
       );
@@ -132,14 +137,19 @@ export function AdmissionFeeDialog({
   };
 
   const getStatusText = () => {
-    return student.admission_fee_paid ? "Fee Paid" : "Payment Pending";
+    return student?.admission_fee_paid ? "Fee Paid" : "Payment Pending";
   };
 
   const getStatusColor = () => {
-    return student.admission_fee_paid
+    return student?.admission_fee_paid
       ? "bg-green-100 text-green-800 border-green-200 dark:bg-green-900 dark:text-green-100 dark:border-green-700"
       : "bg-red-100 text-red-800 border-red-200 dark:bg-red-900 dark:text-red-200 dark:border-red-700";
   };
+
+  // Don't render if student is null
+  if (!student) {
+    return null;
+  }
 
   return (
     <Dialog
@@ -168,7 +178,7 @@ export function AdmissionFeeDialog({
           </DialogTitle>
           <DialogDescription>
             Manage admission fee payment status and create invoices for{" "}
-            <strong>{student.fullname}</strong>
+            <strong>{student?.fullname || "Student"}</strong>
           </DialogDescription>
         </DialogHeader>
 
@@ -291,7 +301,7 @@ export function AdmissionFeeDialog({
             </div>
 
             {/* Warning for already paid */}
-            {student.admission_fee_paid && paymentStatus === "PAID" && (
+            {student?.admission_fee_paid && paymentStatus === "PAID" && (
               <div className="flex items-center gap-2 p-3 bg-amber-50 border border-amber-200 rounded-lg dark:bg-amber-950/30 dark:border-amber-800">
                 <AlertCircle className="h-4 w-4 text-amber-600 dark:text-amber-400" />
                 <p className="text-sm text-amber-800 dark:text-amber-300">
