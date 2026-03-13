@@ -266,10 +266,12 @@ export function StudentDetailsModal({
                     <Edit className="h-4 w-4 mr-1" />
                     Edit
                   </Button>
-                  <AdmissionFeeDialog
-                    student={student}
-                    onUpdate={loadStudentData}
-                  />
+                  {student && (
+                    <AdmissionFeeDialog
+                      student={student}
+                      onUpdate={loadStudentData}
+                    />
+                  )}
                 </div>
               )}
             </div>

@@ -62,7 +62,7 @@ export function EnhancedStudentSearch({
         const searchText = [
           student.fullname,
           student.admission_no,
-          student.contact_number,
+          student.home_contact,
           student.guardian_name,
           student.guardian_contact,
           student.guardian_email,

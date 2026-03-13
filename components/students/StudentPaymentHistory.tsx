@@ -55,7 +55,8 @@ export function StudentPaymentHistory({
   const [loading, setLoading] = useState(true);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  const [editingPayment, setEditingPayment] = useState<StudentPaymentRecord | null>(null);
+  const [editingPayment, setEditingPayment] =
+    useState<StudentPaymentRecord | null>(null);
 
   const { toast } = useToast();
 
@@ -63,9 +64,10 @@ export function StudentPaymentHistory({
   const [formData, setFormData] = useState<CreateStudentPaymentRequest>({
     student_id: studentId,
     class_id: "",
+    payment_type: "CLASS_PAYMENT",
     amount: 0,
     payment_date: new Date().toISOString().split("T")[0],
-    payment_month: new Date().toISOString().substring(0, 7),
+    payment_month: new Date().toISOString().substring(0, 7), // YYYY-MM
     payment_method: "CASH",
     notes: "",
   });
@@ -102,6 +104,7 @@ export function StudentPaymentHistory({
     setFormData({
       student_id: studentId,
       class_id: "",
+      payment_type: "CLASS_PAYMENT",
       amount: 0,
       payment_date: new Date().toISOString().split("T")[0],
       payment_month: new Date().toISOString().substring(0, 7),
@@ -154,7 +157,8 @@ export function StudentPaymentHistory({
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this payment record?")) return;
+    if (!confirm("Are you sure you want to delete this payment record?"))
+      return;
 
     try {
       await studentPaymentRecordService.delete(id);
@@ -177,6 +181,7 @@ export function StudentPaymentHistory({
     setFormData({
       student_id: payment.student_id,
       class_id: payment.class_id,
+      payment_type: payment.payment_type,
       amount: payment.amount,
       payment_date: payment.payment_date,
       payment_month: payment.payment_month,
@@ -199,7 +204,8 @@ export function StudentPaymentHistory({
     }
   };
 
-  const getClassName = (classId: string) => {
+  const getClassName = (classId: string | undefined) => {
+    if (!classId) return "No Class (Admission Fee)";
     const cls = classes.find((c) => c.id === classId);
     return cls ? cls.name : "Unknown Class";
   };
@@ -365,7 +371,9 @@ export function StudentPaymentHistory({
         <Card>
           <CardContent className="text-center py-8">
             <DollarSign className="h-12 w-12 mx-auto mb-4 text-muted-foreground opacity-50" />
-            <p className="text-muted-foreground mb-4">No payment records found</p>
+            <p className="text-muted-foreground mb-4">
+              No payment records found
+            </p>
             <p className="text-sm text-muted-foreground">
               Click "Add Payment" to record the first payment for {studentName}
             </p>
@@ -374,7 +382,11 @@ export function StudentPaymentHistory({
       ) : (
         <div className="space-y-3">
           {payments
-            .sort((a, b) => new Date(b.payment_date).getTime() - new Date(a.payment_date).getTime())
+            .sort(
+              (a, b) =>
+                new Date(b.payment_date).getTime() -
+                new Date(a.payment_date).getTime(),
+            )
             .map((payment) => (
               <Card key={payment.id}>
                 <CardContent className="p-4">
@@ -384,7 +396,10 @@ export function StudentPaymentHistory({
                         <div className="flex items-center gap-2">
                           <Calendar className="h-4 w-4 text-muted-foreground" />
                           <span className="font-medium">
-                            {format(new Date(payment.payment_date), "MMM dd, yyyy")}
+                            {format(
+                              new Date(payment.payment_date),
+                              "MMM dd, yyyy",
+                            )}
                           </span>
                         </div>
                         <div className="flex items-center gap-2">
@@ -402,7 +417,11 @@ export function StudentPaymentHistory({
                             LKR {payment.amount.toLocaleString()}
                           </span>
                         </div>
-                        <Badge variant={getPaymentMethodBadge(payment.payment_method)}>
+                        <Badge
+                          variant={getPaymentMethodBadge(
+                            payment.payment_method,
+                          )}
+                        >
                           <CreditCard className="h-3 w-3 mr-1" />
                           {payment.payment_method.replace("_", " ")}
                         </Badge>
@@ -410,10 +429,16 @@ export function StudentPaymentHistory({
 
                       <div className="flex items-center gap-4 text-sm text-muted-foreground">
                         <span>
-                          Month: {format(new Date(payment.payment_month + "-01"), "MMM yyyy")}
+                          Month:{" "}
+                          {format(
+                            new Date(payment.payment_month + "-01"),
+                            "MMM yyyy",
+                          )}
                         </span>
                         {payment.recorded_by_user && (
-                          <span>Recorded by: {payment.recorded_by_user.username}</span>
+                          <span>
+                            Recorded by: {payment.recorded_by_user.username}
+                          </span>
                         )}
                       </div>
 

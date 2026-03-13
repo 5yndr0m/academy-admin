@@ -57,7 +57,7 @@ export function StudentList() {
           student.admission_no
             .toLowerCase()
             .includes(searchTerm.toLowerCase())) ||
-        student.contact_number.includes(searchTerm) ||
+        student.home_contact.includes(searchTerm) ||
         student.guardian_name.toLowerCase().includes(searchTerm.toLowerCase()),
     );
     setFilteredStudents(filtered);
@@ -98,7 +98,11 @@ export function StudentList() {
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-64"
             />
-            <AddStudentDialog onAdded={loadStudents} />
+            <AddStudentDialog
+              onAdded={() => {
+                loadStudents();
+              }}
+            />
           </div>
         </div>
       </CardHeader>
@@ -111,12 +115,11 @@ export function StudentList() {
                 : "No students added yet."}
             </p>
             {!searchTerm && (
-              <AddStudentDialog onAdded={loadStudents}>
-                <Button className="mt-4">
-                  <Plus className="h-4 w-4 mr-2" />
-                  Add First Student
-                </Button>
-              </AddStudentDialog>
+              <AddStudentDialog
+                onAdded={() => {
+                  loadStudents();
+                }}
+              />
             )}
           </div>
         ) : (
