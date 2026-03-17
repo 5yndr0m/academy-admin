@@ -55,7 +55,7 @@ export default function Home() {
 
   return (
     <div className="space-y-6">
-      <StatsCards counts={data.counts} financial={data.financial_summary} />
+      <StatsCards counts={data.counts} />
 
       <Tabs defaultValue="overview" className="space-y-4">
         <div className="w-full overflow-x-auto pb-1 scrollbar-hide">
