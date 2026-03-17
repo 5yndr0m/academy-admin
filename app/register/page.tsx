@@ -26,9 +26,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import {
   User,
   Phone,
-  Mail,
   MapPin,
-  Calendar,
   Users,
   GraduationCap,
   CheckCircle,
@@ -51,7 +49,6 @@ function RegistrationFormComponent() {
   const [error, setError] = useState<string | null>(null);
   const [submissionId, setSubmissionId] = useState<string | null>(null);
 
-  // Form state
   const [fullName, setFullName] = useState("");
   const [nicNo, setNicNo] = useState("");
   const [occupation, setOccupation] = useState("");
@@ -126,17 +123,17 @@ function RegistrationFormComponent() {
 
   if (submitted) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center p-4">
+      <div className="min-h-screen bg-background flex items-center justify-center p-4">
         <Card className="w-full max-w-2xl">
           <CardHeader className="text-center">
-            <div className="mx-auto mb-4 w-16 h-16 bg-green-100 rounded-full flex items-center justify-center">
-              <CheckCircle className="h-8 w-8 text-green-600" />
+            <div className="mx-auto mb-4 w-16 h-16 bg-green-500/10 rounded-full flex items-center justify-center">
+              <CheckCircle className="h-8 w-8 text-green-500" />
             </div>
-            <CardTitle className="text-2xl text-green-700">
+            <CardTitle className="text-2xl text-green-500">
               Registration Submitted Successfully!
             </CardTitle>
             <CardDescription>
-              Thank you for your interest in Music Academy
+              Thank you for your interest in Nimal Senanayake Academy of Performing Arts
             </CardDescription>
           </CardHeader>
           <CardContent className="text-center space-y-4">
@@ -150,12 +147,10 @@ function RegistrationFormComponent() {
             </Alert>
             <div className="space-y-2">
               <p className="text-sm text-muted-foreground">
-                Your application has been received and is currently under
-                review.
+                Your application has been received and is currently under review.
               </p>
               <p className="text-sm text-muted-foreground">
-                We will contact you within 2-3 business days with the next
-                steps.
+                We will contact you within 2–3 business days with the next steps.
               </p>
               {guardianEmailConsent && (
                 <p className="text-sm text-muted-foreground">
@@ -171,30 +166,30 @@ function RegistrationFormComponent() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 py-8 px-4">
+    <div className="min-h-screen bg-background py-8 px-4">
       <div className="max-w-4xl mx-auto">
         {/* Header */}
         <div className="text-center mb-8">
           <div className="mb-4">
-            <GraduationCap className="h-12 w-12 mx-auto text-blue-600" />
+            <GraduationCap className="h-12 w-12 mx-auto text-primary" />
           </div>
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">
-            Music Academy Student Registration
+          <h1 className="text-3xl font-bold mb-2">
+            Nimal Senanayake Academy of Performing Arts
           </h1>
-          <p className="text-gray-600">
-            Complete the form below to apply for admission to our music programs
+          <p className="text-muted-foreground">
+            Complete the form below to apply for admission
           </p>
         </div>
 
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <User className="h-5 w-5 text-blue-600" />
+              <User className="h-5 w-5 text-primary" />
               Student Registration Form
             </CardTitle>
             <CardDescription>
-              All fields marked with * are required. We respect your privacy and
-              will only use your information for academy purposes.
+              All fields marked with * are required. Your information will only
+              be used for academy purposes.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -345,7 +340,7 @@ function RegistrationFormComponent() {
                 </div>
 
                 {/* Communication Preferences */}
-                <div className="space-y-4 p-4 bg-gray-50 rounded-lg">
+                <div className="space-y-4 p-4 bg-muted/30 rounded-lg">
                   <h4 className="font-medium">Communication Preferences</h4>
                   <div className="space-y-3">
                     <div className="flex items-center justify-between">
@@ -353,9 +348,8 @@ function RegistrationFormComponent() {
                         <Label className="text-sm font-medium">
                           Email Updates
                         </Label>
-                        <p className="text-sm text-gray-600">
-                          Receive important academy updates and announcements
-                          via email
+                        <p className="text-sm text-muted-foreground">
+                          Receive important academy updates and announcements via email
                         </p>
                       </div>
                       <Switch
@@ -369,7 +363,7 @@ function RegistrationFormComponent() {
                         <Label className="text-sm font-medium">
                           WhatsApp Messages
                         </Label>
-                        <p className="text-sm text-gray-600">
+                        <p className="text-sm text-muted-foreground">
                           Receive quick reminders and updates via WhatsApp
                         </p>
                       </div>
@@ -390,23 +384,21 @@ function RegistrationFormComponent() {
                 </h3>
 
                 <div className="space-y-2">
-                  <Label htmlFor="preferredClassType">
-                    Preferred Class Type
-                  </Label>
+                  <Label htmlFor="preferredClassType">Preferred Class</Label>
                   <Select
                     value={preferredClassType}
                     onValueChange={setPreferredClassType}
                   >
                     <SelectTrigger>
-                      <SelectValue placeholder="Select your preferred class" />
+                      <SelectValue placeholder="Select a class type" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="piano">Piano</SelectItem>
-                      <SelectItem value="guitar">Guitar</SelectItem>
-                      <SelectItem value="violin">Violin</SelectItem>
-                      <SelectItem value="vocals">Vocals</SelectItem>
-                      <SelectItem value="music-theory">Music Theory</SelectItem>
-                      <SelectItem value="drums">Drums</SelectItem>
+                      <SelectItem value="art">Art</SelectItem>
+                      <SelectItem value="dancing">Dancing</SelectItem>
+                      <SelectItem value="western-music">Western Music</SelectItem>
+                      <SelectItem value="music">Music</SelectItem>
+                      <SelectItem value="ballet">Ballet</SelectItem>
+                      <SelectItem value="drama">Drama</SelectItem>
                       <SelectItem value="other">Other</SelectItem>
                     </SelectContent>
                   </Select>
@@ -444,22 +436,17 @@ function RegistrationFormComponent() {
                   )}
                 </Button>
 
-                <p className="text-sm text-gray-500 text-center mt-4">
-                  By submitting this form, you agree to our terms and
-                  conditions. Your application will be reviewed and we will
-                  contact you soon.
+                <p className="text-sm text-muted-foreground text-center mt-4">
+                  By submitting this form, you agree to our terms and conditions.
+                  Your application will be reviewed and we will contact you soon.
                 </p>
               </div>
             </form>
           </CardContent>
         </Card>
 
-        {/* Footer */}
-        <div className="mt-8 text-center text-sm text-gray-500">
-          <p>
-            Music Academy © 2024 | 123 Music Street, Colombo 03 | +94 11 234
-            5678
-          </p>
+        <div className="mt-8 text-center text-sm text-muted-foreground">
+          <p>Nimal Senanayake Academy of Performing Arts</p>
         </div>
       </div>
     </div>
