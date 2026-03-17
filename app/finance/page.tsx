@@ -9,6 +9,8 @@ import {
   ArrowLeft,
   User,
   GraduationCap,
+  BarChart3,
+  FileText,
 } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
@@ -17,6 +19,8 @@ import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 
 // Import new financial components
+import { MonthlyOverview } from "@/components/finance/MonthlyOverview";
+import { MonthlyReportGenerator } from "@/components/finance/MonthlyReportGenerator";
 import { StudentPaymentRecordsTable } from "@/components/finance/StudentPaymentRecordsTable";
 import { TeacherPayoutRecordsTable } from "@/components/finance/TeacherPayoutRecordsTable";
 import { StaffCommissionRecordsTable } from "@/components/finance/StaffCommissionRecordsTable";
@@ -27,8 +31,8 @@ function FinanceContent() {
   const [mounted, setMounted] = useState(false);
   const searchParams = useSearchParams();
 
-  // Get tab from URL parameters, default to 'payments'
-  const defaultTab = searchParams.get("tab") || "payments";
+  // Get tab from URL parameters, default to 'overview'
+  const defaultTab = searchParams.get("tab") || "overview";
   const studentId = searchParams.get("student_id");
 
   useEffect(() => {
@@ -128,6 +132,12 @@ function FinanceContent() {
         <div className="w-full overflow-x-auto pb-1">
           <TabsList className="bg-muted/60 p-1 inline-flex w-full justify-start md:w-fit">
             <TabsTrigger
+              value="overview"
+              className="flex items-center gap-2 whitespace-nowrap"
+            >
+              <BarChart3 className="h-4 w-4" /> Monthly Overview
+            </TabsTrigger>
+            <TabsTrigger
               value="payments"
               className="flex items-center gap-2 whitespace-nowrap"
             >
@@ -151,8 +161,18 @@ function FinanceContent() {
             >
               <Receipt className="h-4 w-4" /> Expenses
             </TabsTrigger>
+            <TabsTrigger
+              value="report"
+              className="flex items-center gap-2 whitespace-nowrap"
+            >
+              <FileText className="h-4 w-4" /> Monthly Report
+            </TabsTrigger>
           </TabsList>
         </div>
+
+        <TabsContent value="overview" className="space-y-4">
+          <MonthlyOverview />
+        </TabsContent>
 
         <TabsContent value="payments" className="space-y-4">
           <StudentPaymentRecordsTable />
@@ -168,6 +188,16 @@ function FinanceContent() {
 
         <TabsContent value="expenses" className="space-y-4">
           <ExpenseRecordsTable />
+        </TabsContent>
+
+        <TabsContent value="report" className="space-y-4">
+          <div>
+            <h3 className="text-2xl font-bold">Monthly Report</h3>
+            <p className="text-muted-foreground">
+              Generate a formatted financial report from your monthly data and download it as a PDF.
+            </p>
+          </div>
+          <MonthlyReportGenerator />
         </TabsContent>
       </Tabs>
     </div>
