@@ -13,7 +13,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
-import { Download, Users, Layers, Percent, Loader2 } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Download, Users, Layers, Loader2 } from "lucide-react";
 import { teacherPaymentService } from "@/lib/data"; // use the centralized API client
 const Spinner = (props: any) => (
   <Loader2 className="animate-spin h-4 w-4" {...props} />
@@ -66,19 +67,24 @@ export function TeacherFinancialSummary({
   onClassSelect,
   apiBaseUrl,
 }: TeacherFinancialSummaryProps) {
+  const thisMonth = new Date().toISOString().substring(0, 7);
+  const lastMonth = (() => {
+    const d = new Date();
+    d.setMonth(d.getMonth() - 1);
+    return d.toISOString().substring(0, 7);
+  })();
+
+  const [selectedMonth, setSelectedMonth] = useState(month || thisMonth);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [data, setData] = useState<TeacherFinancialSummaryResponse | null>(
-    null,
-  );
+  const [data, setData] = useState<TeacherFinancialSummaryResponse | null>(null);
 
-  const base =
-    apiBaseUrl ||
-    process.env.NEXT_PUBLIC_API_URL ||
-    "http://localhost:3000/api";
+  // Sync if parent passes a new month value
+  useEffect(() => {
+    if (month) setSelectedMonth(month);
+  }, [month]);
 
   const fetchSummary = useCallback(async () => {
-    // If no specific teacher selected, clear the summary
     if (!teacherId || teacherId === "all") {
       setData(null);
       setError(null);
@@ -89,27 +95,19 @@ export function TeacherFinancialSummary({
     setError(null);
 
     try {
-      // Use the centralized service in lib/data.ts so requests go through apiClient
       const resp = await teacherPaymentService.getTeacherFinancialSummary(
         teacherId,
-        month || undefined,
+        selectedMonth,
         classId || undefined,
       );
 
-      // apiClient already returns parsed JSON or throws; assign directly
       setData(resp as TeacherFinancialSummaryResponse);
     } catch (err) {
-      // If the backend call fails (404 or network error), fall back to mock data
-      const sample = createMockSummary(
-        teacherId,
-        month || getDefaultMonth(),
-        classId,
-      );
-      setData(sample);
+      setError("Failed to load financial summary.");
     } finally {
       setLoading(false);
     }
-  }, [teacherId, classId, month]);
+  }, [teacherId, classId, selectedMonth]);
 
   useEffect(() => {
     fetchSummary();
@@ -190,7 +188,7 @@ export function TeacherFinancialSummary({
               data ? (
                 <>
                   <span className="font-medium">{data.teacher?.full_name}</span>
-                  <span className="ml-3">• Month: {data.month}</span>
+                  <span className="ml-3">• Month: {selectedMonth}</span>
                 </>
               ) : (
                 <span>Loading teacher summary…</span>
@@ -201,7 +199,27 @@ export function TeacherFinancialSummary({
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
+          <Button
+            variant={selectedMonth === thisMonth ? "default" : "outline"}
+            size="sm"
+            onClick={() => setSelectedMonth(thisMonth)}
+          >
+            This Month
+          </Button>
+          <Button
+            variant={selectedMonth === lastMonth ? "default" : "outline"}
+            size="sm"
+            onClick={() => setSelectedMonth(lastMonth)}
+          >
+            Last Month
+          </Button>
+          <Input
+            type="month"
+            value={selectedMonth}
+            onChange={(e) => setSelectedMonth(e.target.value)}
+            className="w-36 h-8 text-sm"
+          />
           <Button
             variant="ghost"
             size="sm"
@@ -226,11 +244,9 @@ export function TeacherFinancialSummary({
           <div className="text-sm text-muted-foreground">
             Please select a teacher to view financial summary.
           </div>
-        ) : !data ? (
-          <div className="text-sm text-muted-foreground">
-            No data available.
-          </div>
-        ) : (
+        ) : error ? (
+          <div className="text-sm text-destructive">{error}</div>
+        ) : !data ? null : (
           <>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
               <div className="p-4 bg-muted/5 rounded-md">
@@ -360,76 +376,6 @@ export function TeacherFinancialSummary({
       </CardContent>
     </Card>
   );
-}
-
-/**
- * Helpers & Mock data (for frontend-first development)
- */
-
-function getDefaultMonth() {
-  const dt = new Date();
-  dt.setMonth(dt.getMonth() - 1); // default to last month
-  return dt.toISOString().substring(0, 7);
-}
-
-function createMockSummary(
-  teacherId: string | undefined,
-  month: string,
-  onlyClassId?: string | null,
-): TeacherFinancialSummaryResponse {
-  // Create a few mock classes and numbers
-  const classes: ClassSummary[] = [
-    {
-      class_id: "class-a",
-      class_name: "Piano Beginners",
-      payout_percentage: 60,
-      student_count: 12,
-      revenue: 120000,
-      payout_amount: 120000 * 0.6,
-    },
-    {
-      class_id: "class-b",
-      class_name: "Guitar Intermediate",
-      payout_percentage: 55,
-      student_count: 8,
-      revenue: 80000,
-      payout_amount: 80000 * 0.55,
-    },
-    {
-      class_id: "class-c",
-      class_name: "Violin Advanced",
-      payout_percentage: 65,
-      student_count: 5,
-      revenue: 50000,
-      payout_amount: 50000 * 0.65,
-    },
-  ];
-
-  const filtered = onlyClassId
-    ? classes.filter((c) => c.class_id === onlyClassId)
-    : classes;
-
-  const totals = filtered.reduce(
-    (acc, c) => {
-      acc.total_revenue += c.revenue;
-      acc.total_payout += c.payout_amount;
-      acc.total_students += c.student_count;
-      return acc;
-    },
-    { total_revenue: 0, total_payout: 0, total_students: 0 },
-  );
-
-  return {
-    teacher: {
-      id: teacherId || "unknown",
-      full_name: `Teacher ${teacherId?.slice(0, 6) || "Demo"}`,
-      email: "teacher@example.com",
-      contact: "+94 77 123 4567",
-    },
-    month,
-    totals,
-    classes: filtered,
-  };
 }
 
 export default TeacherFinancialSummary;
