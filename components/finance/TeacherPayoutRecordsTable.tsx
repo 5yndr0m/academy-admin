@@ -44,6 +44,7 @@ import {
   teacherPayoutRecordService,
   teacherService,
   classService,
+  financeOverviewService,
 } from "@/lib/data";
 import type {
   TeacherPayoutRecord,
@@ -53,6 +54,7 @@ import type {
   Teacher,
   Class,
   PayoutCalculationRequest,
+  ClassRevenueResponse,
 } from "@/types";
 
 const PAYMENT_METHODS = ["CASH", "BANK_TRANSFER", "CHEQUE"] as const;
@@ -86,6 +88,25 @@ export function TeacherPayoutRecordsTable() {
 
   const { toast } = useToast();
 
+  // Lazy-load TeacherFinancialSummary so we don't need to modify top-level imports.
+  // This keeps the change minimal and avoids breaking existing import ordering.
+  const [TeacherFinancialSummaryComp, setTeacherFinancialSummaryComp] =
+    useState<any | null>(null);
+
+  useEffect(() => {
+    let mounted = true;
+    import("@/components/finance/TeacherFinancialSummary")
+      .then((m) => {
+        if (mounted) setTeacherFinancialSummaryComp(() => m.default);
+      })
+      .catch(() => {
+        // ignore: fallback to no component if dynamic import fails
+      });
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
   // Form state for create/edit
   const [formData, setFormData] = useState<CreateTeacherPayoutRequest>({
     teacher_id: "",
@@ -106,6 +127,11 @@ export function TeacherPayoutRecordsTable() {
     payout_percentage: 0,
     calculated_amount: 0,
   });
+
+  // Revenue suggestion: auto-fetched when class + month are both set in create form
+  const [revenueSuggestion, setRevenueSuggestion] =
+    useState<ClassRevenueResponse | null>(null);
+  const [loadingRevenueSuggestion, setLoadingRevenueSuggestion] = useState(false);
 
   const loadInitialData = useCallback(async () => {
     try {
@@ -152,6 +178,30 @@ export function TeacherPayoutRecordsTable() {
   useEffect(() => {
     loadPayoutRecords();
   }, [loadPayoutRecords]);
+
+  // Auto-fetch class revenue when class + payout_month are both set in create form
+  useEffect(() => {
+    if (!isCreateDialogOpen || !formData.class_id || !formData.payout_month) {
+      setRevenueSuggestion(null);
+      return;
+    }
+    let cancelled = false;
+    setLoadingRevenueSuggestion(true);
+    financeOverviewService
+      .getClassRevenue(formData.payout_month, formData.class_id)
+      .then((r) => {
+        if (!cancelled) setRevenueSuggestion(r);
+      })
+      .catch(() => {
+        if (!cancelled) setRevenueSuggestion(null);
+      })
+      .finally(() => {
+        if (!cancelled) setLoadingRevenueSuggestion(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [formData.class_id, formData.payout_month, isCreateDialogOpen]);
 
   const handleSearch = () => {
     const newFilters: FinancialRecordFilters = {
@@ -463,9 +513,15 @@ export function TeacherPayoutRecordsTable() {
                     <Label htmlFor="class_id">Class</Label>
                     <Select
                       value={formData.class_id}
-                      onValueChange={(value) =>
-                        setFormData({ ...formData, class_id: value })
-                      }
+                      onValueChange={(value) => {
+                        const cls = classes.find((c) => c.id === value);
+                        setFormData({
+                          ...formData,
+                          class_id: value,
+                          payout_percentage:
+                            cls?.payout_percentage ?? formData.payout_percentage,
+                        });
+                      }}
                     >
                       <SelectTrigger>
                         <SelectValue placeholder="Select class" />
@@ -480,6 +536,56 @@ export function TeacherPayoutRecordsTable() {
                     </Select>
                   </div>
                 </div>
+
+                {/* Revenue suggestion banner */}
+                {(loadingRevenueSuggestion || revenueSuggestion) && (
+                  <div className="flex items-center justify-between p-3 bg-blue-50 border border-blue-200 rounded-lg text-sm dark:bg-blue-950/30 dark:border-blue-800">
+                    {loadingRevenueSuggestion ? (
+                      <span className="text-blue-700 dark:text-blue-300 text-xs">
+                        Fetching revenue data...
+                      </span>
+                    ) : revenueSuggestion ? (
+                      <>
+                        <span className="text-blue-800 dark:text-blue-300">
+                          {revenueSuggestion.student_count} student payment
+                          {revenueSuggestion.student_count !== 1 ? "s" : ""}{" "}
+                          for this class/month — Revenue:{" "}
+                          <strong>
+                            LKR{" "}
+                            {revenueSuggestion.total_revenue.toLocaleString()}
+                          </strong>
+                          {revenueSuggestion.actual_payout > 0 && (
+                            <span className="text-orange-700 dark:text-orange-300 ml-2">
+                              (LKR{" "}
+                              {revenueSuggestion.actual_payout.toLocaleString()}{" "}
+                              already paid out)
+                            </span>
+                          )}
+                        </span>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="ml-3 shrink-0"
+                          onClick={() => {
+                            setFormData({
+                              ...formData,
+                              total_revenue_collected:
+                                revenueSuggestion.total_revenue,
+                              payout_percentage:
+                                revenueSuggestion.payout_percentage,
+                              amount: revenueSuggestion.expected_payout,
+                              student_count: revenueSuggestion.student_count,
+                            });
+                            setRevenueSuggestion(null);
+                          }}
+                        >
+                          Use this
+                        </Button>
+                      </>
+                    ) : null}
+                  </div>
+                )}
 
                 <div className="grid grid-cols-3 gap-4">
                   <div>
@@ -730,6 +836,32 @@ export function TeacherPayoutRecordsTable() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Teacher Financial Summary */}
+      {TeacherFinancialSummaryComp ? (
+        <TeacherFinancialSummaryComp
+          teacherId={selectedTeacher === "all" ? undefined : selectedTeacher}
+          classId={selectedClass === "all" ? undefined : selectedClass}
+          month={selectedMonth || undefined}
+          onClassSelect={(id: string | null) => {
+            // reflect selection in local state and update filters to refresh table data
+            setSelectedClass(id || "all");
+            setFilters((prev) => ({
+              ...prev,
+              page: 1,
+              // only include teacher_id/class_id in filters if explicitly selected
+              teacher_id:
+                selectedTeacher === "all" ? undefined : selectedTeacher,
+              class_id: id || undefined,
+              payout_month: selectedMonth || undefined,
+            }));
+          }}
+        />
+      ) : (
+        <div className="text-sm text-muted-foreground mb-4">
+          Select a teacher to view financial summary.
+        </div>
+      )}
 
       {/* Table */}
       <Card>
