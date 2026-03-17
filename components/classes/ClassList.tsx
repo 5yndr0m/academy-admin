@@ -226,9 +226,6 @@ export function ClassList() {
         <CardContent>
           {classes.length === 0 ? (
             <div className="text-center py-12 bg-muted/20 rounded-lg border border-dashed">
-              <div className="h-12 w-12 text-muted-foreground mx-auto mb-4 opacity-50 flex items-center justify-center">
-                📚
-              </div>
               <h3 className="font-medium text-lg mb-2 text-foreground">
                 {searchQuery ? "No matching classes" : "No classes yet"}
               </h3>
