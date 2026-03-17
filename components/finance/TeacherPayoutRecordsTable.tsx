@@ -494,7 +494,7 @@ export function TeacherPayoutRecordsTable() {
                     <Select
                       value={formData.teacher_id}
                       onValueChange={(value) =>
-                        setFormData({ ...formData, teacher_id: value })
+                        setFormData({ ...formData, teacher_id: value, class_id: "" })
                       }
                     >
                       <SelectTrigger>
@@ -513,6 +513,7 @@ export function TeacherPayoutRecordsTable() {
                     <Label htmlFor="class_id">Class</Label>
                     <Select
                       value={formData.class_id}
+                      disabled={!formData.teacher_id}
                       onValueChange={(value) => {
                         const cls = classes.find((c) => c.id === value);
                         setFormData({
@@ -524,14 +525,16 @@ export function TeacherPayoutRecordsTable() {
                       }}
                     >
                       <SelectTrigger>
-                        <SelectValue placeholder="Select class" />
+                        <SelectValue placeholder={!formData.teacher_id ? "Select teacher first" : "Select class"} />
                       </SelectTrigger>
                       <SelectContent>
-                        {classes.map((cls) => (
-                          <SelectItem key={cls.id} value={cls.id}>
-                            {cls.name}
-                          </SelectItem>
-                        ))}
+                        {classes
+                          .filter((c) => c.teacher_id === formData.teacher_id)
+                          .map((cls) => (
+                            <SelectItem key={cls.id} value={cls.id}>
+                              {cls.name}
+                            </SelectItem>
+                          ))}
                       </SelectContent>
                     </Select>
                   </div>
@@ -778,7 +781,10 @@ export function TeacherPayoutRecordsTable() {
                   <SelectValue placeholder="All classes" />
                 </SelectTrigger>
                 <SelectContent>
-                  {classes.map((cls) => (
+                  {(selectedTeacher === "all"
+                    ? classes
+                    : classes.filter((c) => c.teacher_id === selectedTeacher)
+                  ).map((cls) => (
                     <SelectItem key={cls.id} value={cls.id}>
                       {cls.name}
                     </SelectItem>
