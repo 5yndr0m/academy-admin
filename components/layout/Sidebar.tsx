@@ -15,6 +15,7 @@ import {
   Clock,
   Wallet,
   Settings2,
+  Mail,
 } from "lucide-react";
 
 const navigation = [
@@ -27,6 +28,7 @@ const navigation = [
   { name: "Attendance", href: "/attendance", icon: CalendarDays },
   { name: "Operations", href: "/operations", icon: Settings2 },
   { name: "Finance", href: "/finance", icon: Wallet },
+  { name: "Communications", href: "/communications", icon: Mail },
 ];
 
 export function Sidebar({ className }: { className?: string }) {
@@ -52,7 +54,7 @@ export function Sidebar({ className }: { className?: string }) {
         {navigation.map((item) => {
           if (
             mounted &&
-            (item.name === "Finance" || item.name === "Operations") &&
+            (item.name === "Finance" || item.name === "Operations" || item.name === "Communications") &&
             role !== "ADMIN"
           )
             return null;
