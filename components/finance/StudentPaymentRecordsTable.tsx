@@ -48,6 +48,7 @@ import {
   studentPaymentRecordService,
   studentService,
   classService,
+  enrollmentService,
 } from "@/lib/data";
 import type {
   StudentPaymentRecord,
@@ -56,6 +57,7 @@ import type {
   PaginatedFinancialResponse,
   Student,
   Class,
+  Enrollment,
 } from "@/types";
 import { SendEmailDialog } from "@/components/emails/SendEmailDialog";
 
@@ -90,6 +92,13 @@ export function StudentPaymentRecordsTable() {
   const [selectedMonth, setSelectedMonth] = useState("");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
+
+  // Enrollment-driven form state
+  const [studentEnrollments, setStudentEnrollments] = useState<Enrollment[]>([]);
+  const [enrolledClasses, setEnrolledClasses] = useState<Class[]>([]);
+  const [availableMonths, setAvailableMonths] = useState<string[]>([]);
+  const [loadingEnrollments, setLoadingEnrollments] = useState(false);
+  const [loadingMonths, setLoadingMonths] = useState(false);
 
   const { toast } = useToast();
 
@@ -189,6 +198,98 @@ export function StudentPaymentRecordsTable() {
     loadPaymentRecords();
   }, [loadPaymentRecords]);
 
+  // Returns all YYYY-MM strings from start to end inclusive
+  const getMonthsBetween = (start: string, end: string): string[] => {
+    const months: string[] = [];
+    let [y, m] = start.split("-").map(Number);
+    const [ey, em] = end.split("-").map(Number);
+    while (y < ey || (y === ey && m <= em)) {
+      months.push(`${y}-${String(m).padStart(2, "0")}`);
+      m++;
+      if (m > 12) { m = 1; y++; }
+    }
+    return months;
+  };
+
+  const formatMonth = (yyyyMm: string): string => {
+    const [year, month] = yyyyMm.split("-");
+    return new Date(parseInt(year), parseInt(month) - 1, 1).toLocaleDateString(
+      "en-US",
+      { month: "long", year: "numeric" },
+    );
+  };
+
+  const loadEnrolledClasses = async (studentId: string) => {
+    if (!studentId) {
+      setStudentEnrollments([]);
+      setEnrolledClasses([]);
+      setAvailableMonths([]);
+      return;
+    }
+    setLoadingEnrollments(true);
+    try {
+      const enrollments = await enrollmentService.getByStudent(studentId);
+      const active = enrollments.filter(
+        (e) => e.status === "ENROLLED" && e.class,
+      );
+      setStudentEnrollments(active);
+      setEnrolledClasses(active.map((e) => e.class!));
+    } catch {
+      setStudentEnrollments([]);
+      setEnrolledClasses([]);
+    } finally {
+      setLoadingEnrollments(false);
+    }
+  };
+
+  const computeAvailableMonths = async (
+    studentId: string,
+    classId: string,
+    excludePaid = true,
+    currentPaymentMonth?: string,
+  ) => {
+    if (!studentId || !classId) {
+      setAvailableMonths([]);
+      return;
+    }
+    setLoadingMonths(true);
+    try {
+      const enrollment = studentEnrollments.find((e) => e.class_id === classId);
+      const cls = enrolledClasses.find((c) => c.id === classId);
+      if (!enrollment || !cls) {
+        setAvailableMonths([]);
+        return;
+      }
+
+      const enrollmentMonth = enrollment.created_at.substring(0, 7);
+      const classMonth = cls.created_at.substring(0, 7);
+      const startMonth = enrollmentMonth > classMonth ? enrollmentMonth : classMonth;
+      const currentMonth = new Date().toISOString().substring(0, 7);
+      const allMonths = getMonthsBetween(startMonth, currentMonth);
+
+      if (!excludePaid) {
+        setAvailableMonths(allMonths);
+        return;
+      }
+
+      const paidRecords = await studentPaymentRecordService.getAll({
+        student_id: studentId,
+        class_id: classId,
+        limit: 200,
+      });
+      const paidMonths = new Set(
+        paidRecords.data
+          .map((r) => r.payment_month)
+          .filter((pm): pm is string => !!pm && pm !== currentPaymentMonth),
+      );
+      setAvailableMonths(allMonths.filter((mo) => !paidMonths.has(mo)));
+    } catch {
+      setAvailableMonths([]);
+    } finally {
+      setLoadingMonths(false);
+    }
+  };
+
   const handleSearch = () => {
     const newFilters: FinancialRecordFilters = {
       ...filters,
@@ -228,6 +329,9 @@ export function StudentPaymentRecordsTable() {
       payment_method: "CASH",
       notes: "",
     });
+    setStudentEnrollments([]);
+    setEnrolledClasses([]);
+    setAvailableMonths([]);
   };
 
   const handleCreate = async (e: React.FormEvent) => {
@@ -309,7 +413,7 @@ export function StudentPaymentRecordsTable() {
     }
   };
 
-  const openEditDialog = (record: StudentPaymentRecord) => {
+  const openEditDialog = async (record: StudentPaymentRecord) => {
     setEditingRecord(record);
     setFormData({
       student_id: record.student_id,
@@ -321,6 +425,31 @@ export function StudentPaymentRecordsTable() {
       payment_method: record.payment_method,
       notes: record.notes || "",
     });
+
+    if (record.payment_type === "CLASS_PAYMENT" && record.class_id) {
+      try {
+        const enrollments = await enrollmentService.getByStudent(record.student_id);
+        const active = enrollments.filter((e) => e.status === "ENROLLED" && e.class);
+        setStudentEnrollments(active);
+        setEnrolledClasses(active.map((e) => e.class!));
+
+        // Compute months using local data (state not yet flushed)
+        const enrollment = active.find((e) => e.class_id === record.class_id);
+        const cls = enrollment?.class;
+        if (enrollment && cls) {
+          const startMonth = [
+            enrollment.created_at.substring(0, 7),
+            cls.created_at.substring(0, 7),
+          ].sort().pop()!;
+          const currentMonth = new Date().toISOString().substring(0, 7);
+          // For edit: show all months (don't exclude paid — user may need to correct)
+          setAvailableMonths(getMonthsBetween(startMonth, currentMonth));
+        }
+      } catch {
+        setAvailableMonths([]);
+      }
+    }
+
     setIsEditDialogOpen(true);
   };
 
@@ -442,9 +571,18 @@ export function StudentPaymentRecordsTable() {
                   <Label htmlFor="student_id">Student</Label>
                   <Select
                     value={formData.student_id}
-                    onValueChange={(value) =>
-                      setFormData({ ...formData, student_id: value })
-                    }
+                    onValueChange={(value) => {
+                      setFormData({
+                        ...formData,
+                        student_id: value,
+                        class_id: "",
+                        payment_month: undefined,
+                      });
+                      setAvailableMonths([]);
+                      if (formData.payment_type === "CLASS_PAYMENT") {
+                        loadEnrolledClasses(value);
+                      }
+                    }}
                   >
                     <SelectTrigger>
                       <SelectValue placeholder="Select student" />
@@ -463,15 +601,31 @@ export function StudentPaymentRecordsTable() {
                     <Label htmlFor="class_id">Class</Label>
                     <Select
                       value={formData.class_id}
-                      onValueChange={(value) =>
-                        setFormData({ ...formData, class_id: value })
-                      }
+                      disabled={!formData.student_id || loadingEnrollments}
+                      onValueChange={(value) => {
+                        setFormData({
+                          ...formData,
+                          class_id: value,
+                          payment_month: undefined,
+                        });
+                        computeAvailableMonths(formData.student_id, value);
+                      }}
                     >
                       <SelectTrigger>
-                        <SelectValue placeholder="Select class" />
+                        <SelectValue
+                          placeholder={
+                            loadingEnrollments
+                              ? "Loading..."
+                              : !formData.student_id
+                                ? "Select student first"
+                                : enrolledClasses.length === 0
+                                  ? "No enrolled classes"
+                                  : "Select class"
+                          }
+                        />
                       </SelectTrigger>
                       <SelectContent>
-                        {classes.map((cls) => (
+                        {enrolledClasses.map((cls) => (
                           <SelectItem key={cls.id} value={cls.id}>
                             {cls.name}
                           </SelectItem>
@@ -540,18 +694,34 @@ export function StudentPaymentRecordsTable() {
                 {formData.payment_type === "CLASS_PAYMENT" && (
                   <div>
                     <Label htmlFor="payment_month">Payment Month</Label>
-                    <Input
-                      id="payment_month"
-                      type="month"
-                      value={formData.payment_month}
-                      onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          payment_month: e.target.value,
-                        })
+                    <Select
+                      value={formData.payment_month || ""}
+                      disabled={!formData.class_id || loadingMonths}
+                      onValueChange={(value) =>
+                        setFormData({ ...formData, payment_month: value })
                       }
-                      required
-                    />
+                    >
+                      <SelectTrigger>
+                        <SelectValue
+                          placeholder={
+                            loadingMonths
+                              ? "Loading..."
+                              : !formData.class_id
+                                ? "Select class first"
+                                : availableMonths.length === 0
+                                  ? "All months paid"
+                                  : "Select month"
+                          }
+                        />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {availableMonths.map((mo) => (
+                          <SelectItem key={mo} value={mo}>
+                            {formatMonth(mo)}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
                 )}
               </div>
@@ -921,7 +1091,7 @@ export function StudentPaymentRecordsTable() {
                     <SelectValue placeholder="Select class" />
                   </SelectTrigger>
                   <SelectContent>
-                    {classes.map((cls) => (
+                    {enrolledClasses.map((cls) => (
                       <SelectItem key={cls.id} value={cls.id}>
                         {cls.name}
                       </SelectItem>
@@ -986,18 +1156,24 @@ export function StudentPaymentRecordsTable() {
               {formData.payment_type === "CLASS_PAYMENT" && (
                 <div>
                   <Label htmlFor="edit-payment_month">Payment Month</Label>
-                  <Input
-                    id="edit-payment_month"
-                    type="month"
-                    value={formData.payment_month}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        payment_month: e.target.value,
-                      })
+                  <Select
+                    value={formData.payment_month || ""}
+                    disabled={availableMonths.length === 0}
+                    onValueChange={(value) =>
+                      setFormData({ ...formData, payment_month: value })
                     }
-                    required
-                  />
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select month" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {availableMonths.map((mo) => (
+                        <SelectItem key={mo} value={mo}>
+                          {formatMonth(mo)}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
               )}
             </div>
