@@ -47,7 +47,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   // Only routing logic in the effect — no setState
   useEffect(() => {
-    if (!user && pathname !== "/login") {
+    const isPublicRoute = pathname === "/login" || pathname === "/register";
+    if (!user && !isPublicRoute) {
       router.push("/login");
     }
   }, [user, pathname, router]);
