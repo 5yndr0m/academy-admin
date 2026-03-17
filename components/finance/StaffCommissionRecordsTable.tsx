@@ -29,28 +29,30 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Plus,
-  Search,
-  Edit,
-  Trash2,
-  Calculator,
-  Users,
-  Percent,
-} from "lucide-react";
+import { Plus, Search, Edit, Trash2, Loader2 } from "lucide-react";
 import { format } from "date-fns";
 import { useToast } from "@/components/ui/use-toast";
-import { staffCommissionRecordService, userService } from "@/lib/data";
+import { staffCommissionRecordService, userService, financeOverviewService } from "@/lib/data";
 import type {
   StaffCommissionRecord,
   CreateStaffCommissionRequest,
   FinancialRecordFilters,
   PaginatedFinancialResponse,
   User,
-  CommissionCalculationRequest,
+  MonthlyOverviewResponse,
 } from "@/types";
 
 const PAYMENT_METHODS = ["CASH", "BANK_TRANSFER", "CHEQUE"] as const;
+
+const emptyForm = (): CreateStaffCommissionRequest => ({
+  staff_id: "",
+  amount: 0,
+  commission_percentage: 0,
+  payment_date: new Date().toISOString().split("T")[0],
+  payment_month: new Date().toISOString().substring(0, 7),
+  payment_method: "CASH",
+  notes: "",
+});
 
 export function StaffCommissionRecordsTable() {
   const [records, setRecords] = useState<StaffCommissionRecord[]>([]);
@@ -59,108 +61,71 @@ export function StaffCommissionRecordsTable() {
   const [totalCount, setTotalCount] = useState(0);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
-  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
-  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
-  const [isCalculatorOpen, setIsCalculatorOpen] = useState(false);
-  const [editingRecord, setEditingRecord] =
-    useState<StaffCommissionRecord | null>(null);
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [isEditOpen, setIsEditOpen] = useState(false);
+  const [editingRecord, setEditingRecord] = useState<StaffCommissionRecord | null>(null);
+  const [formData, setFormData] = useState<CreateStaffCommissionRequest>(emptyForm());
 
-  // Filter states
-  const [filters, setFilters] = useState<FinancialRecordFilters>({
-    page: 1,
-    limit: 20,
-  });
-  const [selectedStaff, setSelectedStaff] = useState<string>("all");
-  const [selectedPaymentMethod, setSelectedPaymentMethod] =
-    useState<string>("all");
+  const [filters, setFilters] = useState<FinancialRecordFilters>({ page: 1, limit: 20 });
+  const [overviewSuggestion, setOverviewSuggestion] = useState<MonthlyOverviewResponse | null>(null);
+  const [selectedStaff, setSelectedStaff] = useState("all");
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState("all");
   const [selectedMonth, setSelectedMonth] = useState("");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
 
   const { toast } = useToast();
 
-  // Form state for create/edit
-  const [formData, setFormData] = useState<CreateStaffCommissionRequest>({
-    staff_id: "",
-    amount: 0,
-    total_revenue_collected: 0,
-    total_teacher_payouts: 0,
-    net_revenue: 0,
-    commission_percentage: 0,
-    payment_date: new Date().toISOString().split("T")[0],
-    payment_month: new Date().toISOString().substring(0, 7),
-    payment_method: "CASH",
-    notes: "",
-  });
-
-  // Calculator state
-  const [calculatorData, setCalculatorData] = useState({
-    total_revenue: 0,
-    total_teacher_payouts: 0,
-    commission_percentage: 0,
-    net_revenue: 0,
-    calculated_amount: 0,
-  });
-
-  const loadInitialData = useCallback(async () => {
+  const loadStaff = useCallback(async () => {
     try {
-      const usersData = await userService.getAll();
-      // Filter to only show staff members
-      const staff = usersData.filter((user) => user.role === "STAFF");
-      setStaffMembers(staff);
+      const data = await userService.getAll();
+      setStaffMembers(data);
     } catch {
-      toast({
-        title: "Error",
-        description: "Failed to load staff members",
-        variant: "destructive",
-      });
+      toast({ title: "Error", description: "Failed to load staff members", variant: "destructive" });
     }
   }, [toast]);
 
-  const loadCommissionRecords = useCallback(async () => {
+  const loadRecords = useCallback(async () => {
     try {
       setLoading(true);
       const response: PaginatedFinancialResponse<StaffCommissionRecord> =
         await staffCommissionRecordService.getAll(filters);
-
       setRecords(response.data);
       setTotalCount(response.total_count);
       setTotalPages(response.total_pages);
       setCurrentPage(response.page);
     } catch {
-      toast({
-        title: "Error",
-        description: "Failed to load staff commission records",
-        variant: "destructive",
-      });
+      toast({ title: "Error", description: "Failed to load commission records", variant: "destructive" });
     } finally {
       setLoading(false);
     }
   }, [filters, toast]);
 
-  useEffect(() => {
-    loadInitialData();
-  }, [loadInitialData]);
+  useEffect(() => { loadStaff(); }, [loadStaff]);
+  useEffect(() => { loadRecords(); }, [loadRecords]);
 
+  // Auto-fetch monthly net revenue when payment_month changes in create form
   useEffect(() => {
-    loadCommissionRecords();
-  }, [loadCommissionRecords]);
+    if (!isCreateOpen || !formData.payment_month) {
+      setOverviewSuggestion(null);
+      return;
+    }
+    let cancelled = false;
+    financeOverviewService
+      .getMonthlyOverview(formData.payment_month)
+      .then((r) => { if (!cancelled) setOverviewSuggestion(r); })
+      .catch(() => { if (!cancelled) setOverviewSuggestion(null); });
+    return () => { cancelled = true; };
+  }, [formData.payment_month, isCreateOpen]);
 
   const handleSearch = () => {
-    const newFilters: FinancialRecordFilters = {
-      ...filters,
-      page: 1,
-    };
-
-    if (selectedStaff && selectedStaff !== "all")
-      newFilters.staff_id = selectedStaff;
-    if (selectedPaymentMethod && selectedPaymentMethod !== "all")
-      newFilters.payment_method = selectedPaymentMethod;
-    if (selectedMonth) newFilters.month = selectedMonth;
-    if (dateFrom) newFilters.from_date = dateFrom;
-    if (dateTo) newFilters.to_date = dateTo;
-
-    setFilters(newFilters);
+    const f: FinancialRecordFilters = { page: 1, limit: 20 };
+    if (selectedStaff !== "all") f.staff_id = selectedStaff;
+    if (selectedPaymentMethod !== "all") f.payment_method = selectedPaymentMethod;
+    if (selectedMonth) f.month = selectedMonth;
+    if (dateFrom) f.from_date = dateFrom;
+    if (dateTo) f.to_date = dateTo;
+    setFilters(f);
   };
 
   const clearFilters = () => {
@@ -172,66 +137,13 @@ export function StaffCommissionRecordsTable() {
     setFilters({ page: 1, limit: 20 });
   };
 
-  const resetForm = () => {
-    setFormData({
-      staff_id: "",
-      amount: 0,
-      total_revenue_collected: 0,
-      total_teacher_payouts: 0,
-      net_revenue: 0,
-      commission_percentage: 0,
-      payment_date: new Date().toISOString().split("T")[0],
-      payment_month: new Date().toISOString().substring(0, 7),
-      payment_method: "CASH",
-      notes: "",
-    });
-  };
-
-  const calculateCommission = async () => {
-    try {
-      const netRevenue =
-        calculatorData.total_revenue - calculatorData.total_teacher_payouts;
-
-      const request: CommissionCalculationRequest = {
-        total_revenue: calculatorData.total_revenue,
-        total_teacher_payouts: calculatorData.total_teacher_payouts,
-        commission_percentage: calculatorData.commission_percentage,
-      };
-
-      const response =
-        await staffCommissionRecordService.calculateCommission(request);
-      setCalculatorData({
-        ...calculatorData,
-        net_revenue: response.net_revenue || netRevenue,
-        calculated_amount: response.amount,
-      });
-
-      toast({
-        title: "Calculation Complete",
-        description: `Calculated commission: LKR ${response.amount.toLocaleString()}`,
-      });
-    } catch {
-      toast({
-        title: "Error",
-        description: "Failed to calculate commission",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const useCalculatedAmount = () => {
+  // Auto-fill commission % when a staff member is selected
+  const handleStaffSelect = (staffId: string) => {
+    const staff = staffMembers.find((s) => s.id === staffId);
     setFormData({
       ...formData,
-      amount: calculatorData.calculated_amount,
-      total_revenue_collected: calculatorData.total_revenue,
-      total_teacher_payouts: calculatorData.total_teacher_payouts,
-      net_revenue: calculatorData.net_revenue,
-      commission_percentage: calculatorData.commission_percentage,
-    });
-    setIsCalculatorOpen(false);
-    toast({
-      title: "Amount Applied",
-      description: "Calculated commission has been applied to the form",
+      staff_id: staffId,
+      commission_percentage: staff?.commission_percentage ?? formData.commission_percentage,
     });
   };
 
@@ -239,103 +151,200 @@ export function StaffCommissionRecordsTable() {
     e.preventDefault();
     try {
       await staffCommissionRecordService.create(formData);
-      toast({
-        title: "Success",
-        description: "Staff commission recorded successfully",
-      });
-      setIsCreateDialogOpen(false);
-      resetForm();
-      loadCommissionRecords();
+      toast({ title: "Success", description: "Commission recorded successfully" });
+      setIsCreateOpen(false);
+      setFormData(emptyForm());
+      loadRecords();
     } catch {
-      toast({
-        title: "Error",
-        description: "Failed to record staff commission",
-        variant: "destructive",
-      });
+      toast({ title: "Error", description: "Failed to record commission", variant: "destructive" });
     }
   };
 
   const handleEdit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingRecord) return;
-
     try {
       await staffCommissionRecordService.update(editingRecord.id, formData);
-      toast({
-        title: "Success",
-        description: "Commission record updated successfully",
-      });
-      setIsEditDialogOpen(false);
+      toast({ title: "Success", description: "Commission updated successfully" });
+      setIsEditOpen(false);
       setEditingRecord(null);
-      resetForm();
-      loadCommissionRecords();
+      setFormData(emptyForm());
+      loadRecords();
     } catch {
-      toast({
-        title: "Error",
-        description: "Failed to update commission record",
-        variant: "destructive",
-      });
+      toast({ title: "Error", description: "Failed to update commission", variant: "destructive" });
     }
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this commission record?"))
-      return;
-
+    if (!confirm("Delete this commission record? This cannot be undone.")) return;
     try {
       await staffCommissionRecordService.delete(id);
-      toast({
-        title: "Success",
-        description: "Commission record deleted successfully",
-      });
-      loadCommissionRecords();
+      toast({ title: "Success", description: "Commission record deleted" });
+      loadRecords();
     } catch {
-      toast({
-        title: "Error",
-        description: "Failed to delete commission record",
-        variant: "destructive",
-      });
+      toast({ title: "Error", description: "Failed to delete commission", variant: "destructive" });
     }
   };
 
-  const openEditDialog = (record: StaffCommissionRecord) => {
+  const openEdit = (record: StaffCommissionRecord) => {
     setEditingRecord(record);
     setFormData({
       staff_id: record.staff_id,
       amount: record.amount,
-      total_revenue_collected: record.total_revenue_collected,
-      total_teacher_payouts: record.total_teacher_payouts,
-      net_revenue: record.net_revenue,
       commission_percentage: record.commission_percentage,
       payment_date: record.payment_date,
       payment_month: record.payment_month,
       payment_method: record.payment_method,
       notes: record.notes || "",
     });
-    setIsEditDialogOpen(true);
+    setIsEditOpen(true);
   };
 
-  const getPaymentMethodBadge = (method: string) => {
-    switch (method) {
-      case "CASH":
-        return "default";
-      case "BANK_TRANSFER":
-        return "secondary";
-      case "CHEQUE":
-        return "outline";
-      default:
-        return "secondary";
-    }
-  };
+  const CommissionForm = ({ onSubmit, submitLabel }: { onSubmit: (e: React.FormEvent) => void; submitLabel: string }) => (
+    <form onSubmit={onSubmit} className="space-y-4">
+      <div>
+        <Label>Staff Member</Label>
+        <Select
+          value={formData.staff_id}
+          onValueChange={handleStaffSelect}
+        >
+          <SelectTrigger>
+            <SelectValue placeholder="Select staff member" />
+          </SelectTrigger>
+          <SelectContent>
+            {staffMembers.map((s) => (
+              <SelectItem key={s.id} value={s.id}>
+                {s.name} ({s.username})
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
 
-  const handlePageChange = (page: number) => {
-    setFilters({ ...filters, page });
-  };
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <Label htmlFor="amount">Amount Paid (LKR)</Label>
+          <Input
+            id="amount"
+            type="number"
+            step="0.01"
+            min="0.01"
+            value={formData.amount || ""}
+            onChange={(e) => setFormData({ ...formData, amount: Number(e.target.value) })}
+            placeholder="e.g. 15000"
+            required
+          />
+        </div>
+        <div>
+          <Label htmlFor="commission_pct">Commission %</Label>
+          <Input
+            id="commission_pct"
+            type="number"
+            step="0.1"
+            min="0"
+            max="100"
+            value={formData.commission_percentage || ""}
+            onChange={(e) => setFormData({ ...formData, commission_percentage: Number(e.target.value) })}
+            placeholder="e.g. 10"
+            required
+          />
+        </div>
+      </div>
 
-  const getStaffName = (staffId: string) => {
-    const staff = staffMembers.find((s) => s.id === staffId);
-    return staff ? `${staff.name} (${staff.username})` : "Unknown Staff";
-  };
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <Label htmlFor="payment_month">For Month</Label>
+          <Input
+            id="payment_month"
+            type="month"
+            value={formData.payment_month}
+            onChange={(e) => setFormData({ ...formData, payment_month: e.target.value })}
+            required
+          />
+        </div>
+        <div>
+          <Label htmlFor="payment_date">Date Paid</Label>
+          <Input
+            id="payment_date"
+            type="date"
+            value={formData.payment_date}
+            onChange={(e) => setFormData({ ...formData, payment_date: e.target.value })}
+            required
+          />
+        </div>
+      </div>
+
+      {/* Net revenue suggestion banner (only shown in create form) */}
+      {overviewSuggestion && (
+        <div className="flex items-center justify-between p-3 bg-green-50 border border-green-200 rounded-lg text-sm dark:bg-green-950/30 dark:border-green-800">
+          <span className="text-green-800 dark:text-green-300">
+            Net revenue for {formData.payment_month}:{" "}
+            <strong>LKR {overviewSuggestion.net_revenue.toLocaleString()}</strong>
+            {formData.commission_percentage > 0 && (
+              <span className="ml-2 text-green-600 dark:text-green-400">
+                → {formData.commission_percentage}% ={" "}
+                LKR{" "}
+                {((overviewSuggestion.net_revenue * formData.commission_percentage) / 100).toLocaleString()}
+              </span>
+            )}
+          </span>
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="ml-3 shrink-0"
+            onClick={() => {
+              const commPct = formData.commission_percentage || 0;
+              setFormData({
+                ...formData,
+                amount: commPct > 0
+                  ? parseFloat(((overviewSuggestion.net_revenue * commPct) / 100).toFixed(2))
+                  : formData.amount,
+              });
+              setOverviewSuggestion(null);
+            }}
+          >
+            Use calculated
+          </Button>
+        </div>
+      )}
+
+      <div>
+        <Label>Payment Method</Label>
+        <Select
+          value={formData.payment_method}
+          onValueChange={(v) => setFormData({ ...formData, payment_method: v as typeof formData.payment_method })}
+        >
+          <SelectTrigger>
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {PAYMENT_METHODS.map((m) => (
+              <SelectItem key={m} value={m}>{m.replace("_", " ")}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+
+      <div>
+        <Label htmlFor="notes">Notes <span className="text-muted-foreground text-xs">(optional)</span></Label>
+        <Textarea
+          id="notes"
+          value={formData.notes}
+          onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
+          rows={2}
+          placeholder="e.g. March 2026 commission"
+        />
+      </div>
+
+      <div className="flex justify-end gap-2">
+        <Button type="button" variant="outline" onClick={() => { setIsCreateOpen(false); setIsEditOpen(false); }}>
+          Cancel
+        </Button>
+        <Button type="submit">{submitLabel}</Button>
+      </div>
+    </form>
+  );
 
   return (
     <div className="space-y-4">
@@ -343,339 +352,40 @@ export function StaffCommissionRecordsTable() {
       <div className="flex justify-between items-center">
         <div>
           <h3 className="text-2xl font-bold">Staff Commission Records</h3>
-          <p className="text-muted-foreground">
-            Record staff commissions based on net revenue percentages
-          </p>
+          <p className="text-muted-foreground">Record commission payments made to staff members</p>
         </div>
-        <div className="flex gap-2">
-          <Dialog open={isCalculatorOpen} onOpenChange={setIsCalculatorOpen}>
-            <DialogTrigger asChild>
-              <Button variant="outline">
-                <Calculator className="h-4 w-4 mr-2" />
-                Calculator
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-md">
-              <DialogHeader>
-                <DialogTitle>Commission Calculator</DialogTitle>
-              </DialogHeader>
-              <div className="space-y-4">
-                <div>
-                  <Label htmlFor="calc-total-revenue">
-                    Total Revenue Collected (LKR)
-                  </Label>
-                  <Input
-                    id="calc-total-revenue"
-                    type="number"
-                    step="0.01"
-                    value={calculatorData.total_revenue}
-                    onChange={(e) =>
-                      setCalculatorData({
-                        ...calculatorData,
-                        total_revenue: Number(e.target.value),
-                      })
-                    }
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="calc-teacher-payouts">
-                    Total Teacher Payouts (LKR)
-                  </Label>
-                  <Input
-                    id="calc-teacher-payouts"
-                    type="number"
-                    step="0.01"
-                    value={calculatorData.total_teacher_payouts}
-                    onChange={(e) =>
-                      setCalculatorData({
-                        ...calculatorData,
-                        total_teacher_payouts: Number(e.target.value),
-                      })
-                    }
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="calc-commission-percentage">
-                    Commission Percentage (%)
-                  </Label>
-                  <Input
-                    id="calc-commission-percentage"
-                    type="number"
-                    step="0.1"
-                    min="0"
-                    max="100"
-                    value={calculatorData.commission_percentage}
-                    onChange={(e) =>
-                      setCalculatorData({
-                        ...calculatorData,
-                        commission_percentage: Number(e.target.value),
-                      })
-                    }
-                  />
-                </div>
-                <div className="p-4 bg-muted rounded-lg space-y-2">
-                  <div className="flex justify-between">
-                    <Label>Net Revenue:</Label>
-                    <span className="font-medium">
-                      LKR {calculatorData.net_revenue.toLocaleString()}
-                    </span>
-                  </div>
-                  <div className="flex justify-between">
-                    <Label>Commission Amount:</Label>
-                    <div className="text-lg font-bold text-green-600">
-                      LKR {calculatorData.calculated_amount.toLocaleString()}
-                    </div>
-                  </div>
-                </div>
-                <div className="flex gap-2">
-                  <Button onClick={calculateCommission} className="flex-1">
-                    Calculate
-                  </Button>
-                  <Button
-                    onClick={useCalculatedAmount}
-                    variant="outline"
-                    disabled={calculatorData.calculated_amount === 0}
-                  >
-                    Use Amount
-                  </Button>
-                </div>
-              </div>
-            </DialogContent>
-          </Dialog>
-
-          <Dialog
-            open={isCreateDialogOpen}
-            onOpenChange={setIsCreateDialogOpen}
-          >
-            <DialogTrigger asChild>
-              <Button onClick={resetForm}>
-                <Plus className="h-4 w-4 mr-2" />
-                Record Commission
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="max-w-lg">
-              <DialogHeader>
-                <DialogTitle>Record Staff Commission</DialogTitle>
-              </DialogHeader>
-              <form onSubmit={handleCreate} className="space-y-4">
-                <div>
-                  <Label htmlFor="staff_id">Staff Member</Label>
-                  <Select
-                    value={formData.staff_id}
-                    onValueChange={(value) =>
-                      setFormData({ ...formData, staff_id: value })
-                    }
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select staff member" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {staffMembers.map((staff) => (
-                        <SelectItem key={staff.id} value={staff.id}>
-                          {staff.name} ({staff.username})
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="total_revenue_collected">
-                      Total Revenue (LKR)
-                    </Label>
-                    <Input
-                      id="total_revenue_collected"
-                      type="number"
-                      step="0.01"
-                      value={formData.total_revenue_collected}
-                      onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          total_revenue_collected: Number(e.target.value),
-                        })
-                      }
-                      required
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="total_teacher_payouts">
-                      Teacher Payouts (LKR)
-                    </Label>
-                    <Input
-                      id="total_teacher_payouts"
-                      type="number"
-                      step="0.01"
-                      value={formData.total_teacher_payouts}
-                      onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          total_teacher_payouts: Number(e.target.value),
-                        })
-                      }
-                      required
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-3 gap-4">
-                  <div>
-                    <Label htmlFor="net_revenue">Net Revenue (LKR)</Label>
-                    <Input
-                      id="net_revenue"
-                      type="number"
-                      step="0.01"
-                      value={formData.net_revenue}
-                      onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          net_revenue: Number(e.target.value),
-                        })
-                      }
-                      required
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="commission_percentage">Commission %</Label>
-                    <Input
-                      id="commission_percentage"
-                      type="number"
-                      step="0.1"
-                      min="0"
-                      max="100"
-                      value={formData.commission_percentage}
-                      onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          commission_percentage: Number(e.target.value),
-                        })
-                      }
-                      required
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="amount">Commission Amount (LKR)</Label>
-                    <Input
-                      id="amount"
-                      type="number"
-                      step="0.01"
-                      value={formData.amount}
-                      onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          amount: Number(e.target.value),
-                        })
-                      }
-                      required
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="payment_method">Payment Method</Label>
-                    <Select
-                      value={formData.payment_method}
-                      onValueChange={(value) =>
-                        setFormData({
-                          ...formData,
-                          payment_method:
-                            value as typeof formData.payment_method,
-                        })
-                      }
-                    >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {PAYMENT_METHODS.map((method) => (
-                          <SelectItem key={method} value={method}>
-                            {method.replace("_", " ")}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div>
-                    <Label htmlFor="payment_date">Payment Date</Label>
-                    <Input
-                      id="payment_date"
-                      type="date"
-                      value={formData.payment_date}
-                      onChange={(e) =>
-                        setFormData({
-                          ...formData,
-                          payment_date: e.target.value,
-                        })
-                      }
-                      required
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <Label htmlFor="payment_month">Payment Month</Label>
-                  <Input
-                    id="payment_month"
-                    type="month"
-                    value={formData.payment_month}
-                    onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        payment_month: e.target.value,
-                      })
-                    }
-                    required
-                  />
-                </div>
-
-                <div>
-                  <Label htmlFor="notes">Notes</Label>
-                  <Textarea
-                    id="notes"
-                    value={formData.notes}
-                    onChange={(e) =>
-                      setFormData({ ...formData, notes: e.target.value })
-                    }
-                    rows={3}
-                    placeholder="Optional notes about this commission"
-                  />
-                </div>
-
-                <div className="flex justify-end gap-2">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => setIsCreateDialogOpen(false)}
-                  >
-                    Cancel
-                  </Button>
-                  <Button type="submit">Record Commission</Button>
-                </div>
-              </form>
-            </DialogContent>
-          </Dialog>
-        </div>
+        <Dialog open={isCreateOpen} onOpenChange={(v) => { setIsCreateOpen(v); if (!v) setFormData(emptyForm()); }}>
+          <DialogTrigger asChild>
+            <Button>
+              <Plus className="h-4 w-4 mr-2" />
+              Record Commission
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Record Staff Commission</DialogTitle>
+            </DialogHeader>
+            <CommissionForm onSubmit={handleCreate} submitLabel="Record Commission" />
+          </DialogContent>
+        </Dialog>
       </div>
 
       {/* Filters */}
       <Card>
         <CardContent className="pt-6">
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
               <Label>Staff Member</Label>
               <Select
                 value={selectedStaff === "all" ? "" : selectedStaff}
-                onValueChange={(value) => setSelectedStaff(value || "all")}
+                onValueChange={(v) => setSelectedStaff(v || "all")}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="All staff" />
                 </SelectTrigger>
                 <SelectContent>
-                  {staffMembers.map((staff) => (
-                    <SelectItem key={staff.id} value={staff.id}>
-                      {staff.name}
-                    </SelectItem>
+                  {staffMembers.map((s) => (
+                    <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -683,49 +393,37 @@ export function StaffCommissionRecordsTable() {
             <div>
               <Label>Payment Method</Label>
               <Select
-                value={
-                  selectedPaymentMethod === "all" ? "" : selectedPaymentMethod
-                }
-                onValueChange={(value) =>
-                  setSelectedPaymentMethod(value || "all")
-                }
+                value={selectedPaymentMethod === "all" ? "" : selectedPaymentMethod}
+                onValueChange={(v) => setSelectedPaymentMethod(v || "all")}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="All methods" />
                 </SelectTrigger>
                 <SelectContent>
-                  {PAYMENT_METHODS.map((method) => (
-                    <SelectItem key={method} value={method}>
-                      {method.replace("_", " ")}
-                    </SelectItem>
+                  {PAYMENT_METHODS.map((m) => (
+                    <SelectItem key={m} value={m}>{m.replace("_", " ")}</SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
             <div>
-              <Label>Payment Month</Label>
-              <Input
-                type="month"
-                value={selectedMonth}
-                onChange={(e) => setSelectedMonth(e.target.value)}
-              />
+              <Label>Month</Label>
+              <Input type="month" value={selectedMonth} onChange={(e) => setSelectedMonth(e.target.value)} />
             </div>
             <div>
               <Label>From Date</Label>
-              <Input
-                type="date"
-                value={dateFrom}
-                onChange={(e) => setDateFrom(e.target.value)}
-              />
+              <Input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} />
+            </div>
+            <div>
+              <Label>To Date</Label>
+              <Input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} />
             </div>
             <div className="flex items-end gap-2">
               <Button onClick={handleSearch} className="flex-1">
                 <Search className="h-4 w-4 mr-2" />
                 Search
               </Button>
-              <Button onClick={clearFilters} variant="outline">
-                Clear
-              </Button>
+              <Button onClick={clearFilters} variant="outline">Clear</Button>
             </div>
           </div>
         </CardContent>
@@ -736,104 +434,66 @@ export function StaffCommissionRecordsTable() {
         <CardHeader>
           <CardTitle className="flex items-center justify-between">
             <span>Commission Records ({totalCount} total)</span>
-            <div className="text-sm font-normal text-muted-foreground">
+            <span className="text-sm font-normal text-muted-foreground">
               Page {currentPage} of {totalPages}
-            </div>
+            </span>
           </CardTitle>
         </CardHeader>
         <CardContent>
           {loading ? (
-            <div className="text-center py-8">
-              Loading commission records...
+            <div className="flex justify-center py-8">
+              <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
             </div>
           ) : (
             <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Date</TableHead>
                     <TableHead>Month</TableHead>
+                    <TableHead>Date Paid</TableHead>
                     <TableHead>Staff Member</TableHead>
-                    <TableHead>Total Revenue</TableHead>
-                    <TableHead>Teacher Payouts</TableHead>
-                    <TableHead>Net Revenue</TableHead>
-                    <TableHead>%</TableHead>
-                    <TableHead>Commission</TableHead>
-                    <TableHead>Payment Method</TableHead>
+                    <TableHead>Commission %</TableHead>
+                    <TableHead>Amount</TableHead>
+                    <TableHead>Method</TableHead>
+                    <TableHead>Notes</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {records.length === 0 ? (
                     <TableRow>
-                      <TableCell colSpan={10} className="text-center py-8">
+                      <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
                         No commission records found
                       </TableCell>
                     </TableRow>
                   ) : (
-                    records.map((record) => (
-                      <TableRow key={record.id}>
-                        <TableCell>
-                          {format(
-                            new Date(record.payment_date),
-                            "MMM dd, yyyy",
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          {format(
-                            new Date(record.payment_month + "-01"),
-                            "MMM yyyy",
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-2">
-                            <Users className="h-4 w-4 text-muted-foreground" />
-                            <span className="max-w-xs truncate">
-                              {getStaffName(record.staff_id)}
-                            </span>
-                          </div>
-                        </TableCell>
+                    records.map((r) => (
+                      <TableRow key={r.id}>
                         <TableCell className="font-medium">
-                          LKR {record.total_revenue_collected.toLocaleString()}
-                        </TableCell>
-                        <TableCell className="text-red-600">
-                          -LKR {record.total_teacher_payouts.toLocaleString()}
-                        </TableCell>
-                        <TableCell className="font-medium">
-                          LKR {record.net_revenue.toLocaleString()}
+                          {format(new Date(r.payment_month + "-01"), "MMM yyyy")}
                         </TableCell>
                         <TableCell>
-                          <Badge variant="outline">
-                            <Percent className="h-3 w-3 mr-1" />
-                            {record.commission_percentage}%
-                          </Badge>
+                          {format(new Date(r.payment_date), "MMM dd, yyyy")}
+                        </TableCell>
+                        <TableCell>{r.staff_name || r.staff_id.slice(0, 8)}</TableCell>
+                        <TableCell>
+                          <Badge variant="outline">{r.commission_percentage}%</Badge>
                         </TableCell>
                         <TableCell className="font-medium text-green-600">
-                          LKR {record.amount.toLocaleString()}
+                          LKR {r.amount.toLocaleString()}
                         </TableCell>
                         <TableCell>
-                          <Badge
-                            variant={getPaymentMethodBadge(
-                              record.payment_method,
-                            )}
-                          >
-                            {record.payment_method.replace("_", " ")}
-                          </Badge>
+                          <Badge variant="secondary">{r.payment_method.replace("_", " ")}</Badge>
+                        </TableCell>
+                        <TableCell className="text-sm text-muted-foreground max-w-[160px] truncate">
+                          {r.notes || "—"}
                         </TableCell>
                         <TableCell className="text-right">
                           <div className="flex items-center gap-2 justify-end">
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => openEditDialog(record)}
-                            >
+                            <Button size="sm" variant="outline" onClick={() => openEdit(r)}>
                               <Edit className="h-4 w-4" />
                             </Button>
-                            <Button
-                              size="sm"
-                              variant="destructive"
-                              onClick={() => handleDelete(record.id)}
-                            >
+                            <Button size="sm" variant="destructive" onClick={() => handleDelete(r.id)}>
                               <Trash2 className="h-4 w-4" />
                             </Button>
                           </div>
@@ -846,29 +506,19 @@ export function StaffCommissionRecordsTable() {
             </div>
           )}
 
-          {/* Pagination */}
           {totalPages > 1 && (
             <div className="flex items-center justify-between mt-4">
               <div className="text-sm text-muted-foreground">
-                Showing {(currentPage - 1) * (filters.limit || 20) + 1} to{" "}
-                {Math.min(currentPage * (filters.limit || 20), totalCount)} of{" "}
-                {totalCount} commissions
+                Showing {(currentPage - 1) * (filters.limit || 20) + 1}–
+                {Math.min(currentPage * (filters.limit || 20), totalCount)} of {totalCount}
               </div>
               <div className="flex gap-2">
-                <Button
-                  size="sm"
-                  variant="outline"
-                  disabled={currentPage <= 1}
-                  onClick={() => handlePageChange(currentPage - 1)}
-                >
+                <Button size="sm" variant="outline" disabled={currentPage <= 1}
+                  onClick={() => setFilters({ ...filters, page: currentPage - 1 })}>
                   Previous
                 </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  disabled={currentPage >= totalPages}
-                  onClick={() => handlePageChange(currentPage + 1)}
-                >
+                <Button size="sm" variant="outline" disabled={currentPage >= totalPages}
+                  onClick={() => setFilters({ ...filters, page: currentPage + 1 })}>
                   Next
                 </Button>
               </div>
@@ -878,210 +528,12 @@ export function StaffCommissionRecordsTable() {
       </Card>
 
       {/* Edit Dialog */}
-      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
-        <DialogContent className="max-w-lg">
+      <Dialog open={isEditOpen} onOpenChange={(v) => { setIsEditOpen(v); if (!v) { setEditingRecord(null); setFormData(emptyForm()); } }}>
+        <DialogContent className="max-w-md">
           <DialogHeader>
             <DialogTitle>Edit Commission Record</DialogTitle>
           </DialogHeader>
-          <form onSubmit={handleEdit} className="space-y-4">
-            <div>
-              <Label htmlFor="edit-staff_id">Staff Member</Label>
-              <Select
-                value={formData.staff_id}
-                onValueChange={(value) =>
-                  setFormData({ ...formData, staff_id: value })
-                }
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select staff member" />
-                </SelectTrigger>
-                <SelectContent>
-                  {staffMembers.map((staff) => (
-                    <SelectItem key={staff.id} value={staff.id}>
-                      {staff.name} ({staff.username})
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="edit-total_revenue_collected">
-                  Total Revenue (LKR)
-                </Label>
-                <Input
-                  id="edit-total_revenue_collected"
-                  type="number"
-                  step="0.01"
-                  value={formData.total_revenue_collected}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      total_revenue_collected: Number(e.target.value),
-                    })
-                  }
-                  required
-                />
-              </div>
-              <div>
-                <Label htmlFor="edit-total_teacher_payouts">
-                  Teacher Payouts (LKR)
-                </Label>
-                <Input
-                  id="edit-total_teacher_payouts"
-                  type="number"
-                  step="0.01"
-                  value={formData.total_teacher_payouts}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      total_teacher_payouts: Number(e.target.value),
-                    })
-                  }
-                  required
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-3 gap-4">
-              <div>
-                <Label htmlFor="edit-net_revenue">Net Revenue (LKR)</Label>
-                <Input
-                  id="edit-net_revenue"
-                  type="number"
-                  step="0.01"
-                  value={formData.net_revenue}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      net_revenue: Number(e.target.value),
-                    })
-                  }
-                  required
-                />
-              </div>
-              <div>
-                <Label htmlFor="edit-commission_percentage">Commission %</Label>
-                <Input
-                  id="edit-commission_percentage"
-                  type="number"
-                  step="0.1"
-                  min="0"
-                  max="100"
-                  value={formData.commission_percentage}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      commission_percentage: Number(e.target.value),
-                    })
-                  }
-                  required
-                />
-              </div>
-              <div>
-                <Label htmlFor="edit-amount">Commission Amount (LKR)</Label>
-                <Input
-                  id="edit-amount"
-                  type="number"
-                  step="0.01"
-                  value={formData.amount}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      amount: Number(e.target.value),
-                    })
-                  }
-                  required
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label htmlFor="edit-payment_method">Payment Method</Label>
-                <Select
-                  value={formData.payment_method}
-                  onValueChange={(value) =>
-                    setFormData({
-                      ...formData,
-                      payment_method: value as typeof formData.payment_method,
-                    })
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {PAYMENT_METHODS.map((method) => (
-                      <SelectItem key={method} value={method}>
-                        {method.replace("_", " ")}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label htmlFor="edit-payment_date">Payment Date</Label>
-                <Input
-                  id="edit-payment_date"
-                  type="date"
-                  value={formData.payment_date}
-                  onChange={(e) =>
-                    setFormData({
-                      ...formData,
-                      payment_date: e.target.value,
-                    })
-                  }
-                  required
-                />
-              </div>
-            </div>
-
-            <div>
-              <Label htmlFor="edit-payment_month">Payment Month</Label>
-              <Input
-                id="edit-payment_month"
-                type="month"
-                value={formData.payment_month}
-                onChange={(e) =>
-                  setFormData({
-                    ...formData,
-                    payment_month: e.target.value,
-                  })
-                }
-                required
-              />
-            </div>
-
-            <div>
-              <Label htmlFor="edit-notes">Notes</Label>
-              <Textarea
-                id="edit-notes"
-                value={formData.notes}
-                onChange={(e) =>
-                  setFormData({ ...formData, notes: e.target.value })
-                }
-                rows={3}
-                placeholder="Optional notes about this commission"
-              />
-            </div>
-
-            <div className="flex justify-end gap-2">
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => {
-                  setIsEditDialogOpen(false);
-                  setEditingRecord(null);
-                  resetForm();
-                }}
-              >
-                Cancel
-              </Button>
-              <Button type="submit">Update Commission</Button>
-            </div>
-          </form>
+          <CommissionForm onSubmit={handleEdit} submitLabel="Save Changes" />
         </DialogContent>
       </Dialog>
     </div>

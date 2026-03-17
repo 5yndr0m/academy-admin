@@ -23,48 +23,11 @@ import {
 } from "lucide-react";
 import { format, subMonths } from "date-fns";
 import { useToast } from "@/components/ui/use-toast";
-import {
-  studentPaymentRecordService,
-  teacherPayoutRecordService,
-  staffCommissionRecordService,
-  expenseRecordService,
-} from "@/lib/data";
-import type {
-  PaginatedFinancialResponse,
-  StudentPaymentRecord,
-  TeacherPayoutRecord,
-  StaffCommissionRecord,
-  ExpenseRecord,
-} from "@/types";
-
-interface FinancialSummary {
-  totalStudentPayments: number;
-  totalTeacherPayouts: number;
-  totalStaffCommissions: number;
-  totalExpenses: number;
-  netIncome: number;
-  transactionCounts: {
-    studentPayments: number;
-    teacherPayouts: number;
-    staffCommissions: number;
-    expenses: number;
-  };
-}
+import { financeOverviewService } from "@/lib/data";
+import type { MonthlyOverviewResponse } from "@/types";
 
 export function FinancialDashboard() {
-  const [summary, setSummary] = useState<FinancialSummary>({
-    totalStudentPayments: 0,
-    totalTeacherPayouts: 0,
-    totalStaffCommissions: 0,
-    totalExpenses: 0,
-    netIncome: 0,
-    transactionCounts: {
-      studentPayments: 0,
-      teacherPayouts: 0,
-      staffCommissions: 0,
-      expenses: 0,
-    },
-  });
+  const [data, setData] = useState<MonthlyOverviewResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [selectedMonth, setSelectedMonth] = useState(
     new Date().toISOString().substring(0, 7),
@@ -72,60 +35,11 @@ export function FinancialDashboard() {
 
   const { toast } = useToast();
 
-  const loadFinancialSummary = useCallback(async () => {
+  const load = useCallback(async () => {
+    setLoading(true);
     try {
-      setLoading(true);
-
-      const filters = { month: selectedMonth, limit: 1000 };
-
-      const [
-        studentPaymentsRes,
-        teacherPayoutsRes,
-        staffCommissionsRes,
-        expensesRes,
-      ] = await Promise.all([
-        studentPaymentRecordService.getAll(filters),
-        teacherPayoutRecordService.getAll(filters),
-        staffCommissionRecordService.getAll(filters),
-        expenseRecordService.getAll(filters),
-      ]);
-
-      const totalStudentPayments = studentPaymentsRes.data.reduce(
-        (sum, record) => sum + record.amount,
-        0,
-      );
-      const totalTeacherPayouts = teacherPayoutsRes.data.reduce(
-        (sum, record) => sum + record.amount,
-        0,
-      );
-      const totalStaffCommissions = staffCommissionsRes.data.reduce(
-        (sum, record) => sum + record.amount,
-        0,
-      );
-      const totalExpenses = expensesRes.data.reduce(
-        (sum, record) => sum + record.amount,
-        0,
-      );
-
-      const netIncome =
-        totalStudentPayments -
-        totalTeacherPayouts -
-        totalStaffCommissions -
-        totalExpenses;
-
-      setSummary({
-        totalStudentPayments,
-        totalTeacherPayouts,
-        totalStaffCommissions,
-        totalExpenses,
-        netIncome,
-        transactionCounts: {
-          studentPayments: studentPaymentsRes.data.length,
-          teacherPayouts: teacherPayoutsRes.data.length,
-          staffCommissions: staffCommissionsRes.data.length,
-          expenses: expensesRes.data.length,
-        },
-      });
+      const result = await financeOverviewService.getMonthlyOverview(selectedMonth);
+      setData(result);
     } catch {
       toast({
         title: "Error",
@@ -138,8 +52,8 @@ export function FinancialDashboard() {
   }, [selectedMonth, toast]);
 
   useEffect(() => {
-    loadFinancialSummary();
-  }, [loadFinancialSummary]);
+    load();
+  }, [load]);
 
   const monthOptions = [];
   for (let i = 0; i < 12; i++) {
@@ -149,6 +63,9 @@ export function FinancialDashboard() {
       label: format(date, "MMMM yyyy"),
     });
   }
+
+  const fmt = (n: number) =>
+    n.toLocaleString("en-LK", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
   if (loading) {
     return (
@@ -172,6 +89,11 @@ export function FinancialDashboard() {
       </div>
     );
   }
+
+  if (!data) return null;
+
+  const isProfit = data.institute_income >= 0;
+  const totalCollected = data.total_student_revenue + data.total_admission_fees;
 
   return (
     <div className="space-y-6">
@@ -199,7 +121,7 @@ export function FinancialDashboard() {
               </SelectContent>
             </Select>
           </div>
-          <Button variant="outline" onClick={loadFinancialSummary}>
+          <Button variant="outline" onClick={load}>
             Refresh
           </Button>
         </div>
@@ -207,7 +129,6 @@ export function FinancialDashboard() {
 
       {/* Summary Cards */}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        {/* Student Payments */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
@@ -217,15 +138,16 @@ export function FinancialDashboard() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-green-600">
-              LKR {summary.totalStudentPayments.toLocaleString()}
+              LKR {fmt(totalCollected)}
             </div>
             <p className="text-xs text-muted-foreground">
-              {summary.transactionCounts.studentPayments} transactions
+              {data.total_admission_fees > 0
+                ? `incl. LKR ${fmt(data.total_admission_fees)} admission fees`
+                : `${data.class_breakdown.reduce((s, c) => s + c.student_count, 0)} student payments`}
             </p>
           </CardContent>
         </Card>
 
-        {/* Teacher Payouts */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
@@ -235,15 +157,14 @@ export function FinancialDashboard() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-orange-600">
-              LKR {summary.totalTeacherPayouts.toLocaleString()}
+              LKR {fmt(data.total_teacher_payouts)}
             </div>
             <p className="text-xs text-muted-foreground">
-              {summary.transactionCounts.teacherPayouts} transactions
+              {data.class_breakdown.length} class{data.class_breakdown.length !== 1 ? "es" : ""}
             </p>
           </CardContent>
         </Card>
 
-        {/* Staff Commissions */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
@@ -253,15 +174,11 @@ export function FinancialDashboard() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-blue-600">
-              LKR {summary.totalStaffCommissions.toLocaleString()}
+              LKR {fmt(data.total_staff_commissions)}
             </div>
-            <p className="text-xs text-muted-foreground">
-              {summary.transactionCounts.staffCommissions} transactions
-            </p>
           </CardContent>
         </Card>
 
-        {/* Expenses */}
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Expenses</CardTitle>
@@ -269,45 +186,38 @@ export function FinancialDashboard() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-red-600">
-              LKR {summary.totalExpenses.toLocaleString()}
+              LKR {fmt(data.total_expenses)}
             </div>
             <p className="text-xs text-muted-foreground">
-              {summary.transactionCounts.expenses} transactions
+              {Object.keys(data.expense_by_category).length} categor{Object.keys(data.expense_by_category).length !== 1 ? "ies" : "y"}
             </p>
           </CardContent>
         </Card>
       </div>
 
-      {/* Net Income Card */}
+      {/* Net Income + Breakdown */}
       <div className="grid gap-4 md:grid-cols-3">
         <Card className="md:col-span-1">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-lg font-medium">Net Income</CardTitle>
-            {summary.netIncome >= 0 ? (
+            <CardTitle className="text-lg font-medium">Institute Income</CardTitle>
+            {isProfit ? (
               <TrendingUp className="h-5 w-5 text-green-600" />
             ) : (
               <TrendingDown className="h-5 w-5 text-red-600" />
             )}
           </CardHeader>
           <CardContent>
-            <div
-              className={`text-3xl font-bold ${
-                summary.netIncome >= 0 ? "text-green-600" : "text-red-600"
-              }`}
-            >
-              LKR {summary.netIncome.toLocaleString()}
+            <div className={`text-3xl font-bold ${isProfit ? "text-green-600" : "text-red-600"}`}>
+              LKR {fmt(Math.abs(data.institute_income))}
             </div>
             <div className="mt-2">
-              <Badge
-                variant={summary.netIncome >= 0 ? "default" : "destructive"}
-              >
-                {summary.netIncome >= 0 ? "Profit" : "Loss"}
+              <Badge variant={isProfit ? "default" : "destructive"}>
+                {isProfit ? "Profitable" : "Loss"}
               </Badge>
             </div>
           </CardContent>
         </Card>
 
-        {/* Financial Breakdown */}
         <Card className="md:col-span-2">
           <CardHeader>
             <CardTitle className="text-lg font-medium flex items-center gap-2">
@@ -316,41 +226,44 @@ export function FinancialDashboard() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-3">
+            <div className="space-y-3 text-sm">
               <div className="flex justify-between items-center">
-                <span className="text-sm">Revenue (Student Payments)</span>
+                <span>Class revenue</span>
                 <span className="font-medium text-green-600">
-                  +LKR {summary.totalStudentPayments.toLocaleString()}
+                  + LKR {fmt(data.total_student_revenue)}
                 </span>
               </div>
-              <div className="flex justify-between items-center">
-                <span className="text-sm">Teacher Payouts</span>
+              {data.total_admission_fees > 0 && (
+                <div className="flex justify-between items-center">
+                  <span>Admission fees</span>
+                  <span className="font-medium text-green-600">
+                    + LKR {fmt(data.total_admission_fees)}
+                  </span>
+                </div>
+              )}
+              <div className="flex justify-between items-center border-t pt-2">
+                <span className="text-muted-foreground">Teacher payouts</span>
                 <span className="font-medium text-orange-600">
-                  -LKR {summary.totalTeacherPayouts.toLocaleString()}
+                  − LKR {fmt(data.total_teacher_payouts)}
                 </span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-sm">Staff Commissions</span>
+                <span className="text-muted-foreground">Staff commissions</span>
                 <span className="font-medium text-blue-600">
-                  -LKR {summary.totalStaffCommissions.toLocaleString()}
+                  − LKR {fmt(data.total_staff_commissions)}
                 </span>
               </div>
               <div className="flex justify-between items-center">
-                <span className="text-sm">Operating Expenses</span>
+                <span className="text-muted-foreground">Operating expenses</span>
                 <span className="font-medium text-red-600">
-                  -LKR {summary.totalExpenses.toLocaleString()}
+                  − LKR {fmt(data.total_expenses)}
                 </span>
               </div>
               <div className="border-t pt-3">
                 <div className="flex justify-between items-center font-bold">
-                  <span>Net Income</span>
-                  <span
-                    className={
-                      summary.netIncome >= 0 ? "text-green-600" : "text-red-600"
-                    }
-                  >
-                    {summary.netIncome >= 0 ? "+" : ""}LKR{" "}
-                    {summary.netIncome.toLocaleString()}
+                  <span>Institute Income</span>
+                  <span className={isProfit ? "text-green-600" : "text-red-600"}>
+                    {isProfit ? "+" : "−"} LKR {fmt(Math.abs(data.institute_income))}
                   </span>
                 </div>
               </div>
@@ -359,125 +272,43 @@ export function FinancialDashboard() {
         </Card>
       </div>
 
-      {/* Transaction Summary */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-lg font-medium">
-            Transaction Summary for{" "}
-            {format(new Date(selectedMonth + "-01"), "MMMM yyyy")}
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-            <div className="flex items-center gap-3 p-4 bg-green-50 rounded-lg dark:bg-green-950/30">
-              <DollarSign className="h-8 w-8 text-green-600" />
-              <div>
-                <div className="font-medium">Student Payments</div>
-                <div className="text-2xl font-bold text-green-600">
-                  {summary.transactionCounts.studentPayments}
-                </div>
-                <div className="text-xs text-muted-foreground">
-                  transactions
-                </div>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-3 p-4 bg-orange-50 rounded-lg dark:bg-orange-950/30">
-              <Users className="h-8 w-8 text-orange-600" />
-              <div>
-                <div className="font-medium">Teacher Payouts</div>
-                <div className="text-2xl font-bold text-orange-600">
-                  {summary.transactionCounts.teacherPayouts}
-                </div>
-                <div className="text-xs text-muted-foreground">
-                  transactions
-                </div>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-3 p-4 bg-blue-50 rounded-lg dark:bg-blue-950/30">
-              <GraduationCap className="h-8 w-8 text-blue-600" />
-              <div>
-                <div className="font-medium">Staff Commissions</div>
-                <div className="text-2xl font-bold text-blue-600">
-                  {summary.transactionCounts.staffCommissions}
-                </div>
-                <div className="text-xs text-muted-foreground">
-                  transactions
-                </div>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-3 p-4 bg-red-50 rounded-lg dark:bg-red-950/30">
-              <Receipt className="h-8 w-8 text-red-600" />
-              <div>
-                <div className="font-medium">Expenses</div>
-                <div className="text-2xl font-bold text-red-600">
-                  {summary.transactionCounts.expenses}
-                </div>
-                <div className="text-xs text-muted-foreground">
-                  transactions
-                </div>
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
       {/* Quick Stats */}
       <div className="grid gap-4 md:grid-cols-3">
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">
-              Average Transaction Amounts
-            </CardTitle>
+            <CardTitle className="text-base">Profit Margins</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-2">
+          <CardContent className="space-y-2 text-sm">
             <div className="flex justify-between">
-              <span className="text-sm">Student Payment</span>
+              <span>Gross Profit Margin</span>
               <span className="font-medium">
-                LKR{" "}
-                {summary.transactionCounts.studentPayments > 0
-                  ? (
-                      summary.totalStudentPayments /
-                      summary.transactionCounts.studentPayments
-                    ).toLocaleString(undefined, { maximumFractionDigits: 0 })
-                  : "0"}
+                {totalCollected > 0
+                  ? (((totalCollected - data.total_teacher_payouts) / totalCollected) * 100).toFixed(1)
+                  : "0"}%
               </span>
             </div>
             <div className="flex justify-between">
-              <span className="text-sm">Teacher Payout</span>
+              <span>Net Profit Margin</span>
               <span className="font-medium">
-                LKR{" "}
-                {summary.transactionCounts.teacherPayouts > 0
-                  ? (
-                      summary.totalTeacherPayouts /
-                      summary.transactionCounts.teacherPayouts
-                    ).toLocaleString(undefined, { maximumFractionDigits: 0 })
-                  : "0"}
+                {totalCollected > 0
+                  ? ((data.institute_income / totalCollected) * 100).toFixed(1)
+                  : "0"}%
               </span>
             </div>
             <div className="flex justify-between">
-              <span className="text-sm">Staff Commission</span>
+              <span>Teacher Payout Rate</span>
               <span className="font-medium">
-                LKR{" "}
-                {summary.transactionCounts.staffCommissions > 0
-                  ? (
-                      summary.totalStaffCommissions /
-                      summary.transactionCounts.staffCommissions
-                    ).toLocaleString(undefined, { maximumFractionDigits: 0 })
-                  : "0"}
+                {data.total_student_revenue > 0
+                  ? ((data.total_teacher_payouts / data.total_student_revenue) * 100).toFixed(1)
+                  : "0"}%
               </span>
             </div>
             <div className="flex justify-between">
-              <span className="text-sm">Expense</span>
+              <span>Expense Rate</span>
               <span className="font-medium">
-                LKR{" "}
-                {summary.transactionCounts.expenses > 0
-                  ? (
-                      summary.totalExpenses / summary.transactionCounts.expenses
-                    ).toLocaleString(undefined, { maximumFractionDigits: 0 })
-                  : "0"}
+                {totalCollected > 0
+                  ? ((data.total_expenses / totalCollected) * 100).toFixed(1)
+                  : "0"}%
               </span>
             </div>
           </CardContent>
@@ -485,59 +316,20 @@ export function FinancialDashboard() {
 
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Profit Margins</CardTitle>
+            <CardTitle className="text-base">Net Revenue</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-2">
+          <CardContent className="space-y-2 text-sm">
             <div className="flex justify-between">
-              <span className="text-sm">Gross Profit Margin</span>
-              <span className="font-medium">
-                {summary.totalStudentPayments > 0
-                  ? (
-                      ((summary.totalStudentPayments -
-                        summary.totalTeacherPayouts) /
-                        summary.totalStudentPayments) *
-                      100
-                    ).toFixed(1)
-                  : "0"}
-                %
-              </span>
+              <span className="text-muted-foreground">Total collected</span>
+              <span className="font-medium">LKR {fmt(data.total_collected)}</span>
             </div>
-            <div className="flex justify-between">
-              <span className="text-sm">Net Profit Margin</span>
-              <span className="font-medium">
-                {summary.totalStudentPayments > 0
-                  ? (
-                      (summary.netIncome / summary.totalStudentPayments) *
-                      100
-                    ).toFixed(1)
-                  : "0"}
-                %
-              </span>
+            <div className="flex justify-between border-t pt-2">
+              <span className="text-muted-foreground">− Teacher payouts</span>
+              <span className="font-medium">LKR {fmt(data.total_teacher_payouts)}</span>
             </div>
-            <div className="flex justify-between">
-              <span className="text-sm">Teacher Payout Rate</span>
-              <span className="font-medium">
-                {summary.totalStudentPayments > 0
-                  ? (
-                      (summary.totalTeacherPayouts /
-                        summary.totalStudentPayments) *
-                      100
-                    ).toFixed(1)
-                  : "0"}
-                %
-              </span>
-            </div>
-            <div className="flex justify-between">
-              <span className="text-sm">Expense Rate</span>
-              <span className="font-medium">
-                {summary.totalStudentPayments > 0
-                  ? (
-                      (summary.totalExpenses / summary.totalStudentPayments) *
-                      100
-                    ).toFixed(1)
-                  : "0"}
-                %
-              </span>
+            <div className="flex justify-between border-t pt-2 font-semibold">
+              <span>Net revenue</span>
+              <span className="text-blue-600">LKR {fmt(data.net_revenue)}</span>
             </div>
           </CardContent>
         </Card>
@@ -549,31 +341,23 @@ export function FinancialDashboard() {
           <CardContent className="space-y-4">
             <div className="text-center">
               <div className="text-sm text-muted-foreground mb-1">
-                Total Transactions
+                {format(new Date(selectedMonth + "-01"), "MMMM yyyy")}
               </div>
               <div className="text-3xl font-bold">
-                {summary.transactionCounts.studentPayments +
-                  summary.transactionCounts.teacherPayouts +
-                  summary.transactionCounts.staffCommissions +
-                  summary.transactionCounts.expenses}
+                {data.class_breakdown.length}
               </div>
+              <div className="text-xs text-muted-foreground">active classes</div>
             </div>
             <div className="space-y-1">
               <Badge
-                variant={summary.netIncome >= 0 ? "default" : "destructive"}
+                variant={isProfit ? "default" : "destructive"}
                 className="w-full justify-center"
               >
-                {summary.netIncome >= 0
-                  ? "Profitable Month"
-                  : "Loss Making Month"}
+                {isProfit ? "Profitable Month" : "Loss Making Month"}
               </Badge>
-              {summary.totalStudentPayments > 0 && (
+              {totalCollected > 0 && (
                 <div className="text-xs text-center text-muted-foreground">
-                  {(
-                    (summary.netIncome / summary.totalStudentPayments) *
-                    100
-                  ).toFixed(1)}
-                  % profit margin
+                  {((data.institute_income / totalCollected) * 100).toFixed(1)}% profit margin
                 </div>
               )}
             </div>
