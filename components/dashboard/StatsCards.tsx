@@ -1,14 +1,15 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Users,
-  GraduationCap,
   BookOpen,
   DollarSign,
-  AlertCircle,
+  TrendingUp,
 } from "lucide-react";
-import { MonthlyReport } from "@/types";
+import { financeOverviewService } from "@/lib/data";
+import type { MonthlyOverviewResponse } from "@/types";
 
 interface StatsCardsProps {
   counts: {
@@ -16,13 +17,23 @@ interface StatsCardsProps {
     teachers: number;
     active_classes: number;
   };
-  financial: MonthlyReport | null;
 }
 
-export function StatsCards({ counts, financial }: StatsCardsProps) {
+export function StatsCards({ counts }: StatsCardsProps) {
+  const currentMonth = new Date().toISOString().substring(0, 7);
+  const [financial, setFinancial] = useState<MonthlyOverviewResponse | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    financeOverviewService.getMonthlyOverview(currentMonth).then((d) => {
+      if (!cancelled) setFinancial(d);
+    }).catch(() => {/* silently ignore — cards show 0 */});
+    return () => { cancelled = true; };
+  }, [currentMonth]);
+
   const collected = financial?.total_collected ?? 0;
-  const pending = financial?.pending_invoices?.amount ?? 0;
-  const pendingCount = financial?.pending_invoices?.count ?? 0;
+  const income = financial?.institute_income ?? 0;
+  const isPositive = income >= 0;
 
   return (
     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -35,7 +46,7 @@ export function StatsCards({ counts, financial }: StatsCardsProps) {
         </CardHeader>
         <CardContent>
           <div className="text-2xl font-bold text-green-700 font-mono">
-            LKR {collected.toLocaleString()}
+            LKR {collected.toLocaleString("en-LK", { minimumFractionDigits: 2 })}
           </div>
           <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">
             MTD Actuals
@@ -46,17 +57,16 @@ export function StatsCards({ counts, financial }: StatsCardsProps) {
       <Card>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
           <CardTitle className="text-sm font-medium">
-            Total Outstanding
+            Institute Income
           </CardTitle>
-          <AlertCircle className="h-4 w-4 text-red-600" />
+          <TrendingUp className={`h-4 w-4 ${isPositive ? "text-green-600" : "text-red-600"}`} />
         </CardHeader>
         <CardContent>
-          <div className="text-2xl font-bold text-red-700 font-mono">
-            LKR {pending.toLocaleString()}
+          <div className={`text-2xl font-bold font-mono ${isPositive ? "text-green-700" : "text-red-700"}`}>
+            LKR {Math.abs(income).toLocaleString("en-LK", { minimumFractionDigits: 2 })}
           </div>
           <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">
-            {pendingCount} invoice{pendingCount !== 1 ? "s" : ""} awaiting
-            payment
+            After all deductions
           </p>
         </CardContent>
       </Card>
