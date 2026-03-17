@@ -22,6 +22,15 @@ class ApiClient {
     const response = await fetch(url, { ...options, headers });
 
     if (!response.ok) {
+      if (response.status === 401 && typeof window !== "undefined") {
+        const hadToken = !!localStorage.getItem("auth_token");
+        localStorage.removeItem("auth_token");
+        localStorage.removeItem("academy_user");
+        localStorage.removeItem("academy_user_id");
+        localStorage.removeItem("academy_role");
+        window.location.href = hadToken ? "/login?expired=1" : "/login";
+        throw new Error("Session expired");
+      }
       // Backend returns { "error": "..." } — not { "message": "..." }
       let errorMessage = `Request failed (${response.status})`;
       try {

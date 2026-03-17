@@ -42,6 +42,8 @@ import type {
   PayoutCalculationRequest,
   CommissionCalculationRequest,
   CalculationResponse,
+  MonthlyOverviewResponse,
+  ClassRevenueResponse,
 } from "@/types";
 
 // Email service types
@@ -90,6 +92,29 @@ export interface EmailServiceStats {
   failed_emails: number;
   pending_emails: number;
   success_rate: number;
+  last_week_count?: number;
+  last_month_count?: number;
+}
+
+export interface GuardianCommunicationResponse {
+  student_id: string;
+  student_name: string;
+  guardian_name: string;
+  guardian_email: string;
+  guardian_contact: string;
+  email_consent: boolean;
+  whatsapp_consent: boolean;
+  last_email_sent?: string;
+  total_emails_sent: number;
+}
+
+export interface SendBulkAnnouncementRequest {
+  subject: string;
+  body: string;
+  is_html: boolean;
+  recipients?: string[];
+  class_ids?: string[];
+  only_with_email: boolean;
 }
 
 export const authService = {
@@ -127,6 +152,8 @@ export const userService = {
       email: string;
       contact_number: string;
       commission_percentage: number;
+      password?: string;
+      role?: "ADMIN" | "STAFF";
     },
   ) => apiClient.put<User>(`/admin/users/${id}`, data),
 
@@ -134,6 +161,9 @@ export const userService = {
     apiClient.patch<{ message: string; id: string; status: string }>(
       `/admin/users/${id}/toggle`,
     ),
+
+  delete: (id: string) =>
+    apiClient.delete<{ message: string }>(`/admin/users/${id}`),
 };
 
 export const subjectService = {
@@ -925,6 +955,23 @@ export const teacherPaymentService = {
     );
   },
 
+  // Fetch per-teacher, per-month financial summary (per-class revenue & payout)
+  // Uses backend endpoint: GET /api/teachers/{teacherId}/financial-summary?month=YYYY-MM&class_id={optional}
+  // Returns the aggregated class-level revenue and payout info for the teacher.
+  getTeacherFinancialSummary: (
+    teacherId: string,
+    month?: string,
+    classId?: string,
+  ) => {
+    const params = new URLSearchParams();
+    if (month) params.set("month", month);
+    if (classId) params.set("class_id", classId);
+    const qs = params.toString();
+    return apiClient.get<any>(
+      `/teachers/${teacherId}/financial-summary${qs ? "?" + qs : ""}`,
+    );
+  },
+
   getTeacherHistory: (teacherId: string) =>
     apiClient.get(`/teacher-payments/teacher/${teacherId}/history`),
 
@@ -1302,6 +1349,18 @@ export const expenseRecordService = {
   getCategories: () => apiClient.get<string[]>("/expense-records/categories"),
 };
 
+export const financeOverviewService = {
+  getMonthlyOverview: (month: string) =>
+    apiClient.get<MonthlyOverviewResponse>(
+      `/finance/monthly-overview?month=${encodeURIComponent(month)}`,
+    ),
+
+  getClassRevenue: (month: string, classId: string) =>
+    apiClient.get<ClassRevenueResponse>(
+      `/finance/class-revenue?month=${encodeURIComponent(month)}&class_id=${encodeURIComponent(classId)}`,
+    ),
+};
+
 export const emailService = {
   // Send payment receipt email to guardian (enhanced with Resend v3)
   sendPaymentReceipt: (data: SendPaymentReceiptEmailRequest) =>
@@ -1373,6 +1432,27 @@ export const emailService = {
 
   // Get email service statistics
   getStats: () => apiClient.get<EmailServiceStats>("/emails/stats"),
+
+  // Get guardians with consent status, optionally filtered by class
+  getGuardians: (filters: { class_id?: string; email_consent?: boolean; search?: string } = {}) => {
+    const params = new URLSearchParams();
+    if (filters.class_id) params.append("class_id", filters.class_id);
+    if (filters.email_consent !== undefined) params.append("email_consent", String(filters.email_consent));
+    if (filters.search) params.append("search", filters.search);
+    const qs = params.toString();
+    return apiClient.get<GuardianCommunicationResponse[]>(`/emails/guardians${qs ? `?${qs}` : ""}`);
+  },
+
+  // Send bulk announcement to class guardians or specific recipients
+  sendBulkAnnouncement: (data: SendBulkAnnouncementRequest) =>
+    apiClient.post<{ message: string; emails_sent: number; emails_failed: number; total_recipients: number }>(
+      "/emails/bulk",
+      data,
+    ),
+
+  // Update guardian communication consent
+  updateCommunicationPreferences: (studentId: string, data: { email_consent?: boolean; whatsapp_consent?: boolean }) =>
+    apiClient.patch<{ message: string }>(`/students/${studentId}/communication-preferences`, data),
 
   // Send welcome email to new students
   sendWelcomeEmail: (studentId: string) =>

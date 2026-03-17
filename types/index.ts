@@ -502,10 +502,8 @@ export interface TeacherPayoutRecord {
 export interface StaffCommissionRecord {
   id: string;
   staff_id: string;
+  staff_name: string;
   amount: number;
-  total_revenue_collected: number;
-  total_teacher_payouts: number;
-  net_revenue: number;
   commission_percentage: number;
   payment_date: string; // YYYY-MM-DD
   payment_month: string; // YYYY-MM
@@ -572,9 +570,6 @@ export interface CreateTeacherPayoutRequest {
 export interface CreateStaffCommissionRequest {
   staff_id: string;
   amount: number;
-  total_revenue_collected: number;
-  total_teacher_payouts: number;
-  net_revenue: number;
   commission_percentage: number;
   payment_date: string; // YYYY-MM-DD
   payment_month: string; // YYYY-MM
@@ -647,4 +642,49 @@ export interface CommissionCalculationRequest {
 export interface CalculationResponse {
   amount: number;
   net_revenue?: number; // For commission calculations
+}
+
+// ── Monthly Financial Overview ────────────────────────────────────────────────
+
+export type ClassPayoutStatus = "PAID" | "PARTIAL" | "UNPAID";
+
+export interface ClassBreakdownItem {
+  class_id: string;
+  class_name: string;
+  teacher_id: string;
+  teacher_name: string;
+  payout_percentage: number;
+  student_count: number;
+  total_revenue: number;
+  expected_payout: number;
+  actual_payout: number;
+  payout_status: ClassPayoutStatus;
+}
+
+export interface MonthlyOverviewResponse {
+  month: string; // YYYY-MM
+  total_student_revenue: number;
+  total_admission_fees: number;
+  total_collected: number;
+  total_teacher_payouts: number;
+  net_revenue: number;
+  total_staff_commissions: number;
+  total_expenses: number;
+  institute_income: number;
+  class_breakdown: ClassBreakdownItem[];
+  expense_by_category: Record<string, number>;
+  generated_at: string;
+}
+
+export interface ClassRevenueResponse {
+  class_id: string;
+  class_name: string;
+  teacher_id: string;
+  teacher_name: string;
+  payout_percentage: number;
+  student_count: number;
+  total_revenue: number;
+  expected_payout: number;
+  actual_payout: number;
+  net_remaining: number;
 }
