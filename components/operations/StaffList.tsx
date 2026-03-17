@@ -46,6 +46,7 @@ import {
   Mail,
   Search,
   Edit,
+  Trash2,
 } from "lucide-react";
 
 function AddStaffDialog({ onAdded }: { onAdded: () => void }) {
@@ -256,6 +257,8 @@ function UpdateStaffDialog({
     email: user.email,
     contact_number: user.contact_number,
     commission_percentage: user.commission_percentage?.toString() || "",
+    role: user.role as "ADMIN" | "STAFF",
+    password: "",
   });
 
   const reset = () => {
@@ -264,6 +267,8 @@ function UpdateStaffDialog({
       email: user.email,
       contact_number: user.contact_number,
       commission_percentage: user.commission_percentage?.toString() || "",
+      role: user.role as "ADMIN" | "STAFF",
+      password: "",
     });
     setError(null);
   };
@@ -280,6 +285,8 @@ function UpdateStaffDialog({
         commission_percentage: form.commission_percentage
           ? Number(form.commission_percentage)
           : 0,
+        role: form.role,
+        ...(form.password ? { password: form.password } : {}),
       });
       setOpen(false);
       reset();
@@ -343,22 +350,57 @@ function UpdateStaffDialog({
                 placeholder="07XXXXXXXX"
               />
             </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="grid gap-2">
+                <Label>
+                  Commission %{" "}
+                  <span className="text-muted-foreground text-xs">
+                    (0 for none)
+                  </span>
+                </Label>
+                <Input
+                  type="number"
+                  min="0"
+                  max="100"
+                  value={form.commission_percentage}
+                  onChange={(e) =>
+                    setForm({ ...form, commission_percentage: e.target.value })
+                  }
+                  placeholder="0"
+                />
+              </div>
+              <div className="grid gap-2">
+                <Label>Role</Label>
+                <Select
+                  value={form.role}
+                  onValueChange={(v) =>
+                    setForm({ ...form, role: v as "ADMIN" | "STAFF" })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="STAFF">Staff</SelectItem>
+                    <SelectItem value="ADMIN">Admin</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
             <div className="grid gap-2">
               <Label>
-                Commission %{" "}
+                New Password{" "}
                 <span className="text-muted-foreground text-xs">
-                  (0 for no commission)
+                  (leave blank to keep current)
                 </span>
               </Label>
               <Input
-                type="number"
-                min="0"
-                max="100"
-                value={form.commission_percentage}
+                type="password"
+                value={form.password}
                 onChange={(e) =>
-                  setForm({ ...form, commission_percentage: e.target.value })
+                  setForm({ ...form, password: e.target.value })
                 }
-                placeholder="0"
+                placeholder="••••••••"
               />
             </div>
             {error && <p className="text-sm text-destructive">{error}</p>}
@@ -392,6 +434,7 @@ export function StaffList() {
   const [allUsers, setAllUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [togglingId, setTogglingId] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [searching, setSearching] = useState(false);
@@ -448,12 +491,24 @@ export function StaffList() {
     setTogglingId(id);
     try {
       await userService.toggleStatus(id);
-      // Reload all users and reapply search
       await load();
-    } catch (err) {
-      setError("Failed to toggle user status");
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Failed to toggle user status");
     } finally {
       setTogglingId(null);
+    }
+  };
+
+  const handleDelete = async (id: string, name: string) => {
+    if (!confirm(`Permanently delete ${name}? This cannot be undone.`)) return;
+    setDeletingId(id);
+    try {
+      await userService.delete(id);
+      await load();
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : "Failed to delete user");
+    } finally {
+      setDeletingId(null);
     }
   };
 
@@ -599,6 +654,21 @@ export function StaffList() {
                           "Activate"
                         )}
                       </Button>
+                      {u.status === "INACTIVE" && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="text-destructive hover:text-destructive"
+                          disabled={deletingId === u.id}
+                          onClick={() => handleDelete(u.id, u.name)}
+                        >
+                          {deletingId === u.id ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <Trash2 className="h-4 w-4" />
+                          )}
+                        </Button>
+                      )}
                     </div>
                   </TableCell>
                 </TableRow>
