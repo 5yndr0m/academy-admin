@@ -13,7 +13,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
 import {
   Select,
   SelectContent,
@@ -23,13 +22,12 @@ import {
 } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
-import { studentService, invoiceService } from "@/lib/data";
+import { studentService } from "@/lib/data";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { Student } from "@/types";
 import {
   CreditCard,
   Loader2,
-  Receipt,
   User,
   DollarSign,
   Calendar,
@@ -56,14 +54,12 @@ export function AdmissionFeeDialog({
 
   // Form state
   const [amount, setAmount] = useState("1500"); // Default admission fee
-  const [createInvoice, setCreateInvoice] = useState(true);
   const [paymentStatus, setPaymentStatus] = useState<"PAID" | "UNPAID">("PAID");
   const [paymentMethod, setPaymentMethod] = useState("CASH");
   const [notes, setNotes] = useState("");
 
   const reset = () => {
     setAmount("1500");
-    setCreateInvoice(true);
     setPaymentStatus("PAID");
     setPaymentMethod("CASH");
     setNotes("");
@@ -88,24 +84,6 @@ export function AdmissionFeeDialog({
     setError(null);
 
     try {
-      if (createInvoice) {
-        // Create admission fee invoice
-        if (student?.id) {
-          await invoiceService.createAdmissionInvoice({
-            student_id: student.id,
-            amount: admissionAmount,
-            payment_status: paymentStatus,
-            payment_method:
-              paymentStatus === "PAID" ? paymentMethod : undefined,
-            notes: notes,
-            due_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
-              .toISOString()
-              .split("T")[0], // 30 days from now
-          });
-        }
-      }
-
-      // Update student admission fee status
       if (student?.id) {
         await studentService.updateAdmissionFee(student.id, {
           admission_fee_paid: paymentStatus === "PAID",
@@ -220,25 +198,6 @@ export function AdmissionFeeDialog({
               />
               <p className="text-xs text-muted-foreground">
                 Standard admission fee amount
-              </p>
-            </div>
-
-            {/* Create Invoice Option */}
-            <div className="space-y-3">
-              <div className="flex items-center justify-between p-3 bg-accent/30 rounded-lg border">
-                <div className="flex items-center gap-2">
-                  <Receipt className="h-4 w-4" />
-                  <span className="text-sm font-medium">Create Invoice</span>
-                </div>
-                <Switch
-                  checked={createInvoice}
-                  onCheckedChange={setCreateInvoice}
-                />
-              </div>
-              <p className="text-xs text-muted-foreground px-3">
-                {createInvoice
-                  ? "An admission fee invoice will be created for record keeping"
-                  : "Only update the student's payment status"}
               </p>
             </div>
 
