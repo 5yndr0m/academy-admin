@@ -13,22 +13,8 @@ import type {
   Attendance,
   AttendanceSummary,
   SessionWithAttendance,
-  Invoice,
-  InvoiceItem,
-  MultiRecordInvoiceRequest,
-  EnrollmentInvoiceRequest,
-  InvoiceType,
-  InvoiceStatus,
-  Expense,
-  ExpenseCategory,
-  NotificationLog,
-  MonthlyReport,
-  MonthlyFinancialSummary,
-  Template,
-  TemplateType,
   DashboardData,
   SearchResult,
-  AuditLog,
   StudentPaymentRecord,
   TeacherPayoutRecord,
   StaffCommissionRecord,
@@ -245,6 +231,20 @@ export const teacherService = {
     apiClient.get<SearchResult<Teacher>>(
       `/search/teachers?q=${encodeURIComponent(q)}`,
     ),
+
+  getFinancialSummary: (
+    teacherId: string,
+    month?: string,
+    classId?: string,
+  ) => {
+    const params = new URLSearchParams();
+    if (month) params.set("month", month);
+    if (classId) params.set("class_id", classId);
+    const qs = params.toString();
+    return apiClient.get<any>(
+      `/teachers/${teacherId}/financial-summary${qs ? "?" + qs : ""}`,
+    );
+  },
 };
 
 export const classroomService = {
@@ -746,468 +746,6 @@ export const attendanceService = {
   },
 };
 
-export const invoiceService = {
-  getAll: (filters?: {
-    type?: InvoiceType;
-    status?: InvoiceStatus;
-    month?: string;
-  }) => {
-    const params = new URLSearchParams();
-    if (filters?.type) params.set("type", filters.type);
-    if (filters?.status) params.set("status", filters.status);
-    if (filters?.month) params.set("month", filters.month);
-    const qs = params.toString();
-    return apiClient.get<Invoice[]>(`/invoices${qs ? "?" + qs : ""}`);
-  },
-
-  getById: (id: string) => apiClient.get<Invoice>(`/invoices/${id}`),
-
-  // NOTE: was apiClient.post(`/students/${studentId}/generate-bills`) →
-  //       fixed to POST /invoices/generate with { billing_month }
-  generateMonthly: (billing_month: string) =>
-    apiClient.post<{ message: string; created: number; skipped: number }>(
-      "/invoices/generate",
-      { billing_month },
-    ),
-
-  createTeacherPayout: (data: {
-    teacher_id: string;
-    billing_month: string;
-    total_amount: number;
-    notes?: string;
-  }) => apiClient.post<Invoice>("/invoices/teacher-payout", data),
-
-  createStaffCommission: (data: {
-    staff_id: string;
-    billing_month: string;
-    total_amount: number;
-    notes?: string;
-  }) => apiClient.post<Invoice>("/invoices/staff-commission", data),
-
-  createAdmissionInvoice: (data: {
-    student_id: string;
-    amount: number;
-    payment_status: "PAID" | "UNPAID";
-    payment_method?: string;
-    notes?: string;
-    due_date: string;
-  }) => apiClient.post<Invoice>("/invoices/admission", data),
-
-  markPaid: (id: string, paid_at?: string) =>
-    apiClient.patch(`/invoices/${id}/pay`, paid_at ? { paid_at } : {}),
-
-  update: (
-    id: string,
-    data: {
-      total_amount?: number;
-      due_date?: string;
-      notes?: string;
-    },
-  ) => apiClient.put<Invoice>(`/invoices/${id}`, data),
-
-  downloadPDF: (id: string) =>
-    `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000/api"}/invoices/${id}/pdf`,
-
-  getByStudent: (studentId: string) =>
-    apiClient.get<Invoice[]>(`/invoices?student_id=${studentId}`),
-
-  getDashboard: (filters?: {
-    type?: InvoiceType;
-    status?: InvoiceStatus;
-    month?: string;
-  }) => {
-    const params = new URLSearchParams();
-    if (filters?.type) params.set("type", filters.type);
-    if (filters?.status) params.set("status", filters.status);
-    if (filters?.month) params.set("month", filters.month);
-    const qs = params.toString();
-    return apiClient.get<{
-      total_invoices: number;
-      total_amount: number;
-      paid_amount: number;
-      pending_amount: number;
-      overdue_amount: number;
-      collection_rate: number;
-      invoices: Invoice[];
-    }>(`/invoices/dashboard${qs ? "?" + qs : ""}`);
-  },
-
-  getOverdue: () => apiClient.get<Invoice[]>("/invoices/overdue"),
-
-  getPendingDelivery: () =>
-    apiClient.get<Invoice[]>("/invoices/pending-delivery"),
-
-  send: (data: {
-    invoice_ids: string[];
-    delivery_method: "EMAIL" | "WHATSAPP";
-    message?: string;
-  }) =>
-    apiClient.post<{ message: string; sent: number; failed: number }>(
-      "/invoices/send",
-      data,
-    ),
-
-  generatePDFs: (invoice_ids: string[]) =>
-    apiClient.post<{ message: string; generated: number }>(
-      "/invoices/generate-pdf",
-      { invoice_ids },
-    ),
-
-  createMultiRecord: (data: MultiRecordInvoiceRequest) =>
-    apiClient.post<Invoice>("/invoices/multi-record", data),
-
-  createFromEnrollments: (data: EnrollmentInvoiceRequest) =>
-    apiClient.post<Invoice>("/invoices/enrollment-based", data),
-
-  bulkAction: (data: {
-    action: "PAY" | "SEND" | "GENERATE_PDF" | "DELETE";
-    invoice_ids: string[];
-    params?: Record<string, unknown>;
-  }) =>
-    apiClient.post<{ message: string; processed: number }>(
-      "/invoices/bulk-action",
-      data,
-    ),
-
-  updateStatus: (id: string, status: string) =>
-    apiClient.patch<Invoice>(`/invoices/${id}/status`, { status }),
-};
-
-export const expenseService = {
-  getAll: (filters?: { month?: string; category?: ExpenseCategory }) => {
-    const params = new URLSearchParams();
-    if (filters?.month) params.set("month", filters.month);
-    if (filters?.category) params.set("category", filters.category);
-    const qs = params.toString();
-    return apiClient.get<{ expenses: Expense[]; total: number }>(
-      `/expenses${qs ? "?" + qs : ""}`,
-    );
-  },
-
-  create: (data: {
-    description: string;
-    amount: number;
-    category: ExpenseCategory;
-    expense_date: string; // "YYYY-MM-DD"
-  }) => apiClient.post<Expense>("/expenses", data),
-};
-
-export const notificationService = {
-  send: (data: {
-    student_id: string;
-    channel: "WHATSAPP" | "EMAIL";
-    message: string;
-    invoice_id?: string;
-  }) => apiClient.post<NotificationLog>("/notifications", data),
-
-  getLogs: (filters?: {
-    student_id?: string;
-    channel?: string;
-    status?: string;
-    month?: string;
-  }) => {
-    const params = new URLSearchParams();
-    if (filters?.student_id) params.set("student_id", filters.student_id);
-    if (filters?.channel) params.set("channel", filters.channel);
-    if (filters?.status) params.set("status", filters.status);
-    if (filters?.month) params.set("month", filters.month);
-    const qs = params.toString();
-    return apiClient.get<NotificationLog[]>(
-      `/notifications${qs ? "?" + qs : ""}`,
-    );
-  },
-
-  getByStudent: (studentId: string) =>
-    apiClient.get<NotificationLog[]>(`/notifications?student_id=${studentId}`),
-};
-
-export const teacherPaymentService = {
-  getDashboard: (filters?: {
-    teacher_id?: string;
-    month?: string;
-    status?: string;
-  }) => {
-    const params = new URLSearchParams();
-    if (filters?.teacher_id) params.set("teacher_id", filters.teacher_id);
-    if (filters?.month) params.set("month", filters.month);
-    if (filters?.status) params.set("status", filters.status);
-    const qs = params.toString();
-    return apiClient.get(`/teacher-payments/dashboard${qs ? "?" + qs : ""}`);
-  },
-
-  getPending: () => apiClient.get("/teacher-payments/pending"),
-
-  getMonthlyStats: (month?: string) => {
-    const params = new URLSearchParams();
-    if (month) params.set("month", month);
-    const qs = params.toString();
-    return apiClient.get(
-      `/teacher-payments/monthly-stats${qs ? "?" + qs : ""}`,
-    );
-  },
-
-  getTeacherSummary: (teacherId: string, month?: string) => {
-    const params = new URLSearchParams();
-    if (month) params.set("month", month);
-    const qs = params.toString();
-    return apiClient.get(
-      `/teacher-payments/teacher/${teacherId}/summary${qs ? "?" + qs : ""}`,
-    );
-  },
-
-  // Fetch per-teacher, per-month financial summary (per-class revenue & payout)
-  // Uses backend endpoint: GET /api/teachers/{teacherId}/financial-summary?month=YYYY-MM&class_id={optional}
-  // Returns the aggregated class-level revenue and payout info for the teacher.
-  getTeacherFinancialSummary: (
-    teacherId: string,
-    month?: string,
-    classId?: string,
-  ) => {
-    const params = new URLSearchParams();
-    if (month) params.set("month", month);
-    if (classId) params.set("class_id", classId);
-    const qs = params.toString();
-    return apiClient.get<any>(
-      `/teachers/${teacherId}/financial-summary${qs ? "?" + qs : ""}`,
-    );
-  },
-
-  getTeacherHistory: (teacherId: string) =>
-    apiClient.get(`/teacher-payments/teacher/${teacherId}/history`),
-
-  getTeacherEarnings: (
-    teacherId: string,
-    fromDate?: string,
-    toDate?: string,
-  ) => {
-    const params = new URLSearchParams();
-    if (fromDate) params.set("from_date", fromDate);
-    if (toDate) params.set("to_date", toDate);
-    const qs = params.toString();
-    return apiClient.get(
-      `/teacher-payments/teacher/${teacherId}/earnings${qs ? "?" + qs : ""}`,
-    );
-  },
-
-  calculate: (month: string) =>
-    apiClient.post("/teacher-payments/calculate", { month }),
-
-  process: (data: {
-    teacher_id: string;
-    payment_month: string;
-    actual_amount: number;
-    payment_method: string;
-    notes?: string;
-  }) => apiClient.post("/teacher-payments/process", data),
-
-  cancel: (paymentId: string) =>
-    apiClient.patch(`/teacher-payments/${paymentId}/cancel`),
-};
-
-export const staffCommissionService = {
-  getDashboard: (filters?: {
-    staff_id?: string;
-    month?: string;
-    status?: string;
-  }) => {
-    const params = new URLSearchParams();
-    if (filters?.staff_id) params.set("staff_id", filters.staff_id);
-    if (filters?.month) params.set("month", filters.month);
-    if (filters?.status) params.set("status", filters.status);
-    const qs = params.toString();
-    return apiClient.get(`/staff-commissions/dashboard${qs ? "?" + qs : ""}`);
-  },
-
-  getPending: () => apiClient.get("/staff-commissions/pending"),
-
-  getMonthlyStats: (month?: string) => {
-    const params = new URLSearchParams();
-    if (month) params.set("month", month);
-    const qs = params.toString();
-    return apiClient.get(
-      `/staff-commissions/monthly-stats${qs ? "?" + qs : ""}`,
-    );
-  },
-
-  getSummary: (staffId?: string, month?: string) => {
-    const params = new URLSearchParams();
-    if (staffId) params.set("staff_id", staffId);
-    if (month) params.set("month", month);
-    const qs = params.toString();
-    return apiClient.get(`/staff-commissions/summary${qs ? "?" + qs : ""}`);
-  },
-
-  getHistory: () => apiClient.get("/staff-commissions/history"),
-
-  getEarnings: (staffId?: string, fromDate?: string, toDate?: string) => {
-    const params = new URLSearchParams();
-    if (staffId) params.set("staff_id", staffId);
-    if (fromDate) params.set("from_date", fromDate);
-    if (toDate) params.set("to_date", toDate);
-    const qs = params.toString();
-    return apiClient.get(`/staff-commissions/earnings${qs ? "?" + qs : ""}`);
-  },
-
-  getRevenueBreakdown: (month?: string) => {
-    const params = new URLSearchParams();
-    if (month) params.set("month", month);
-    const qs = params.toString();
-    return apiClient.get(
-      `/staff-commissions/revenue-breakdown${qs ? "?" + qs : ""}`,
-    );
-  },
-
-  calculate: (month: string) =>
-    apiClient.post("/staff-commissions/calculate", { month }),
-
-  process: (data: {
-    staff_id: string;
-    commission_month: string;
-    actual_amount: number;
-    payment_method: string;
-    notes?: string;
-  }) => apiClient.post("/staff-commissions/process", data),
-
-  cancel: (commissionId: string) =>
-    apiClient.patch(`/staff-commissions/${commissionId}/cancel`),
-};
-
-export const staffPaymentService = {
-  getDashboard: (filters?: {
-    staff_id?: string;
-    month?: string;
-    status?: string;
-  }) => {
-    const params = new URLSearchParams();
-    if (filters?.staff_id) params.set("staff_id", filters.staff_id);
-    if (filters?.month) params.set("month", filters.month);
-    if (filters?.status) params.set("status", filters.status);
-    const qs = params.toString();
-    return apiClient.get(`/staff-payments/dashboard${qs ? "?" + qs : ""}`);
-  },
-
-  getMonthlyStatus: (month?: string) => {
-    const params = new URLSearchParams();
-    if (month) params.set("month", month);
-    const qs = params.toString();
-    return apiClient.get(`/staff-payments/monthly-status${qs ? "?" + qs : ""}`);
-  },
-
-  getOverdue: () => apiClient.get("/staff-payments/overdue"),
-
-  getStaffUnpaid: (staffId: string) =>
-    apiClient.get(`/staff-payments/staff/${staffId}/unpaid`),
-
-  getStaffHistory: (staffId: string) =>
-    apiClient.get(`/staff-payments/staff/${staffId}/history`),
-
-  getStaffSummary: (staffId: string, month?: string) => {
-    const params = new URLSearchParams();
-    if (month) params.set("month", month);
-    const qs = params.toString();
-    return apiClient.get(
-      `/staff-payments/staff/${staffId}/summary${qs ? "?" + qs : ""}`,
-    );
-  },
-
-  getAll: (filters?: {
-    staff_id?: string;
-    month?: string;
-    status?: string;
-  }) => {
-    const params = new URLSearchParams();
-    if (filters?.staff_id) params.set("staff_id", filters.staff_id);
-    if (filters?.month) params.set("month", filters.month);
-    if (filters?.status) params.set("status", filters.status);
-    const qs = params.toString();
-    return apiClient.get(`/staff-payments${qs ? "?" + qs : ""}`);
-  },
-
-  create: (data: {
-    staff_id: string;
-    amount: number;
-    payment_month: string;
-    payment_status: string;
-    payment_method?: string;
-    notes?: string;
-  }) => apiClient.post("/staff-payments", data),
-
-  process: (data: {
-    staff_id: string;
-    payment_month: string;
-    actual_amount: number;
-    payment_method: string;
-    notes?: string;
-  }) => apiClient.post("/staff-payments/process", data),
-
-  generateMonthly: (month: string) =>
-    apiClient.post("/staff-payments/generate-monthly", { month }),
-
-  update: (
-    paymentId: string,
-    data: {
-      amount?: number;
-      payment_status?: string;
-      payment_method?: string;
-      notes?: string;
-    },
-  ) => apiClient.put(`/staff-payments/${paymentId}`, data),
-
-  markAsWaived: (paymentId: string) =>
-    apiClient.patch(`/staff-payments/${paymentId}/waive`),
-
-  delete: (paymentId: string) =>
-    apiClient.delete(`/staff-payments/${paymentId}`),
-};
-
-export const reportService = {
-  getMonthly: (month: string) =>
-    apiClient.get<MonthlyReport>(`/reports/monthly?month=${month}`),
-
-  saveMonthly: (billing_month: string) =>
-    apiClient.post<MonthlyFinancialSummary>("/reports/monthly/save", {
-      billing_month,
-    }),
-
-  downloadPDF: (month: string) =>
-    `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000/api"}/reports/monthly/pdf?month=${month}`,
-};
-
-export const templateService = {
-  getAll: (type?: TemplateType) => {
-    const qs = type ? `?type=${type}` : "";
-    return apiClient.get<Template[]>(`/templates${qs}`);
-  },
-
-  getById: (id: string) => apiClient.get<Template>(`/templates/${id}`),
-
-  create: (data: {
-    name: string;
-    type: TemplateType;
-    content: string;
-    description?: string;
-  }) => apiClient.post<Template>("/templates", data),
-
-  update: (
-    id: string,
-    data: {
-      name: string;
-      content: string;
-      description?: string;
-    },
-  ) => apiClient.put<Template>(`/templates/${id}`, data),
-
-  setDefault: (id: string) => apiClient.patch(`/templates/${id}/default`),
-
-  delete: (id: string) => apiClient.delete(`/templates/${id}`),
-
-  preview: (template_id: string, data: Record<string, string>) =>
-    apiClient.post<{ template_name: string; rendered: string }>(
-      "/templates/preview",
-      { template_id, data },
-    ),
-};
-
 export const dashboardService = {
   get: () => apiClient.get<DashboardData>("/dashboard"),
 };
@@ -1434,25 +972,42 @@ export const emailService = {
   getStats: () => apiClient.get<EmailServiceStats>("/emails/stats"),
 
   // Get guardians with consent status, optionally filtered by class
-  getGuardians: (filters: { class_id?: string; email_consent?: boolean; search?: string } = {}) => {
+  getGuardians: (
+    filters: {
+      class_id?: string;
+      email_consent?: boolean;
+      search?: string;
+    } = {},
+  ) => {
     const params = new URLSearchParams();
     if (filters.class_id) params.append("class_id", filters.class_id);
-    if (filters.email_consent !== undefined) params.append("email_consent", String(filters.email_consent));
+    if (filters.email_consent !== undefined)
+      params.append("email_consent", String(filters.email_consent));
     if (filters.search) params.append("search", filters.search);
     const qs = params.toString();
-    return apiClient.get<GuardianCommunicationResponse[]>(`/emails/guardians${qs ? `?${qs}` : ""}`);
+    return apiClient.get<GuardianCommunicationResponse[]>(
+      `/emails/guardians${qs ? `?${qs}` : ""}`,
+    );
   },
 
   // Send bulk announcement to class guardians or specific recipients
   sendBulkAnnouncement: (data: SendBulkAnnouncementRequest) =>
-    apiClient.post<{ message: string; emails_sent: number; emails_failed: number; total_recipients: number }>(
-      "/emails/bulk",
-      data,
-    ),
+    apiClient.post<{
+      message: string;
+      emails_sent: number;
+      emails_failed: number;
+      total_recipients: number;
+    }>("/emails/bulk", data),
 
   // Update guardian communication consent
-  updateCommunicationPreferences: (studentId: string, data: { email_consent?: boolean; whatsapp_consent?: boolean }) =>
-    apiClient.patch<{ message: string }>(`/students/${studentId}/communication-preferences`, data),
+  updateCommunicationPreferences: (
+    studentId: string,
+    data: { email_consent?: boolean; whatsapp_consent?: boolean },
+  ) =>
+    apiClient.patch<{ message: string }>(
+      `/students/${studentId}/communication-preferences`,
+      data,
+    ),
 
   // Send welcome email to new students
   sendWelcomeEmail: (studentId: string) =>
