@@ -15,7 +15,7 @@ import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Download, Users, Layers, Loader2 } from "lucide-react";
-import { teacherPaymentService } from "@/lib/data"; // use the centralized API client
+import { teacherService } from "@/lib/data";
 const Spinner = (props: any) => (
   <Loader2 className="animate-spin h-4 w-4" {...props} />
 );
@@ -95,7 +95,7 @@ export function TeacherFinancialSummary({
     setError(null);
 
     try {
-      const resp = await teacherPaymentService.getTeacherFinancialSummary(
+      const resp = await teacherService.getFinancialSummary(
         teacherId,
         selectedMonth,
         classId || undefined,
