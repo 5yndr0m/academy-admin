@@ -114,9 +114,10 @@ export const authService = {
 };
 
 export const userService = {
-  getAll: (search?: string) => {
+  getAll: async (search?: string) => {
     const params = search ? `?search=${encodeURIComponent(search)}` : "";
-    return apiClient.get<User[]>(`/admin/users${params}`);
+    const res = await apiClient.get<{ users: User[]; total: number; limit: number; offset: number }>(`/admin/users${params}`);
+    return res.users;
   },
 
   getById: (id: string) => apiClient.get<User>(`/admin/users/${id}`),
@@ -180,14 +181,15 @@ export const subjectService = {
 };
 
 export const teacherService = {
-  getAll: (search?: string, activeOnly?: boolean) => {
+  getAll: async (search?: string, activeOnly?: boolean) => {
     const params = new URLSearchParams();
     if (search) params.append("search", search);
     if (activeOnly) params.append("active_only", "true");
     const queryString = params.toString();
-    return apiClient.get<Teacher[]>(
+    const res = await apiClient.get<{ teachers: Teacher[]; total: number; limit: number; offset: number }>(
       `/teachers${queryString ? `?${queryString}` : ""}`,
     );
+    return res.teachers;
   },
 
   getById: (id: string) =>
@@ -399,9 +401,10 @@ export const sessionService = {
 };
 
 export const studentService = {
-  getAll: (search?: string) => {
+  getAll: async (search?: string) => {
     const qs = search ? `?search=${encodeURIComponent(search)}` : "";
-    return apiClient.get<Student[]>(`/students${qs}`);
+    const res = await apiClient.get<{ students: Student[]; total: number; limit: number; offset: number }>(`/students${qs}`);
+    return res.students;
   },
 
   getById: (id: string) =>
