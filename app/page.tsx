@@ -24,7 +24,6 @@ export default function Home() {
     dashboardService
       .get()
       .then((d) => {
-        console.log("dashboard response:", JSON.stringify(d, null, 2));
         setData(d);
       })
       .catch((err) => setError(err.message))
