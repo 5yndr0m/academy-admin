@@ -58,7 +58,7 @@ function LoginForm() {
           </div>
           <CardTitle className="text-2xl">ICBT</CardTitle>
           <p className="text-lg font-medium text-muted-foreground">
-            Academy of Performing Arts
+            International College of Business and Technology
           </p>
           <CardDescription className="mt-2">
             Enter your credentials to access the system

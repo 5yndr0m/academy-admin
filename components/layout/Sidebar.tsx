@@ -45,7 +45,7 @@ export function Sidebar({ className }: { className?: string }) {
       <div className="p-6">
         <h1 className="text-xl font-bold tracking-tight">ICBT</h1>
         <p className="text-sm font-medium text-muted-foreground">
-          Academy of Performing Arts
+          Business and Technology
         </p>
         <p className="text-xs text-muted-foreground mt-1">Admin Dashboard</p>
       </div>

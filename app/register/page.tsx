@@ -393,12 +393,11 @@ function RegistrationFormComponent() {
                       <SelectValue placeholder="Select a class type" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="art">Art</SelectItem>
-                      <SelectItem value="dancing">Dancing</SelectItem>
-                      <SelectItem value="western-music">Western Music</SelectItem>
-                      <SelectItem value="music">Music</SelectItem>
-                      <SelectItem value="ballet">Ballet</SelectItem>
-                      <SelectItem value="drama">Drama</SelectItem>
+                      <SelectItem value="business">Business</SelectItem>
+                      <SelectItem value="it">Information Technology</SelectItem>
+                      <SelectItem value="engineering">Engineering</SelectItem>
+                      <SelectItem value="management">Management</SelectItem>
+                      <SelectItem value="finance">Finance</SelectItem>
                       <SelectItem value="other">Other</SelectItem>
                     </SelectContent>
                   </Select>
