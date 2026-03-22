@@ -6,7 +6,10 @@ import { Topbar } from "@/components/layout/Topbar";
 
 export function LayoutWrapper({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const isPublicPage = pathname === "/login" || pathname === "/register";
+  const isPublicPage =
+    pathname === "/login" ||
+    pathname === "/register" ||
+    pathname === "/attend";
 
   if (isPublicPage) {
     return <>{children}</>;

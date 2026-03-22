@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { SessionManager } from "@/components/sessions/SessionManager";
+import { SessionQRDialog } from "@/components/sessions/SessionQRDialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   Card,
@@ -25,6 +26,7 @@ import {
   Loader2,
   CheckCircle,
   XCircle,
+  QrCode,
 } from "lucide-react";
 
 export default function SessionsPage() {
@@ -33,6 +35,7 @@ export default function SessionsPage() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [actionLoading, setActionLoading] = useState<string | null>(null);
+  const [qrSession, setQrSession] = useState<ClassSession | null>(null);
 
   const loadSessions = async () => {
     try {
@@ -253,18 +256,28 @@ export default function SessionsPage() {
                             </Button>
                           )}
                           {session.status === "ACTIVE" && (
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => handleEndSession(session.id)}
-                              disabled={actionLoading === session.id}
-                            >
-                              {actionLoading === session.id ? (
-                                <Loader2 className="h-4 w-4 animate-spin" />
-                              ) : (
-                                <Square className="h-4 w-4" />
-                              )}
-                            </Button>
+                            <>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setQrSession(session)}
+                                title="Show QR Code"
+                              >
+                                <QrCode className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleEndSession(session.id)}
+                                disabled={actionLoading === session.id}
+                              >
+                                {actionLoading === session.id ? (
+                                  <Loader2 className="h-4 w-4 animate-spin" />
+                                ) : (
+                                  <Square className="h-4 w-4" />
+                                )}
+                              </Button>
+                            </>
                           )}
                         </div>
                       </div>
@@ -323,6 +336,14 @@ export default function SessionsPage() {
                         <Button
                           variant="outline"
                           size="sm"
+                          onClick={() => setQrSession(session)}
+                        >
+                          <QrCode className="h-4 w-4 mr-1" />
+                          QR Code
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
                           onClick={() => (window.location.href = "/attendance")}
                         >
                           Mark Attendance
@@ -349,6 +370,12 @@ export default function SessionsPage() {
           </Card>
         </TabsContent>
       </Tabs>
+
+      <SessionQRDialog
+        session={qrSession}
+        open={!!qrSession}
+        onClose={() => setQrSession(null)}
+      />
     </div>
   );
 }
