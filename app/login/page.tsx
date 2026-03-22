@@ -56,7 +56,7 @@ function LoginForm() {
               <LockKeyhole className="h-5 w-5 text-primary-foreground" />
             </div>
           </div>
-          <CardTitle className="text-2xl">Nimal Senanayake</CardTitle>
+          <CardTitle className="text-2xl">ICBT</CardTitle>
           <p className="text-lg font-medium text-muted-foreground">
             Academy of Performing Arts
           </p>

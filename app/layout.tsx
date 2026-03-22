@@ -10,9 +10,9 @@ import { ToastProvider } from "@/components/ui/toast";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "Nimal Senanayake Academy of Performing Arts - Admin",
+  title: "International College of Business and Technology - Admin",
   description:
-    "Management System for Nimal Senanayake Academy of Performing Arts",
+    "Management System for International College of Business and Technology",
 };
 
 export default function RootLayout({

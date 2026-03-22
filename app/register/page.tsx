@@ -133,7 +133,7 @@ function RegistrationFormComponent() {
               Registration Submitted Successfully!
             </CardTitle>
             <CardDescription>
-              Thank you for your interest in Nimal Senanayake Academy of Performing Arts
+              Thank you for your interest in International College of Business and Technology
             </CardDescription>
           </CardHeader>
           <CardContent className="text-center space-y-4">
@@ -174,7 +174,7 @@ function RegistrationFormComponent() {
             <GraduationCap className="h-12 w-12 mx-auto text-primary" />
           </div>
           <h1 className="text-3xl font-bold mb-2">
-            Nimal Senanayake Academy of Performing Arts
+            International College of Business and Technology
           </h1>
           <p className="text-muted-foreground">
             Complete the form below to apply for admission
@@ -446,7 +446,7 @@ function RegistrationFormComponent() {
         </Card>
 
         <div className="mt-8 text-center text-sm text-muted-foreground">
-          <p>Nimal Senanayake Academy of Performing Arts</p>
+          <p>International College of Business and Technology</p>
         </div>
       </div>
     </div>
