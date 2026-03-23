@@ -17,6 +17,7 @@ import {
   Settings2,
   Mail,
   CalendarClock,
+  BarChart3,
 } from "lucide-react";
 
 const navigation = [
@@ -28,6 +29,7 @@ const navigation = [
   { name: "Sessions", href: "/sessions", icon: Clock },
   { name: "Scheduling", href: "/scheduling", icon: CalendarClock },
   { name: "Attendance", href: "/attendance", icon: CalendarDays },
+  { name: "Reports", href: "/reports", icon: BarChart3 },
   { name: "Operations", href: "/operations", icon: Settings2 },
   { name: "Finance", href: "/finance", icon: Wallet },
   { name: "Communications", href: "/communications", icon: Mail },

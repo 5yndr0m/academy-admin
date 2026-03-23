@@ -56,6 +56,11 @@ import type {
   LecturerProfile,
   SessionQRToken,
   ScanAttendanceResponse,
+  AttendanceReportResponse,
+  ClassPerformanceResponse,
+  LecturerSummaryResponse,
+  StudentProgressReport,
+  InstituteSummary,
 } from "@/types";
 
 // Email service types
@@ -1455,4 +1460,48 @@ export const sessionQRService = {
   // Revoke the current token.
   revoke: (sessionId: string) =>
     apiClient.delete(`/sessions/${sessionId}/qr-token`),
+};
+
+// ── Phase 5: Reports service ───────────────────────────────────────────────────
+
+export const reportService = {
+  getAttendanceReport: (params: {
+    from: string;
+    to: string;
+    class_id?: string;
+    student_id?: string;
+  }) => {
+    const qs = new URLSearchParams(
+      Object.entries(params).filter(([, v]) => v) as [string, string][],
+    ).toString();
+    return apiClient.get<AttendanceReportResponse>(`/reports/attendance?${qs}`);
+  },
+
+  // Returns the CSV download URL (caller opens in new tab or triggers download)
+  getAttendanceCsvUrl: (params: { from: string; to: string; class_id?: string; student_id?: string }) => {
+    const base = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3000/api";
+    const qs = new URLSearchParams({
+      ...Object.fromEntries(Object.entries(params).filter(([, v]) => v)),
+      format: "csv",
+    }).toString();
+    return `${base}/reports/attendance?${qs}`;
+  },
+
+  getClassPerformance: (params?: { semester_id?: string; subject_id?: string }) => {
+    const qs = params
+      ? new URLSearchParams(Object.entries(params).filter(([, v]) => v) as [string, string][]).toString()
+      : "";
+    return apiClient.get<ClassPerformanceResponse>(`/reports/class-performance${qs ? "?" + qs : ""}`);
+  },
+
+  getLecturerSummary: (semesterId?: string) => {
+    const qs = semesterId ? `?semester_id=${semesterId}` : "";
+    return apiClient.get<LecturerSummaryResponse>(`/reports/lecturer-summary${qs}`);
+  },
+
+  getStudentProgress: (studentId: string) =>
+    apiClient.get<StudentProgressReport>(`/reports/student-progress/${studentId}`),
+
+  getInstituteSummary: () =>
+    apiClient.get<InstituteSummary>("/reports/institute-summary"),
 };

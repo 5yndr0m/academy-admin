@@ -1160,3 +1160,112 @@ export interface LecturerProfile {
   open_curriculum: CurriculumItem[];
   recent_reports: LectureDailyReport[];
 }
+
+// ── Phase 5: Reports ──────────────────────────────────────────────────────────
+
+export interface AttendanceReportSession {
+  session_id: string;
+  session_date: string;
+  start_time: string;
+  end_time: string;
+  class_id: string;
+  class_name: string;
+  teacher_name: string;
+  present: number;
+  absent: number;
+  late: number;
+  total: number;
+  rate: number;
+}
+
+export interface AttendanceReportResponse {
+  from: string;
+  to: string;
+  class_id?: string | null;
+  sessions: AttendanceReportSession[];
+  summary: {
+    total_sessions: number;
+    total_present: number;
+    total_absent: number;
+    total_late: number;
+    total_marked: number;
+    avg_rate: number;
+  };
+}
+
+export interface ClassPerformanceEntry {
+  subject_id: string;
+  subject_name: string;
+  exam_type: string;
+  avg_score: number;
+  max_score: number;
+  avg_percent: number;
+  pass_rate: number;
+  count: number;
+}
+
+export interface ClassPerformanceResponse {
+  semester_id?: string | null;
+  semester_name?: string;
+  entries: ClassPerformanceEntry[];
+}
+
+export interface LecturerSummaryEntry {
+  teacher_id: string;
+  teacher_name: string;
+  allocated_subjects: number;
+  total_allocated_hours: number;
+  total_conducted_hours: number;
+  hours_percent: number;
+  report_count: number;
+  avg_effectiveness: number;
+}
+
+export interface LecturerSummaryResponse {
+  semester_id?: string | null;
+  semester_name?: string;
+  entries: LecturerSummaryEntry[];
+}
+
+export interface StudentEnrollmentEntry {
+  enrollment_id: string;
+  class_id: string;
+  class_name: string;
+  status: string;
+  enrolled_at: string;
+}
+
+export interface StudentPaymentEntry {
+  id: string;
+  amount: number;
+  payment_date: string;
+  payment_method: string;
+  notes: string;
+}
+
+export interface StudentProgressReport {
+  student_id: string;
+  admission_no: string;
+  full_name: string;
+  enrollments: StudentEnrollmentEntry[];
+  results: LecturerEffectivenessEntry[];
+  attend_present: number;
+  attend_absent: number;
+  attend_late: number;
+  attend_total: number;
+  attend_rate: number;
+  total_fees_paid: number;
+  payments: StudentPaymentEntry[];
+}
+
+export interface InstituteSummary {
+  active_students: number;
+  active_teachers: number;
+  active_classes: number;
+  active_semesters: number;
+  sessions_this_month: number;
+  attendance_rate_this_month: number;
+  revenue_this_month: number;
+  pending_conflicts: number;
+  generated_at: string;
+}
