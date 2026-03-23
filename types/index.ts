@@ -753,6 +753,34 @@ export interface QuickSearchResult {
   }>;
 }
 
+// ── Phase 1: Classroom Management ────────────────────────────────────────────
+
+export interface ClassroomUtility {
+  id: string;
+  classroom_id: string;
+  utility_type: "AC" | "PROJECTOR" | "SMARTBOARD" | "WHITEBOARD" | "OTHER";
+  quantity: number;
+  is_functional: boolean;
+  notes: string;
+  created_by: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface ClassroomMaintenanceRecord {
+  id: string;
+  classroom_id: string;
+  title: string;
+  description: string;
+  reported_by_id: string;
+  status: "REPORTED" | "IN_PROGRESS" | "COMPLETED";
+  started_at: string | null;
+  completed_at: string | null;
+  created_at: string;
+  updated_at: string;
+  reported_by?: { id: string; username: string; name: string };
+}
+
 // ── Conflict Detection ────────────────────────────────────────────────────────
 
 export interface ConflictSummary {

@@ -22,7 +22,7 @@ import {
 import { classroomService } from "@/lib/data";
 import { Classroom } from "@/types";
 import { AddClassroomDialog } from "./AddClassroomDialog";
-import { Loader2, Pencil, RefreshCw } from "lucide-react";
+import { Loader2, Pencil, RefreshCw, ExternalLink } from "lucide-react";
 import {
   Dialog,
   DialogContent,
@@ -33,7 +33,11 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 
-export function ClassroomList() {
+interface ClassroomListProps {
+  onViewDetails?: (classroom: Classroom) => void;
+}
+
+export function ClassroomList({ onViewDetails }: ClassroomListProps) {
   const [classrooms, setClassrooms] = useState<Classroom[]>([]);
   const [availableRooms, setAvailableRooms] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
@@ -207,7 +211,7 @@ export function ClassroomList() {
                     </span>
                   </TableHead>
                   <TableHead className="text-right">Usable</TableHead>
-                  <TableHead className="text-right">Edit</TableHead>
+                  <TableHead className="text-right">Actions</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -275,14 +279,26 @@ export function ClassroomList() {
                       />
                     </TableCell>
                     <TableCell className="text-right">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => openEdit(classroom)}
-                        title="Edit classroom details"
-                      >
-                        <Pencil className="h-4 w-4" />
-                      </Button>
+                      <div className="flex items-center justify-end gap-1">
+                        {onViewDetails && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => onViewDetails(classroom)}
+                            title="View details"
+                          >
+                            <ExternalLink className="h-4 w-4" />
+                          </Button>
+                        )}
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => openEdit(classroom)}
+                          title="Edit classroom details"
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}

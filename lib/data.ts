@@ -280,6 +280,52 @@ export const classroomService = {
     apiClient.patch<{ message: string; id: string; is_usable: boolean }>(
       `/classrooms/${id}/usable`,
     ),
+
+  // Phase 1 — utilities
+  getUtilities: (classroomId: string) =>
+    apiClient.get<import("@/types").ClassroomUtility[]>(`/classrooms/${classroomId}/utilities`),
+
+  addUtility: (classroomId: string, data: {
+    utility_type: string; quantity: number; is_functional: boolean; notes?: string;
+  }) =>
+    apiClient.post<import("@/types").ClassroomUtility>(`/classrooms/${classroomId}/utilities`, data),
+
+  updateUtility: (classroomId: string, utilityId: string, data: {
+    quantity?: number; is_functional?: boolean; notes?: string;
+  }) =>
+    apiClient.patch<import("@/types").ClassroomUtility>(`/classrooms/${classroomId}/utilities/${utilityId}`, data),
+
+  deleteUtility: (classroomId: string, utilityId: string) =>
+    apiClient.delete<{ message: string }>(`/classrooms/${classroomId}/utilities/${utilityId}`),
+
+  // Phase 1 — maintenance
+  getMaintenance: (classroomId: string, status?: string) => {
+    const qs = status ? `?status=${status}` : "";
+    return apiClient.get<import("@/types").ClassroomMaintenanceRecord[]>(`/classrooms/${classroomId}/maintenance${qs}`);
+  },
+
+  addMaintenance: (classroomId: string, data: { title: string; description?: string }) =>
+    apiClient.post<import("@/types").ClassroomMaintenanceRecord>(`/classrooms/${classroomId}/maintenance`, data),
+
+  updateMaintenanceStatus: (classroomId: string, recordId: string, status: string) =>
+    apiClient.patch<import("@/types").ClassroomMaintenanceRecord>(`/classrooms/${classroomId}/maintenance/${recordId}/status`, { status }),
+
+  // Phase 1 — history and utilization
+  getHistory: (classroomId: string, from?: string, to?: string) => {
+    const params = new URLSearchParams();
+    if (from) params.set("from", from);
+    if (to) params.set("to", to);
+    const qs = params.toString();
+    return apiClient.get<import("@/types").ClassSession[]>(`/classrooms/${classroomId}/history${qs ? "?" + qs : ""}`);
+  },
+
+  getUtilization: (from?: string, to?: string) => {
+    const params = new URLSearchParams();
+    if (from) params.set("from", from);
+    if (to) params.set("to", to);
+    const qs = params.toString();
+    return apiClient.get<import("@/types").ClassroomUtilizationData[]>(`/classrooms/utilization${qs ? "?" + qs : ""}`);
+  },
 };
 
 export const classService = {
