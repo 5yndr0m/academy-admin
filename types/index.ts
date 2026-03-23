@@ -851,3 +851,122 @@ export interface ClassRevenueResponse {
   actual_payout: number;
   net_remaining: number;
 }
+
+// ── Phase 2: Scheduling Engine ────────────────────────────────────────────────
+
+export interface Semester {
+  id: string;
+  name: string;
+  start_date: string; // ISO date
+  end_date: string;
+  is_active: boolean;
+  created_by: string;
+  created_at: string;
+  updated_at: string;
+  schedule_count?: number;
+}
+
+export interface CreateSemesterRequest {
+  name: string;
+  start_date: string;
+  end_date: string;
+}
+
+export interface UpdateSemesterRequest {
+  name?: string;
+  start_date?: string;
+  end_date?: string;
+  is_active?: boolean;
+}
+
+export interface ConflictDetail {
+  type: "DOUBLE_BOOKING" | "TEACHER_OVERLAP" | "ROOM_CONFLICT";
+  severity: "HIGH" | "MEDIUM" | "LOW";
+  session_id: string;
+  class_name: string;
+  day?: number;
+  date?: string;
+  start_time: string;
+  end_time: string;
+  room_name: string;
+  description: string;
+}
+
+export interface CollisionResult {
+  has_conflict: boolean;
+  conflicts: ConflictDetail[];
+}
+
+export interface CheckCollisionRequest {
+  classroom_id: string;
+  day_of_week?: number;
+  session_date?: string; // YYYY-MM-DD for session-based checks
+  start_time: string;
+  end_time: string;
+  exclude_schedule_id?: string;
+  exclude_session_id?: string;
+}
+
+export interface DelaySessionRequest {
+  minutes: number;
+  reason?: string;
+}
+
+export interface RescheduleSessionRequest {
+  new_date: string; // YYYY-MM-DD
+  new_start_time: string;
+  new_end_time: string;
+  reason?: string;
+}
+
+export interface ExtendSessionRequest {
+  extra_minutes: number;
+  reason?: string;
+}
+
+export interface RoomChangeRequest {
+  session_id: string;
+  new_room_id: string;
+  reason?: string;
+}
+
+export interface ScheduleOverride {
+  id: string;
+  session_id: string;
+  type: "DELAY" | "RESCHEDULE" | "EXTEND" | "ROOM_CHANGE" | "CANCELLATION";
+  old_date?: string;
+  new_date?: string;
+  old_start_time?: string;
+  new_start_time?: string;
+  old_end_time?: string;
+  new_end_time?: string;
+  old_room_name?: string;
+  new_room_name?: string;
+  reason?: string;
+  created_by: string;
+  created_by_name?: string;
+  created_at: string;
+  // Session context
+  class_name?: string;
+  session_date?: string;
+}
+
+export interface ConflictRecord {
+  id: string;
+  type: "DOUBLE_BOOKING" | "TEACHER_OVERLAP" | "ROOM_CONFLICT";
+  severity: "HIGH" | "MEDIUM" | "LOW";
+  status: "PENDING" | "RESOLVED" | "IGNORED";
+  description: string;
+  session_a_id: string;
+  session_b_id?: string;
+  session_a_class?: string;
+  session_a_date?: string;
+  session_a_time?: string;
+  session_b_class?: string;
+  session_b_date?: string;
+  session_b_time?: string;
+  resolved_by?: string;
+  resolved_by_name?: string;
+  resolved_at?: string;
+  created_at: string;
+}

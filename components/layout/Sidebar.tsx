@@ -16,6 +16,7 @@ import {
   Wallet,
   Settings2,
   Mail,
+  CalendarClock,
 } from "lucide-react";
 
 const navigation = [
@@ -25,6 +26,7 @@ const navigation = [
   { name: "Teachers", href: "/teachers", icon: User },
   { name: "Students", href: "/students", icon: Users },
   { name: "Sessions", href: "/sessions", icon: Clock },
+  { name: "Scheduling", href: "/scheduling", icon: CalendarClock },
   { name: "Attendance", href: "/attendance", icon: CalendarDays },
   { name: "Operations", href: "/operations", icon: Settings2 },
   { name: "Finance", href: "/finance", icon: Wallet },

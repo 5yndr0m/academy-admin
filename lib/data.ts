@@ -30,6 +30,17 @@ import type {
   CalculationResponse,
   MonthlyOverviewResponse,
   ClassRevenueResponse,
+  Semester,
+  CreateSemesterRequest,
+  UpdateSemesterRequest,
+  CollisionResult,
+  CheckCollisionRequest,
+  DelaySessionRequest,
+  RescheduleSessionRequest,
+  ExtendSessionRequest,
+  RoomChangeRequest,
+  ScheduleOverride,
+  ConflictRecord,
 } from "@/types";
 
 // Email service types
@@ -1209,4 +1220,84 @@ export const draftStudentService = {
       return result;
     });
   },
+};
+
+// ── Phase 2: Semester service ─────────────────────────────────────────────────
+
+export const semesterService = {
+  getAll: (activeOnly?: boolean) =>
+    apiClient.get<Semester[]>(`/semesters${activeOnly ? "?active=true" : ""}`),
+
+  getActive: () => apiClient.get<Semester>("/semesters/active"),
+
+  create: (data: CreateSemesterRequest) =>
+    apiClient.post<Semester>("/semesters", data),
+
+  update: (id: string, data: UpdateSemesterRequest) =>
+    apiClient.put<Semester>(`/semesters/${id}`, data),
+
+  getSchedule: (semesterId: string) =>
+    apiClient.get<{ semester: Semester; schedules: unknown[]; count: number }>(
+      `/semesters/${semesterId}/schedule`,
+    ),
+};
+
+// ── Phase 2: Scheduling service ───────────────────────────────────────────────
+
+export const schedulingService = {
+  checkCollision: (data: CheckCollisionRequest) =>
+    apiClient.post<CollisionResult>("/scheduling/check-collision", data),
+
+  roomChange: (data: RoomChangeRequest) =>
+    apiClient.post<{ message: string; override_id: string }>(
+      "/scheduling/room-change",
+      data,
+    ),
+
+  getOverrideHistory: (params?: {
+    session_id?: string;
+    class_id?: string;
+    from?: string;
+    to?: string;
+  }) => {
+    const qs = params
+      ? "?" + new URLSearchParams(Object.entries(params).filter(([, v]) => v) as [string, string][]).toString()
+      : "";
+    return apiClient.get<{ overrides: ScheduleOverride[]; count: number }>(
+      `/scheduling/override-history${qs}`,
+    );
+  },
+
+  delaySession: (sessionId: string, data: DelaySessionRequest) =>
+    apiClient.patch<ClassSession>(`/sessions/${sessionId}/delay`, data),
+
+  rescheduleSession: (sessionId: string, data: RescheduleSessionRequest) =>
+    apiClient.patch<ClassSession>(`/sessions/${sessionId}/reschedule`, data),
+
+  extendSession: (sessionId: string, data: ExtendSessionRequest) =>
+    apiClient.patch<ClassSession>(`/sessions/${sessionId}/extend`, data),
+};
+
+// ── Phase 2: Conflict service ─────────────────────────────────────────────────
+
+export const conflictService = {
+  getAll: (params?: {
+    status?: "PENDING" | "RESOLVED" | "IGNORED";
+    type?: string;
+    from?: string;
+    to?: string;
+  }) => {
+    const qs = params
+      ? "?" + new URLSearchParams(Object.entries(params).filter(([, v]) => v) as [string, string][]).toString()
+      : "";
+    return apiClient.get<{ conflicts: ConflictRecord[]; count: number }>(
+      `/conflicts${qs}`,
+    );
+  },
+
+  resolve: (id: string) =>
+    apiClient.patch<ConflictRecord>(`/conflicts/${id}/resolve`, {}),
+
+  ignore: (id: string) =>
+    apiClient.patch<ConflictRecord>(`/conflicts/${id}/ignore`, {}),
 };

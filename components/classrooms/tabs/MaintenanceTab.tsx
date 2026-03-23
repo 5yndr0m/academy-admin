@@ -87,7 +87,7 @@ export function MaintenanceTab({ classroomId, records, onChanged }: MaintenanceT
         <div className="space-y-2">
           {records.map((rec) => {
             const cfg = STATUS_CONFIG[rec.status];
-            const Icon = cfg.icon ?? cfg.Icon;
+            const Icon = cfg.Icon;
             return (
               <div key={rec.id} className="rounded-lg border px-3 py-2.5 space-y-1.5">
                 <div className="flex items-start justify-between gap-2">
