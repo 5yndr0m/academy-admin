@@ -970,3 +970,161 @@ export interface ConflictRecord {
   resolved_at?: string;
   created_at: string;
 }
+
+// ── Phase 3: Lecturer Management ──────────────────────────────────────────────
+
+export interface LecturerSubjectAllocation {
+  id: string;
+  teacher_id: string;
+  teacher_name?: string;
+  subject_id: string;
+  subject_name?: string;
+  semester_id: string;
+  semester_name?: string;
+  weekly_hours_allocated: number;
+  total_hours_allocated: number;
+  conducted_hours: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CreateAllocationRequest {
+  teacher_id: string;
+  subject_id: string;
+  semester_id: string;
+  weekly_hours_allocated: number;
+  total_hours_allocated: number;
+}
+
+export interface UpdateAllocationRequest {
+  weekly_hours_allocated?: number;
+  total_hours_allocated?: number;
+}
+
+export interface CurriculumItem {
+  id: string;
+  allocation_id: string;
+  topic: string;
+  description?: string;
+  week_number: number;
+  is_completed: boolean;
+  completed_at?: string;
+  created_by: string;
+  created_at: string;
+  updated_at: string;
+  subject_name?: string;
+}
+
+export interface CreateCurriculumItemRequest {
+  allocation_id: string;
+  topic: string;
+  description?: string;
+  week_number: number;
+}
+
+export interface UpdateCurriculumItemRequest {
+  topic?: string;
+  description?: string;
+  week_number?: number;
+  is_completed?: boolean;
+}
+
+export interface LectureDailyReport {
+  id: string;
+  teacher_id: string;
+  teacher_name?: string;
+  session_id?: string;
+  session_date?: string;
+  class_name?: string;
+  topics_covered: string;
+  notes?: string;
+  submitted_at: string;
+  created_by: string;
+  created_at: string;
+}
+
+export interface CreateDailyReportRequest {
+  teacher_id: string;
+  session_id?: string;
+  topics_covered: string;
+  notes?: string;
+}
+
+export interface StudentResult {
+  id: string;
+  student_id: string;
+  student_name?: string;
+  subject_id: string;
+  subject_name?: string;
+  semester_id: string;
+  exam_type: "MIDTERM" | "FINAL" | "QUIZ" | "ASSIGNMENT";
+  score: number;
+  max_score: number;
+  percentage: number;
+  date: string;
+  notes?: string;
+  created_by: string;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface CreateStudentResultRequest {
+  student_id: string;
+  subject_id: string;
+  semester_id: string;
+  exam_type: "MIDTERM" | "FINAL" | "QUIZ" | "ASSIGNMENT";
+  score: number;
+  max_score: number;
+  date: string;
+  notes?: string;
+}
+
+export interface UpdateStudentResultRequest {
+  exam_type?: string;
+  score?: number;
+  max_score?: number;
+  date?: string;
+  notes?: string;
+}
+
+export interface LecturerHoursEntry {
+  subject_id: string;
+  subject_name: string;
+  allocated: number;
+  conducted: number;
+  remaining: number;
+  percent_done: number;
+}
+
+export interface LecturerHoursResponse {
+  teacher_id: string;
+  teacher_name: string;
+  semester_id?: string;
+  semester_name?: string;
+  subjects: LecturerHoursEntry[];
+  total_allocated: number;
+  total_conducted: number;
+}
+
+export interface LecturerEffectivenessEntry {
+  subject_id: string;
+  subject_name: string;
+  exam_type: string;
+  avg_score: number;
+  max_score: number;
+  avg_percent: number;
+  count: number;
+}
+
+export interface LecturerEffectivenessResponse {
+  teacher_id: string;
+  teacher_name: string;
+  results: LecturerEffectivenessEntry[];
+}
+
+export interface LecturerProfile {
+  teacher: Teacher;
+  allocations: LecturerSubjectAllocation[];
+  open_curriculum: CurriculumItem[];
+  recent_reports: LectureDailyReport[];
+}

@@ -41,6 +41,19 @@ import type {
   RoomChangeRequest,
   ScheduleOverride,
   ConflictRecord,
+  LecturerSubjectAllocation,
+  CreateAllocationRequest,
+  CurriculumItem,
+  CreateCurriculumItemRequest,
+  UpdateCurriculumItemRequest,
+  LectureDailyReport,
+  CreateDailyReportRequest,
+  StudentResult,
+  CreateStudentResultRequest,
+  UpdateStudentResultRequest,
+  LecturerHoursResponse,
+  LecturerEffectivenessResponse,
+  LecturerProfile,
 } from "@/types";
 
 // Email service types
@@ -1300,4 +1313,98 @@ export const conflictService = {
 
   ignore: (id: string) =>
     apiClient.patch<ConflictRecord>(`/conflicts/${id}/ignore`, {}),
+};
+
+// ── Phase 3: Lecturer service ─────────────────────────────────────────────────
+
+export const lecturerService = {
+  getProfile: (teacherId: string) =>
+    apiClient.get<LecturerProfile>(`/lecturers/${teacherId}/profile`),
+
+  getAllocations: (teacherId: string, semesterId?: string) => {
+    const qs = semesterId ? `?semester_id=${semesterId}` : "";
+    return apiClient.get<LecturerSubjectAllocation[]>(`/lecturers/${teacherId}/allocations${qs}`);
+  },
+
+  createAllocation: (teacherId: string, data: CreateAllocationRequest) =>
+    apiClient.post<LecturerSubjectAllocation>(`/lecturers/${teacherId}/allocations`, data),
+
+  getHours: (teacherId: string, semesterId?: string) => {
+    const qs = semesterId ? `?semester_id=${semesterId}` : "";
+    return apiClient.get<LecturerHoursResponse>(`/lecturers/${teacherId}/hours${qs}`);
+  },
+
+  getEffectiveness: (teacherId: string, semesterId?: string) => {
+    const qs = semesterId ? `?semester_id=${semesterId}` : "";
+    return apiClient.get<LecturerEffectivenessResponse>(`/lecturers/${teacherId}/effectiveness${qs}`);
+  },
+};
+
+// ── Phase 3: Curriculum service ───────────────────────────────────────────────
+
+export const curriculumService = {
+  getItems: (teacherId: string, params?: { semester_id?: string; week?: number }) => {
+    const qs = params
+      ? "?" + new URLSearchParams(Object.entries(params).filter(([, v]) => v !== undefined).map(([k, v]) => [k, String(v)])).toString()
+      : "";
+    return apiClient.get<CurriculumItem[]>(`/lecturers/${teacherId}/curriculum${qs}`);
+  },
+
+  create: (data: CreateCurriculumItemRequest) =>
+    apiClient.post<CurriculumItem>("/curriculum", data),
+
+  update: (itemId: string, data: UpdateCurriculumItemRequest) =>
+    apiClient.put<CurriculumItem>(`/curriculum/${itemId}`, data),
+
+  complete: (itemId: string) =>
+    apiClient.patch<CurriculumItem>(`/curriculum/${itemId}/complete`, {}),
+
+  delete: (itemId: string) =>
+    apiClient.delete(`/curriculum/${itemId}`),
+};
+
+// ── Phase 3: Daily report service ─────────────────────────────────────────────
+
+export const dailyReportService = {
+  getForLecturer: (teacherId: string, params?: { from?: string; to?: string; session_id?: string }) => {
+    const qs = params
+      ? "?" + new URLSearchParams(Object.entries(params).filter(([, v]) => v) as [string, string][]).toString()
+      : "";
+    return apiClient.get<{ reports: LectureDailyReport[]; count: number }>(
+      `/lecturers/${teacherId}/daily-reports${qs}`,
+    );
+  },
+
+  create: (data: CreateDailyReportRequest) =>
+    apiClient.post<LectureDailyReport>("/daily-reports", data),
+
+  getById: (id: string) =>
+    apiClient.get<LectureDailyReport>(`/daily-reports/${id}`),
+};
+
+// ── Phase 3: Student result service ───────────────────────────────────────────
+
+export const studentResultService = {
+  getAll: (params?: { student_id?: string; subject_id?: string; semester_id?: string; exam_type?: string }) => {
+    const qs = params
+      ? "?" + new URLSearchParams(Object.entries(params).filter(([, v]) => v) as [string, string][]).toString()
+      : "";
+    return apiClient.get<{ results: StudentResult[]; count: number }>(`/student-results${qs}`);
+  },
+
+  create: (data: CreateStudentResultRequest) =>
+    apiClient.post<StudentResult>("/student-results", data),
+
+  update: (id: string, data: UpdateStudentResultRequest) =>
+    apiClient.put<StudentResult>(`/student-results/${id}`, data),
+
+  delete: (id: string) =>
+    apiClient.delete(`/student-results/${id}`),
+
+  getBySubject: (subjectId: string, semesterId?: string) => {
+    const qs = semesterId ? `?semester_id=${semesterId}` : "";
+    return apiClient.get<{ results: StudentResult[]; count: number }>(
+      `/student-results/subject/${subjectId}${qs}`,
+    );
+  },
 };

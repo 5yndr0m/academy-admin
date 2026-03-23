@@ -24,7 +24,8 @@ import { Teacher } from "@/types";
 import { AddTeacherDialog } from "./AddTeacherDialog";
 import { UpdateTeacherDialog } from "./UpdateTeacherDialog";
 import { ScheduleManager } from "./ScheduleManager";
-import { Loader2, Search, UserCheck, UserX, Mail, Phone } from "lucide-react";
+import { LecturerProfileSheet } from "./LecturerProfileSheet";
+import { Loader2, Search, UserCheck, UserX, Mail, Phone, ExternalLink } from "lucide-react";
 
 export function TeacherList() {
   const [teachers, setTeachers] = useState<Teacher[]>([]);
@@ -34,6 +35,7 @@ export function TeacherList() {
   const [searchTerm, setSearchTerm] = useState("");
   const [searching, setSearching] = useState(false);
   const [togglingId, setTogglingId] = useState<string | null>(null);
+  const [selectedTeacher, setSelectedTeacher] = useState<Teacher | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -119,6 +121,7 @@ export function TeacherList() {
   }
 
   return (
+    <>
     <Card>
       <CardHeader>
         <div className="flex flex-row items-center justify-between">
@@ -283,6 +286,14 @@ export function TeacherList() {
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex items-center gap-1 justify-end">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          onClick={() => setSelectedTeacher(teacher)}
+                          title="View full profile"
+                        >
+                          <ExternalLink className="h-4 w-4" />
+                        </Button>
                         <UpdateTeacherDialog
                           teacher={teacher}
                           onUpdated={load}
@@ -313,5 +324,11 @@ export function TeacherList() {
         )}
       </CardContent>
     </Card>
+
+    <LecturerProfileSheet
+      teacher={selectedTeacher}
+      onClose={() => setSelectedTeacher(null)}
+    />
+    </>
   );
 }
