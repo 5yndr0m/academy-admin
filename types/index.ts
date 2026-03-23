@@ -676,6 +676,141 @@ export interface MonthlyOverviewResponse {
   generated_at: string;
 }
 
+// ── ICBT Dashboard Types ──────────────────────────────────────────────────────
+
+export interface DashboardKPIs {
+  enrolledStudents: number;
+  enrolledStudentsDelta: number; // % change vs last month
+  activeLecturers: number;
+  activeLecturersDelta: number;
+  todaysSessions: number;
+  todaysSessionsBreakdown: {
+    scheduled: number;
+    active: number;
+    completed: number;
+    cancelled: number;
+  };
+  occupiedClassrooms: number;
+  totalClassrooms: number;
+}
+
+export interface ClassroomUtilizationData {
+  classroomName: string;
+  utilizationPercent: number;
+  sessionsHeld: number;
+  totalCapacityHours: number;
+}
+
+export interface AttendanceTrendPoint {
+  week: string; // "W10"
+  attendancePercent: number;
+  sessionCount: number;
+}
+
+export interface LectureHoursData {
+  lecturerName: string;
+  subject: string;
+  allocatedHours: number;
+  conductedHours: number;
+}
+
+export interface RevenueSnapshotData {
+  studentRevenue: number;
+  teacherPayouts: number;
+  staffCommissions: number;
+  expenses: number;
+  netIncome: number;
+}
+
+export interface TodaySession {
+  sessionId: string;
+  subjectName: string;
+  lecturerName: string;
+  classroom: string;
+  startTime: string;
+  endTime: string;
+  status: "SCHEDULED" | "ACTIVE" | "COMPLETED" | "CANCELLED";
+  enrolledCount: number;
+}
+
+export interface QuickSearchResult {
+  students: Array<{
+    id: string;
+    name: string;
+    admissionNo: string;
+    programme: string;
+  }>;
+  lecturers: Array<{
+    id: string;
+    name: string;
+    subjects: string[];
+  }>;
+  classrooms: Array<{
+    id: string;
+    name: string;
+    capacity: number;
+    currentStatus: string;
+  }>;
+}
+
+// ── Conflict Detection ────────────────────────────────────────────────────────
+
+export interface ConflictSummary {
+  id: string;
+  type: "DOUBLE_BOOKING" | "TEACHER_OVERLAP" | "ROOM_CONFLICT";
+  severity: "HIGH" | "MEDIUM" | "LOW";
+  status: "PENDING" | "RESOLVED" | "IGNORED";
+  className: string;
+  teacherName: string;
+  roomName: string;
+  day: string;
+  timeSlot: string;
+}
+
+// ── Class Enrollment Stats ─────────────────────────────────────────────────────
+
+export interface ClassEnrollmentStat {
+  className: string;
+  enrolled: number;
+  capacity: number;
+  fillStatus: "FULL" | "HALF_FULL" | "LOW";
+}
+
+// ── Classroom Allocation Table ────────────────────────────────────────────────
+
+export interface ClassroomAllocationRow {
+  room: string;
+  capacity: number;
+  className: string;
+  teacherName: string;
+  day: string;
+  time: string;
+  studentsCount: number;
+  utilizationPercent: number;
+}
+
+// ── Teacher Utilization ───────────────────────────────────────────────────────
+
+export interface TeacherUtilizationData {
+  teacherName: string;
+  subject: string;
+  assignedHours: number;
+  conductedHours: number;
+  utilizationPercent: number;
+}
+
+// ── Teacher Assignment Table ──────────────────────────────────────────────────
+
+export interface TeacherAssignmentRow {
+  teacherName: string;
+  subject: string;
+  className: string;
+  day: string;
+  time: string;
+  room: string;
+  studentsCount: number;
+}
+
 export interface ClassRevenueResponse {
   class_id: string;
   class_name: string;
