@@ -54,6 +54,8 @@ import type {
   LecturerHoursResponse,
   LecturerEffectivenessResponse,
   LecturerProfile,
+  SessionQRToken,
+  ScanAttendanceResponse,
 } from "@/types";
 
 // Email service types
@@ -1407,4 +1409,50 @@ export const studentResultService = {
       `/student-results/subject/${subjectId}${qs}`,
     );
   },
+};
+
+// ── Phase 4: QR Attendance ─────────────────────────────────────────────────
+
+export interface ScanAttendanceRequest {
+  admission_no: string;
+  session_id: string;
+  qr_token?: string;
+  latitude?: number;
+  longitude?: number;
+  accuracy?: number;
+}
+
+// scanAttendance is called from the public /attend page (no JWT required).
+// Uses the raw fetch API directly to avoid the auth interceptor in apiClient.
+export async function scanAttendance(
+  data: ScanAttendanceRequest,
+): Promise<ScanAttendanceResponse> {
+  const baseURL =
+    process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3000/api";
+  const res = await fetch(`${baseURL}/attendance/scan`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(data),
+  });
+  const json = await res.json();
+  if (!res.ok) {
+    throw new Error(json.error ?? "Failed to record attendance");
+  }
+  return json as ScanAttendanceResponse;
+}
+
+export const sessionQRService = {
+  // Generate (or rotate) a session QR token. Staff only.
+  generate: (sessionId: string, ttlMinutes?: number) => {
+    const qs = ttlMinutes ? `?ttl_minutes=${ttlMinutes}` : "";
+    return apiClient.post<SessionQRToken>(`/sessions/${sessionId}/qr-token${qs}`, {});
+  },
+
+  // Fetch the current active token.
+  get: (sessionId: string) =>
+    apiClient.get<SessionQRToken>(`/sessions/${sessionId}/qr-token`),
+
+  // Revoke the current token.
+  revoke: (sessionId: string) =>
+    apiClient.delete(`/sessions/${sessionId}/qr-token`),
 };

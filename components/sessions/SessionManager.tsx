@@ -42,7 +42,7 @@ import {
   classroomService,
   dashboardService,
 } from "@/lib/data";
-import { Class, Classroom } from "@/types";
+import { Class, Classroom, ClassSession } from "@/types";
 import {
   Plus,
   Calendar as CalendarIcon,
@@ -53,8 +53,10 @@ import {
   Loader2,
   MapPin,
   BookOpen,
+  QrCode,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { SessionQRTokenPanel } from "./SessionQRTokenPanel";
 
 interface SessionManagerProps {
   onSessionChange?: () => void;
@@ -100,6 +102,9 @@ export function SessionManager({ onSessionChange }: SessionManagerProps) {
 
   // Cancellation state
   const [cancelling, setCancelling] = useState<string | null>(null);
+
+  // Live QR token panel state
+  const [qrSession, setQrSession] = useState<ClassSession | null>(null);
 
   const loadData = useCallback(async () => {
     try {
@@ -455,19 +460,30 @@ export function SessionManager({ onSessionChange }: SessionManagerProps) {
                           </p>
                         </div>
                       </div>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleCancelSession(session.id)}
-                        disabled={cancelling === session.id}
-                        className="text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-950/30"
-                      >
-                        {cancelling === session.id ? (
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                        ) : (
-                          <X className="h-4 w-4" />
-                        )}
-                      </Button>
+                      <div className="flex items-center gap-1">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setQrSession(session as unknown as ClassSession)}
+                          className="text-primary hover:text-primary"
+                          title="Generate live QR token"
+                        >
+                          <QrCode className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleCancelSession(session.id)}
+                          disabled={cancelling === session.id}
+                          className="text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 hover:bg-red-50 dark:hover:bg-red-950/30"
+                        >
+                          {cancelling === session.id ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <X className="h-4 w-4" />
+                          )}
+                        </Button>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -591,6 +607,13 @@ export function SessionManager({ onSessionChange }: SessionManagerProps) {
           </div>
         </CardContent>
       </Card>
+
+      {/* Live Session QR token panel */}
+      <SessionQRTokenPanel
+        session={qrSession}
+        open={qrSession !== null}
+        onClose={() => setQrSession(null)}
+      />
     </div>
   );
 }

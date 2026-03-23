@@ -57,6 +57,10 @@ export interface Classroom {
   name: string;
   capacity: number;
   is_usable: boolean;
+  // Geofencing (optional — set to enable location validation on QR attendance)
+  latitude?: number | null;
+  longitude?: number | null;
+  allowed_radius_meters?: number | null;
   created_by: string;
   created_at: string;
   updated_at: string;
@@ -153,16 +157,44 @@ export interface Enrollment {
 
 export type AttendanceStatus = "PRESENT" | "ABSENT" | "LATE";
 
+export type CheckInMethod = "MANUAL" | "STUDENT_QR" | "CLASSROOM_QR" | "SESSION_QR";
+
 export interface Attendance {
   id: string;
   session_id: string;
   student_id: string;
   status: AttendanceStatus;
   marked_by: string;
+  check_in_method: CheckInMethod;
+  check_in_time?: string | null;
+  check_out_time?: string | null;
+  check_in_lat?: number | null;
+  check_in_lng?: number | null;
+  check_out_lat?: number | null;
+  check_out_lng?: number | null;
   created_at: string;
   updated_at: string;
   student?: Student;
   session?: ClassSession;
+}
+
+export interface SessionQRToken {
+  id: string;
+  session_id: string;
+  token: string;
+  expires_at: string;
+  revoked_at?: string | null;
+  attend_url: string;
+}
+
+export interface ScanAttendanceResponse {
+  attendance_id: string;
+  student_name: string;
+  admission_no: string;
+  status: AttendanceStatus;
+  check_in_time: string;
+  method: CheckInMethod;
+  distance_meters?: number | null;
 }
 
 export interface AttendanceSummary {

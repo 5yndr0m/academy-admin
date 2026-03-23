@@ -2,6 +2,7 @@
 
 import { useState, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
+import { scanAttendance } from "@/lib/data";
 import {
   Card,
   CardContent,
@@ -34,6 +35,7 @@ function AttendPage() {
   const sessionId = params.get("session") ?? "";
   const className = params.get("class") ?? "Session";
   const sessionDate = params.get("date") ?? "";
+  const qrToken = params.get("token") ?? "";
 
   const [step, setStep] = useState<Step>("entry");
   const [admissionNo, setAdmissionNo] = useState("");
@@ -91,22 +93,20 @@ function AttendPage() {
       });
     }
 
-    // Simulate a short processing delay then mark as success
-    await new Promise((r) => setTimeout(r, 1200));
-
-    // --- SIMULATION ONLY ---
-    // In production this would POST to:
-    //   POST /api/attendance/qr
-    //   { session_id, admission_no, latitude, longitude, accuracy }
-    // Backend validates admission_no → student lookup → marks PRESENT
-    console.info("[QR Attendance Simulation]", {
-      session_id: sessionId,
-      admission_no: admissionNo.trim(),
-      location,
-      timestamp: new Date().toISOString(),
-    });
-
-    setStep("success");
+    try {
+      await scanAttendance({
+        admission_no: admissionNo.trim(),
+        session_id: sessionId,
+        qr_token: qrToken || undefined,
+        latitude: location?.latitude,
+        longitude: location?.longitude,
+        accuracy: location?.accuracy,
+      });
+      setStep("success");
+    } catch (err) {
+      setErrorMsg(err instanceof Error ? err.message : "Something went wrong. Please try again.");
+      setStep("error");
+    }
   };
 
   if (!sessionId) {
