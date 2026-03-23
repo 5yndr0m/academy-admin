@@ -1,98 +1,108 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { StatsCards } from "@/components/dashboard/StatsCards";
-import { UpcomingClasses } from "@/components/dashboard/UpcomingClasses";
-import { ClassroomStatusGrid } from "@/components/dashboard/ClassroomStatusGrid";
+import { useAuth } from "@/components/auth/AuthProvider";
+import { KPICards } from "@/components/dashboard/KPICards";
+import { ClassroomUtilizationChart } from "@/components/dashboard/ClassroomUtilizationChart";
+import { AttendanceTrendChart } from "@/components/dashboard/AttendanceTrendChart";
+import { LectureProgressChart } from "@/components/dashboard/LectureProgressChart";
+import { RevenueSnapshotChart } from "@/components/dashboard/RevenueSnapshotChart";
+import { TodaySchedule } from "@/components/dashboard/TodaySchedule";
 import { ActivityFeed } from "@/components/dashboard/ActivityFeed";
 import { WeekTimetable } from "@/components/dashboard/WeekTimetable";
-import { FinancialDashboard } from "@/components/finance/FinancialDashboard";
-import { dashboardService } from "@/lib/data";
-import { DashboardData } from "@/types";
-import { Loader2 } from "lucide-react";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useAuth } from "@/components/auth/AuthProvider";
+import { SemesterProgress } from "@/components/dashboard/SemesterProgress";
+import { AlertsPanel } from "@/components/dashboard/AlertsPanel";
+import { ConflictDetectionPanel } from "@/components/dashboard/ConflictDetectionPanel";
+import { ClassStatsPieChart } from "@/components/dashboard/ClassStatsPieChart";
+import { TeacherUtilizationChart } from "@/components/dashboard/TeacherUtilizationChart";
+import { ClassroomAllocationTable } from "@/components/dashboard/ClassroomAllocationTable";
+import { TeacherAssignmentTable } from "@/components/dashboard/TeacherAssignmentTable";
+import {
+  mockDashboardKPIs,
+  mockClassroomUtilization,
+  mockAttendanceTrend,
+  mockLectureHours,
+  mockRevenueSnapshot,
+  mockTodaySchedule,
+  mockActivityFeed,
+  mockWeeklySchedule,
+  mockSemester,
+  mockAlerts,
+  mockConflicts,
+  mockClassEnrollmentStats,
+  mockClassroomAllocation,
+  mockTeacherUtilization,
+  mockTeacherAssignments,
+} from "@/lib/mock-data";
+
+// Dashboard data sourced from mock-data.ts (Phase 0).
+// Replace mock* calls with real API calls from lib/data.ts in Phase 1+.
+const kpis            = mockDashboardKPIs();
+const utilization     = mockClassroomUtilization();
+const attendance      = mockAttendanceTrend();
+const lectureHrs      = mockLectureHours();
+const revenue         = mockRevenueSnapshot();
+const todaySched      = mockTodaySchedule();
+const activity        = mockActivityFeed();
+const weekSchedule    = mockWeeklySchedule();
+const semester        = mockSemester();
+const alerts          = mockAlerts();
+const conflicts       = mockConflicts();
+const enrollmentStats = mockClassEnrollmentStats();
+const roomAllocation  = mockClassroomAllocation();
+const teacherUtil     = mockTeacherUtilization();
+const teacherAssign   = mockTeacherAssignments();
 
 export default function Home() {
-  const [data, setData] = useState<DashboardData | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const { role } = useAuth();
 
-  const loadDashboard = () => {
-    setLoading(true);
-    dashboardService
-      .get()
-      .then((d) => {
-        setData(d);
-      })
-      .catch((err) => setError(err.message))
-      .finally(() => setLoading(false));
-  };
-
-  useEffect(() => {
-    loadDashboard();
-  }, []);
-
-  if (loading) {
-    return (
-      <div className="flex h-full items-center justify-center p-8">
-        <Loader2 className="h-8 w-8 animate-spin text-slate-400" />
-      </div>
-    );
-  }
-
-  if (error || !data) {
-    return (
-      <div className="flex h-full items-center justify-center p-8">
-        <p className="text-sm text-destructive">
-          Failed to load dashboard: {error}
-        </p>
-      </div>
-    );
-  }
-
   return (
-    <div className="space-y-6">
-      <StatsCards counts={data.counts} />
+    <div className="space-y-6 p-6">
 
-      <Tabs defaultValue="overview" className="space-y-4">
-        <div className="w-full overflow-x-auto pb-1 scrollbar-hide">
-          <TabsList className="bg-muted/60 p-1 inline-flex w-full justify-start md:w-fit whitespace-nowrap">
-            <TabsTrigger value="overview">Overview</TabsTrigger>
-            <TabsTrigger value="week">Week Schedule</TabsTrigger>
-            {role === "ADMIN" && (
-              <TabsTrigger value="financial">Financial Summary</TabsTrigger>
-            )}
-          </TabsList>
-        </div>
+      {/* Row 1 — KPI Cards */}
+      <KPICards data={kpis} />
 
-        <TabsContent value="overview" className="space-y-4">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <div className="lg:col-span-2 space-y-6">
-              <UpcomingClasses
-                sessions={data.today_sessions || []}
-                sessionGenerationNeeded={data.session_generation_needed}
-                onRefresh={loadDashboard}
-              />
-              <ClassroomStatusGrid status={data.classroom_status ?? []} />
-            </div>
-            <div className="lg:col-span-1">
-              <ActivityFeed logs={data.recent_audit_logs} />
-            </div>
-          </div>
-        </TabsContent>
+      {/* Row 2 — Classroom Utilization + Attendance Trend */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <ClassroomUtilizationChart data={utilization} />
+        <AttendanceTrendChart data={attendance} />
+      </div>
 
-        <TabsContent value="week">
-          <WeekTimetable weeklySchedule={data.weekly_schedule} />
-        </TabsContent>
+      {/* Row 3 — Lecture Hours (full width) */}
+      <LectureProgressChart data={lectureHrs} />
 
-        {role === "ADMIN" && (
-          <TabsContent value="financial">
-            <FinancialDashboard />
-          </TabsContent>
-        )}
-      </Tabs>
+      {/* Row 4 — Today's Schedule + Revenue (admin only) */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <TodaySchedule data={todaySched} />
+        {role === "ADMIN" && <RevenueSnapshotChart data={revenue} />}
+      </div>
+
+      {/* Row 5 — Week Timetable */}
+      <WeekTimetable weeklySchedule={weekSchedule} />
+
+      {/* Row 6 — Semester Progress + Conflict Detection */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <SemesterProgress data={semester} />
+        <ConflictDetectionPanel conflicts={conflicts} />
+      </div>
+
+      {/* Row 7 — Class Enrollment Status + Teacher Utilization */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <ClassStatsPieChart data={enrollmentStats} />
+        <TeacherUtilizationChart data={teacherUtil} />
+      </div>
+
+      {/* Row 8 — Classroom Allocation Table */}
+      <ClassroomAllocationTable data={roomAllocation} />
+
+      {/* Row 9 — Teacher Assignment Table */}
+      <TeacherAssignmentTable data={teacherAssign} />
+
+      {/* Row 10 — Alerts + Activity Feed */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <AlertsPanel alerts={alerts} />
+        <ActivityFeed logs={activity} />
+      </div>
+
     </div>
   );
 }
