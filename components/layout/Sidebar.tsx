@@ -1,7 +1,7 @@
 "use client";
 
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { useState, useEffect } from "react";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { cn } from "@/lib/utils";
@@ -19,30 +19,56 @@ import {
   CalendarClock,
   BarChart3,
 } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { draftStudentService, conflictService } from "@/lib/data";
 
-const navigation = [
+interface NavItem {
+  name: string;
+  href: string;
+  icon: React.ComponentType<{ className?: string }>;
+  badgeKey?: string;
+  adminOnly?: boolean;
+}
+
+const navigation: NavItem[] = [
   { name: "Dashboard", href: "/", icon: LayoutDashboard },
   { name: "Classrooms", href: "/classrooms", icon: Presentation },
   { name: "Classes", href: "/classes", icon: BookOpen },
   { name: "Teachers", href: "/teachers", icon: User },
-  { name: "Students", href: "/students", icon: Users },
+  { name: "Students", href: "/students", icon: Users, badgeKey: "drafts" },
   { name: "Sessions", href: "/sessions", icon: Clock },
-  { name: "Scheduling", href: "/scheduling", icon: CalendarClock },
+  { name: "Scheduling", href: "/scheduling", icon: CalendarClock, badgeKey: "conflicts" },
   { name: "Attendance", href: "/attendance", icon: CalendarDays },
   { name: "Reports", href: "/reports", icon: BarChart3 },
-  { name: "Operations", href: "/operations", icon: Settings2 },
-  { name: "Finance", href: "/finance", icon: Wallet },
-  { name: "Communications", href: "/communications", icon: Mail },
+  { name: "Operations", href: "/operations", icon: Settings2, adminOnly: true },
+  { name: "Finance", href: "/finance", icon: Wallet, adminOnly: true },
+  { name: "Communications", href: "/communications", icon: Mail, adminOnly: true },
 ];
 
 export function Sidebar({ className }: { className?: string }) {
   const pathname = usePathname();
   const { role } = useAuth();
   const [mounted, setMounted] = useState(false);
+  const [draftCount, setDraftCount] = useState(0);
+  const [conflictCount, setConflictCount] = useState(0);
 
   useEffect(() => {
     setMounted(true);
+    // Load badge counts
+    draftStudentService
+      .getAll({ status: "pending" })
+      .then((r) => setDraftCount(r.pending_count ?? 0))
+      .catch(() => {});
+    conflictService
+      .getAll({ status: "PENDING" })
+      .then((r) => setConflictCount(r.count ?? 0))
+      .catch(() => {});
   }, []);
+
+  const badges: Record<string, number> = {
+    drafts: draftCount,
+    conflicts: conflictCount,
+  };
 
   return (
     <div className={cn("flex flex-col h-full", className)}>
@@ -56,16 +82,14 @@ export function Sidebar({ className }: { className?: string }) {
 
       <nav className="flex-1 px-4 space-y-2">
         {navigation.map((item) => {
-          if (
-            mounted &&
-            (item.name === "Finance" || item.name === "Operations" || item.name === "Communications") &&
-            role !== "ADMIN"
-          )
-            return null;
+          if (mounted && item.adminOnly && role !== "ADMIN") return null;
 
           const isActive =
             pathname === item.href ||
             (item.href !== "/" && pathname.startsWith(item.href));
+
+          const count = item.badgeKey ? badges[item.badgeKey] : 0;
+
           return (
             <Link
               key={item.name}
@@ -77,8 +101,16 @@ export function Sidebar({ className }: { className?: string }) {
                   : "text-muted-foreground hover:text-foreground hover:bg-accent",
               )}
             >
-              <item.icon className="w-5 h-5" />
-              {item.name}
+              <item.icon className="w-5 h-5 shrink-0" />
+              <span className="flex-1">{item.name}</span>
+              {count > 0 && (
+                <Badge
+                  variant="destructive"
+                  className="h-5 min-w-[20px] px-1 text-[10px] flex items-center justify-center"
+                >
+                  {count}
+                </Badge>
+              )}
             </Link>
           );
         })}
@@ -92,9 +124,7 @@ export function Sidebar({ className }: { className?: string }) {
           <div className="text-sm">
             <p className="font-medium">{mounted ? role || "User" : "User"}</p>
             <p className="text-xs text-muted-foreground">
-              {mounted && role === "ADMIN"
-                ? "Full Access"
-                : "Restricted Access"}
+              {mounted && role === "ADMIN" ? "Full Access" : "Restricted Access"}
             </p>
           </div>
         </div>

@@ -1,21 +1,7 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-} from "@/components/ui/card";
+import { useState, useEffect, useCallback } from "react";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
@@ -35,19 +21,19 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { DataTable, Column } from "@/components/ui/data-table";
+import { StatusBadge } from "@/components/ui/status-badge";
+import { ErrorDisplay } from "@/components/ui/error-display";
 import { classService, teacherService, subjectService } from "@/lib/data";
 import { Class, Teacher, Subject } from "@/types";
 import { AddClassDialog } from "./AddClassDialog";
-import { Loader2, Pencil, Search, RefreshCw } from "lucide-react";
+import { Loader2, Pencil } from "lucide-react";
 
 export function ClassList() {
   const [classes, setClasses] = useState<Class[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
-  // Search state
   const [searchQuery, setSearchQuery] = useState("");
-  const [searching, setSearching] = useState(false);
 
   // Edit dialog
   const [editing, setEditing] = useState<Class | null>(null);
@@ -63,11 +49,7 @@ export function ClassList() {
   const [dropdownReady, setDropdownReady] = useState(false);
 
   const load = useCallback(async (search?: string) => {
-    if (search !== undefined) {
-      setSearching(true);
-    } else {
-      setLoading(true);
-    }
+    setLoading(true);
     setError(null);
     try {
       const data = await classService.getAll(search);
@@ -76,7 +58,6 @@ export function ClassList() {
       setError(err instanceof Error ? err.message : "Failed to load classes");
     } finally {
       setLoading(false);
-      setSearching(false);
     }
   }, []);
 
@@ -84,17 +65,12 @@ export function ClassList() {
     load();
   }, [load]);
 
-  // Handle search with debounce
+  // Server-side search with debounce
   useEffect(() => {
-    const delayedSearch = setTimeout(() => {
-      if (searchQuery.trim()) {
-        load(searchQuery.trim());
-      } else {
-        load();
-      }
+    const t = setTimeout(() => {
+      load(searchQuery.trim() || undefined);
     }, 300);
-
-    return () => clearTimeout(delayedSearch);
+    return () => clearTimeout(t);
   }, [searchQuery, load]);
 
   const handleToggle = async (cls: Class) => {
@@ -102,13 +78,12 @@ export function ClassList() {
       prev.map((c) =>
         c.id === cls.id
           ? { ...c, status: c.status === "ACTIVE" ? "INACTIVE" : "ACTIVE" }
-          : c,
-      ),
+          : c
+      )
     );
     try {
       await classService.toggleStatus(cls.id);
     } catch {
-      // Revert on failure
       setClasses((prev) => prev.map((c) => (c.id === cls.id ? cls : c)));
     }
   };
@@ -144,9 +119,7 @@ export function ClassList() {
         teacher_id: editTeacher,
         subject_id: editSubject,
       });
-      setClasses((prev) =>
-        prev.map((c) => (c.id === updated.id ? updated : c)),
-      );
+      setClasses((prev) => prev.map((c) => (c.id === updated.id ? updated : c)));
       setEditing(null);
     } catch (err: unknown) {
       setEditError(err instanceof Error ? err.message : "Update failed");
@@ -155,179 +128,111 @@ export function ClassList() {
     }
   };
 
-  if (loading) {
-    return (
-      <div className="flex justify-center p-8">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="flex flex-col items-center gap-3 p-8">
-        <p className="text-sm text-destructive">{error}</p>
-        <Button variant="outline" size="sm" onClick={() => load()}>
-          Retry
+  const columns: Column<Class>[] = [
+    {
+      key: "name",
+      header: "Class",
+      cell: (c) => <span className="font-medium">{c.name}</span>,
+    },
+    {
+      key: "teacher",
+      header: "Teacher",
+      cell: (c) => (
+        <span className="text-sm">
+          {c.teacher?.full_name ?? (c.teacher as any)?.fullname ?? "—"}
+        </span>
+      ),
+    },
+    {
+      key: "subject",
+      header: "Subject",
+      sortable: false,
+      cell: (c) => (
+        <Badge variant="outline" className="font-normal text-xs">
+          {c.subject?.name ?? "—"}
+        </Badge>
+      ),
+    },
+    {
+      key: "base_monthly_fee",
+      header: "Monthly Fee",
+      cell: (c) => (
+        <span className="font-mono text-sm">
+          LKR {c.base_monthly_fee.toLocaleString()}
+        </span>
+      ),
+    },
+    {
+      key: "payout_percentage",
+      header: "Payout %",
+      cell: (c) => (
+        <div>
+          <span className="text-sm font-mono">{c.payout_percentage}%</span>
+          <p className="text-[10px] text-muted-foreground">
+            LKR {((c.base_monthly_fee * c.payout_percentage) / 100).toLocaleString()} / student
+          </p>
+        </div>
+      ),
+    },
+    {
+      key: "status",
+      header: "Status",
+      sortable: false,
+      cell: (c) => (
+        <div className="flex items-center gap-2">
+          <Switch
+            checked={c.status === "ACTIVE"}
+            onCheckedChange={() => handleToggle(c)}
+          />
+          <StatusBadge status={c.status} />
+        </div>
+      ),
+    },
+    {
+      key: "actions",
+      header: "",
+      sortable: false,
+      headerClassName: "w-10",
+      cell: (c) => (
+        <Button variant="ghost" size="icon" onClick={() => openEdit(c)}>
+          <Pencil className="h-4 w-4" />
         </Button>
-      </div>
-    );
-  }
+      ),
+    },
+  ];
 
   return (
     <>
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <div>
-            <CardTitle className="flex items-center gap-2">
-              All Classes
-              {classes.length > 0 && (
-                <span className="text-sm font-normal text-muted-foreground">
-                  ({classes.length})
-                </span>
-              )}
-            </CardTitle>
-            <CardDescription>
-              Manage classes and their instructors, fees, and status.
-              {searchQuery && (
-                <span className="block text-xs mt-1 text-muted-foreground">
-                  Found {classes.length} class{classes.length === 1 ? "" : "es"}
-                </span>
-              )}
-            </CardDescription>
-          </div>
-          <div className="flex items-center gap-2">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search classes..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-64 pl-9 pr-3"
-              />
-              {searching && (
-                <Loader2 className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 animate-spin text-muted-foreground" />
-              )}
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>All Classes</CardTitle>
+              <CardDescription>
+                Manage classes and their instructors, fees, and status.
+              </CardDescription>
             </div>
-            {searchQuery && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setSearchQuery("")}
-                className="h-9 px-2 text-muted-foreground hover:text-foreground"
-                title="Clear search"
-              >
-                ×
-              </Button>
-            )}
-            <AddClassDialog onAdded={load} />
+            <AddClassDialog onAdded={() => load(searchQuery || undefined)} />
           </div>
         </CardHeader>
         <CardContent>
-          {classes.length === 0 ? (
-            <div className="text-center py-12 bg-muted/20 rounded-lg border border-dashed">
-              <h3 className="font-medium text-lg mb-2 text-foreground">
-                {searchQuery ? "No matching classes" : "No classes yet"}
-              </h3>
-              <p className="text-sm text-muted-foreground mb-4">
-                {searchQuery
-                  ? `No classes found matching "${searchQuery}". Try a different search term.`
-                  : "Create your first class to get started."}
-              </p>
-              {!searchQuery && <AddClassDialog onAdded={load} />}
-            </div>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Class</TableHead>
-                  <TableHead>Teacher</TableHead>
-                  <TableHead>Subject</TableHead>
-                  <TableHead>Monthly Fee</TableHead>
-                  <TableHead>Payout %</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {classes.map((cls) => {
-                  const teacherName =
-                    cls.teacher?.full_name ??
-                    (cls.teacher as any)?.fullname ??
-                    "—";
-                  const subjectName = cls.subject?.name ?? "—";
-                  return (
-                    <TableRow key={cls.id}>
-                      <TableCell className="font-medium">{cls.name}</TableCell>
-                      <TableCell className="text-sm">{teacherName}</TableCell>
-                      <TableCell>
-                        <Badge
-                          variant="outline"
-                          className="font-normal text-xs"
-                        >
-                          {subjectName}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="font-mono text-sm">
-                        LKR {cls.base_monthly_fee.toLocaleString()}
-                      </TableCell>
-                      <TableCell>
-                        <span className="text-sm font-mono">
-                          {cls.payout_percentage}%
-                        </span>
-                        <p className="text-[10px] text-muted-foreground">
-                          LKR{" "}
-                          {(
-                            (cls.base_monthly_fee * cls.payout_percentage) /
-                            100
-                          ).toLocaleString()}{" "}
-                          / student
-                        </p>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <Switch
-                            checked={cls.status === "ACTIVE"}
-                            onCheckedChange={() => handleToggle(cls)}
-                            title="Toggle active/inactive"
-                          />
-                          <Badge
-                            variant={
-                              cls.status === "ACTIVE" ? "secondary" : "outline"
-                            }
-                            className={
-                              cls.status === "ACTIVE"
-                                ? "bg-green-100 text-green-800 border-green-200 dark:bg-green-900 dark:text-green-100 dark:border-green-700 text-[10px]"
-                                : "text-[10px] text-muted-foreground"
-                            }
-                          >
-                            {cls.status}
-                          </Badge>
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => openEdit(cls)}
-                        >
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
-          )}
+          <DataTable
+            columns={columns}
+            data={classes}
+            rowKey={(c) => c.id}
+            loading={loading}
+            error={error}
+            onRetry={() => load(searchQuery || undefined)}
+            searchPlaceholder="Search classes…"
+            emptyTitle="No classes found"
+            searchValue={searchQuery}
+            onSearchChange={setSearchQuery}
+          />
         </CardContent>
       </Card>
 
       {/* Edit Dialog */}
-      <Dialog
-        open={!!editing}
-        onOpenChange={(open) => !open && setEditing(null)}
-      >
+      <Dialog open={!!editing} onOpenChange={(open) => !open && setEditing(null)}>
         <DialogContent className="sm:max-w-[460px]">
           <form onSubmit={handleEditSubmit}>
             <DialogHeader>
@@ -353,10 +258,7 @@ export function ClassList() {
                   <div className="grid grid-cols-4 items-center gap-4">
                     <Label className="text-right">Teacher</Label>
                     <div className="col-span-3">
-                      <Select
-                        value={editTeacher}
-                        onValueChange={setEditTeacher}
-                      >
+                      <Select value={editTeacher} onValueChange={setEditTeacher}>
                         <SelectTrigger>
                           <SelectValue />
                         </SelectTrigger>
@@ -383,10 +285,7 @@ export function ClassList() {
                   <div className="grid grid-cols-4 items-center gap-4">
                     <Label className="text-right">Subject</Label>
                     <div className="col-span-3">
-                      <Select
-                        value={editSubject}
-                        onValueChange={setEditSubject}
-                      >
+                      <Select value={editSubject} onValueChange={setEditSubject}>
                         <SelectTrigger>
                           <SelectValue />
                         </SelectTrigger>
@@ -444,67 +343,31 @@ export function ClassList() {
                     </div>
                   </div>
 
-                  {/* Breakdown hint */}
-                  {editFee &&
-                    editPayout &&
-                    !isNaN(parseFloat(editFee)) &&
-                    !isNaN(parseFloat(editPayout)) && (
-                      <div className="grid grid-cols-4 gap-4">
-                        <div className="col-span-4">
-                          <div className="bg-muted/50 rounded-md px-4 py-2 text-xs text-muted-foreground">
-                            <div className="grid grid-cols-2 gap-1">
-                              <span>Teacher receives:</span>
-                              <span className="font-medium text-foreground text-right">
-                                LKR{" "}
-                                {(
-                                  (parseFloat(editFee) *
-                                    parseFloat(editPayout)) /
-                                  100
-                                ).toLocaleString()}
-                              </span>
-                              <span>Institute retains:</span>
-                              <span className="font-medium text-foreground text-right">
-                                LKR{" "}
-                                {(
-                                  parseFloat(editFee) *
-                                  (1 - parseFloat(editPayout) / 100)
-                                ).toLocaleString()}
-                              </span>
-                            </div>
-                          </div>
-                        </div>
+                  {editFee && editPayout && !isNaN(parseFloat(editFee)) && !isNaN(parseFloat(editPayout)) && (
+                    <div className="rounded-md bg-muted/50 px-4 py-2 text-xs text-muted-foreground">
+                      <div className="grid grid-cols-2 gap-1">
+                        <span>Teacher receives:</span>
+                        <span className="font-medium text-foreground text-right">
+                          LKR {((parseFloat(editFee) * parseFloat(editPayout)) / 100).toLocaleString()}
+                        </span>
+                        <span>Institute retains:</span>
+                        <span className="font-medium text-foreground text-right">
+                          LKR {(parseFloat(editFee) * (1 - parseFloat(editPayout) / 100)).toLocaleString()}
+                        </span>
                       </div>
-                    )}
+                    </div>
+                  )}
                 </>
               )}
-              {editError && (
-                <p className="text-sm text-destructive text-center">
-                  {editError}
-                </p>
-              )}
+              {editError && <ErrorDisplay message={editError} />}
             </div>
             <DialogFooter>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setEditing(null)}
-              >
+              <Button type="button" variant="outline" onClick={() => setEditing(null)}>
                 Cancel
               </Button>
-              <Button
-                type="submit"
-                disabled={
-                  editLoading || !dropdownReady || teachers.length === 0
-                }
-              >
-                {editLoading ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Updating...
-                  </>
-                ) : (
-                  "Update Class"
-                )}
+              <Button type="submit" disabled={editLoading || !dropdownReady || teachers.length === 0}>
+                {editLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Update Class
               </Button>
             </DialogFooter>
           </form>

@@ -24,7 +24,12 @@ export function Topbar() {
     })
   );
   const [searchOpen, setSearchOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const { user, logout } = useAuth();
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // Cmd+K / Ctrl+K global shortcut
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
@@ -63,7 +68,7 @@ export function Topbar() {
         <div className="flex items-center gap-3">
           <QuickSearchTrigger onClick={() => setSearchOpen(true)} />
           <div className="text-sm font-medium hidden sm:block">
-            Welcome, {user ?? ""}
+            Welcome, {mounted ? (user ?? "") : ""}
           </div>
           <ModeToggle />
           <Button variant="ghost" size="icon" onClick={logout} title="Logout">

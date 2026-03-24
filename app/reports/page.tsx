@@ -1,12 +1,13 @@
 "use client";
 
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { BarChart3, CalendarDays, GraduationCap, TrendingUp, Users } from "lucide-react";
+import { BarChart3, CalendarDays, FileText, GraduationCap, TrendingUp, Users } from "lucide-react";
 import { InstituteSummaryTab } from "@/components/reports/InstituteSummaryTab";
 import { AttendanceReportTab } from "@/components/reports/AttendanceReportTab";
 import { ClassPerformanceTab } from "@/components/reports/ClassPerformanceTab";
 import { LecturerSummaryTab } from "@/components/reports/LecturerSummaryTab";
 import { StudentProgressTab } from "@/components/reports/StudentProgressTab";
+import { MonthlyReportGenerator } from "@/components/finance/MonthlyReportGenerator";
 
 export default function ReportsPage() {
   return (
@@ -43,6 +44,10 @@ export default function ReportsPage() {
             <GraduationCap className="h-3.5 w-3.5" />
             Student Progress
           </TabsTrigger>
+          <TabsTrigger value="monthly-report" className="gap-1.5">
+            <FileText className="h-3.5 w-3.5" />
+            Monthly Report
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="mt-6">
@@ -63,6 +68,18 @@ export default function ReportsPage() {
 
         <TabsContent value="student" className="mt-6">
           <StudentProgressTab />
+        </TabsContent>
+
+        <TabsContent value="monthly-report" className="mt-6">
+          <div className="space-y-4">
+            <div>
+              <h3 className="text-xl font-bold">Monthly Financial Report</h3>
+              <p className="text-muted-foreground text-sm mt-1">
+                Generate a formatted financial report from your monthly data and download it as a PDF.
+              </p>
+            </div>
+            <MonthlyReportGenerator />
+          </div>
         </TabsContent>
       </Tabs>
     </div>

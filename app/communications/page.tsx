@@ -5,8 +5,8 @@ import { ShieldAlert, Send, History, Users, Mail, MessageSquare, CheckCircle2, X
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { useAuth } from "@/components/auth/AuthProvider";
 import Link from "next/link";
+import { AdminOnly } from "@/components/auth/AdminOnly";
 import { BulkSendPanel } from "@/components/communications/BulkSendPanel";
 import { EmailLogsTable } from "@/components/communications/EmailLogsTable";
 import { ConsentManagement } from "@/components/communications/ConsentManagement";
@@ -72,87 +72,69 @@ function StatsRow() {
   );
 }
 
+const accessDenied = (
+  <div className="flex flex-col items-center justify-center h-[60vh] space-y-4 text-center">
+    <ShieldAlert className="h-16 w-16 text-destructive animate-pulse" />
+    <h1 className="text-2xl font-bold font-mono">ACCESS_DENIED</h1>
+    <p className="text-muted-foreground max-w-xs">
+      You do not have administrative privileges to access the communications module.
+    </p>
+    <Link href="/" className="text-primary hover:underline text-sm font-medium">
+      Return to Dashboard
+    </Link>
+  </div>
+);
+
 function CommunicationsContent() {
-  const { role } = useAuth();
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => { setMounted(true); }, []);
-
-  if (!mounted) {
-    return (
-      <div className="space-y-6">
-        <div>
-          <h2 className="text-3xl font-bold tracking-tight">Communications</h2>
-          <p className="text-muted-foreground">Guardian notification and email management.</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (role !== "ADMIN") {
-    return (
-      <div className="flex flex-col items-center justify-center h-[60vh] space-y-4 text-center">
-        <ShieldAlert className="h-16 w-16 text-destructive animate-pulse" />
-        <h1 className="text-2xl font-bold font-mono">ACCESS_DENIED</h1>
-        <p className="text-muted-foreground max-w-xs">
-          You do not have administrative privileges to access the communications module.
-        </p>
-        <Link href="/" className="text-primary hover:underline text-sm font-medium">
-          Return to Dashboard
-        </Link>
-      </div>
-    );
-  }
-
   return (
-    <div className="space-y-6">
-      <div className="flex items-start justify-between">
-        <div>
-          <h2 className="text-3xl font-bold tracking-tight">Communications</h2>
-          <p className="text-muted-foreground">
-            Send emails to guardians, manage consent, and track delivery.
-          </p>
+    <AdminOnly fallback={accessDenied}>
+      <div className="space-y-6">
+        <div className="flex items-start justify-between">
+          <div>
+            <h2 className="text-3xl font-bold tracking-tight">Communications</h2>
+            <p className="text-muted-foreground">
+              Send emails to guardians, manage consent, and track delivery.
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            <Badge variant="outline" className="flex items-center gap-1">
+              <Mail className="h-3 w-3" /> Email via Resend
+            </Badge>
+            <Badge variant="outline" className="flex items-center gap-1 text-muted-foreground">
+              <MessageSquare className="h-3 w-3" /> WhatsApp (soon)
+            </Badge>
+          </div>
         </div>
-        <div className="flex items-center gap-2">
-          <Badge variant="outline" className="flex items-center gap-1">
-            <Mail className="h-3 w-3" /> Email via Resend
-          </Badge>
-          <Badge variant="outline" className="flex items-center gap-1 text-muted-foreground">
-            <MessageSquare className="h-3 w-3" /> WhatsApp (soon)
-          </Badge>
-        </div>
+
+        <StatsRow />
+
+        <Tabs defaultValue="compose" className="space-y-4">
+          <div className="w-full overflow-x-auto pb-1">
+            <TabsList className="bg-muted/60 p-1 inline-flex w-full justify-start md:w-fit">
+              <TabsTrigger value="compose" className="flex items-center gap-2 whitespace-nowrap">
+                <Send className="h-4 w-4" /> Compose & Send
+              </TabsTrigger>
+              <TabsTrigger value="logs" className="flex items-center gap-2 whitespace-nowrap">
+                <History className="h-4 w-4" /> Email Logs
+              </TabsTrigger>
+              <TabsTrigger value="consent" className="flex items-center gap-2 whitespace-nowrap">
+                <Users className="h-4 w-4" /> Consent Management
+              </TabsTrigger>
+            </TabsList>
+          </div>
+
+          <TabsContent value="compose">
+            <BulkSendPanel />
+          </TabsContent>
+          <TabsContent value="logs">
+            <EmailLogsTable />
+          </TabsContent>
+          <TabsContent value="consent">
+            <ConsentManagement />
+          </TabsContent>
+        </Tabs>
       </div>
-
-      <StatsRow />
-
-      <Tabs defaultValue="compose" className="space-y-4">
-        <div className="w-full overflow-x-auto pb-1">
-          <TabsList className="bg-muted/60 p-1 inline-flex w-full justify-start md:w-fit">
-            <TabsTrigger value="compose" className="flex items-center gap-2 whitespace-nowrap">
-              <Send className="h-4 w-4" /> Compose & Send
-            </TabsTrigger>
-            <TabsTrigger value="logs" className="flex items-center gap-2 whitespace-nowrap">
-              <History className="h-4 w-4" /> Email Logs
-            </TabsTrigger>
-            <TabsTrigger value="consent" className="flex items-center gap-2 whitespace-nowrap">
-              <Users className="h-4 w-4" /> Consent Management
-            </TabsTrigger>
-          </TabsList>
-        </div>
-
-        <TabsContent value="compose">
-          <BulkSendPanel />
-        </TabsContent>
-
-        <TabsContent value="logs">
-          <EmailLogsTable />
-        </TabsContent>
-
-        <TabsContent value="consent">
-          <ConsentManagement />
-        </TabsContent>
-      </Tabs>
-    </div>
+    </AdminOnly>
   );
 }
 

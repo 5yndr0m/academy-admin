@@ -1,24 +1,13 @@
 "use client";
 
 import { useEffect, useState, useCallback, useRef } from "react";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-} from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { DataTable, Column } from "@/components/ui/data-table";
+import { StatusBadge } from "@/components/ui/status-badge";
+import { ErrorDisplay } from "@/components/ui/error-display";
 import { classroomService } from "@/lib/data";
 import { Classroom } from "@/types";
 import { AddClassroomDialog } from "./AddClassroomDialog";
@@ -63,9 +52,7 @@ export function ClassroomList({ onViewDetails }: ClassroomListProps) {
       setClassrooms(allRooms);
       setAvailableRooms(availableRoomsData.map((room) => room.id));
     } catch (err: unknown) {
-      setError(
-        err instanceof Error ? err.message : "Failed to load classrooms",
-      );
+      setError(err instanceof Error ? err.message : "Failed to load classrooms");
     } finally {
       setLoading(false);
     }
@@ -74,10 +61,8 @@ export function ClassroomList({ onViewDetails }: ClassroomListProps) {
   const refreshOccupancy = useCallback(async () => {
     setRefreshingOccupancy(true);
     try {
-      const availableRoomsData = await classroomService.getAvailable();
-      setAvailableRooms(availableRoomsData.map((room) => room.id));
-    } catch (err: unknown) {
-      console.error("Failed to refresh occupancy:", err);
+      const data = await classroomService.getAvailable();
+      setAvailableRooms(data.map((room) => room.id));
     } finally {
       setRefreshingOccupancy(false);
     }
@@ -85,30 +70,21 @@ export function ClassroomList({ onViewDetails }: ClassroomListProps) {
 
   useEffect(() => {
     load();
-
-    // Set up periodic refresh for occupancy status every 30 seconds
-    intervalRef.current = setInterval(() => {
-      refreshOccupancy();
-    }, 30000);
-
+    intervalRef.current = setInterval(refreshOccupancy, 30000);
     return () => {
-      if (intervalRef.current) {
-        clearInterval(intervalRef.current);
-      }
+      if (intervalRef.current) clearInterval(intervalRef.current);
     };
   }, [load, refreshOccupancy]);
 
-  // Toggle is_usable — optimistic update then confirm from server
   const handleToggle = async (id: string) => {
     setClassrooms((prev) =>
-      prev.map((c) => (c.id === id ? { ...c, is_usable: !c.is_usable } : c)),
+      prev.map((c) => (c.id === id ? { ...c, is_usable: !c.is_usable } : c))
     );
     try {
       await classroomService.toggleUsability(id);
     } catch {
-      // Revert on failure
       setClassrooms((prev) =>
-        prev.map((c) => (c.id === id ? { ...c, is_usable: !c.is_usable } : c)),
+        prev.map((c) => (c.id === id ? { ...c, is_usable: !c.is_usable } : c))
       );
     }
   };
@@ -131,9 +107,7 @@ export function ClassroomList({ onViewDetails }: ClassroomListProps) {
         capacity: parseInt(editCapacity) || 0,
         is_usable: editing.is_usable,
       });
-      setClassrooms((prev) =>
-        prev.map((c) => (c.id === updated.id ? updated : c)),
-      );
+      setClassrooms((prev) => prev.map((c) => (c.id === updated.id ? updated : c)));
       setEditing(null);
     } catch (err: unknown) {
       setEditError(err instanceof Error ? err.message : "Update failed");
@@ -142,177 +116,121 @@ export function ClassroomList({ onViewDetails }: ClassroomListProps) {
     }
   };
 
-  if (loading) {
-    return (
-      <div className="flex justify-center p-8">
-        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="flex flex-col items-center gap-3 p-8">
-        <p className="text-sm text-destructive">{error}</p>
-        <Button variant="outline" size="sm" onClick={load}>
-          Retry
-        </Button>
-      </div>
-    );
-  }
+  const columns: Column<Classroom>[] = [
+    {
+      key: "name",
+      header: "Name",
+      cell: (c) => <span className="font-medium">{c.name}</span>,
+    },
+    {
+      key: "capacity",
+      header: "Capacity",
+      cell: (c) => `${c.capacity} students`,
+    },
+    {
+      key: "status",
+      header: "Status",
+      sortable: false,
+      cell: (c) => <StatusBadge status={c.is_usable ? "USABLE" : "UNUSABLE"} />,
+    },
+    {
+      key: "occupancy",
+      header: (
+        <span>
+          Occupancy{" "}
+          <span className="text-xs font-normal text-muted-foreground">
+            (now){refreshingOccupancy && <Loader2 className="inline ml-1 h-3 w-3 animate-spin" />}
+          </span>
+        </span>
+      ),
+      sortable: false,
+      cell: (c) =>
+        !c.is_usable ? (
+          <span className="text-xs text-muted-foreground">—</span>
+        ) : (
+          <StatusBadge status={availableRooms.includes(c.id) ? "AVAILABLE" : "OCCUPIED"} />
+        ),
+    },
+    {
+      key: "usable",
+      header: "Usable",
+      sortable: false,
+      headerClassName: "text-right",
+      className: "text-right",
+      cell: (c) => (
+        <Switch
+          checked={c.is_usable}
+          onCheckedChange={() => handleToggle(c.id)}
+        />
+      ),
+    },
+    {
+      key: "actions",
+      header: "",
+      sortable: false,
+      headerClassName: "w-20",
+      className: "text-right",
+      cell: (c) => (
+        <div className="flex items-center justify-end gap-1">
+          {onViewDetails && (
+            <Button variant="ghost" size="icon" onClick={() => onViewDetails(c)}>
+              <ExternalLink className="h-4 w-4" />
+            </Button>
+          )}
+          <Button variant="ghost" size="icon" onClick={() => openEdit(c)}>
+            <Pencil className="h-4 w-4" />
+          </Button>
+        </div>
+      ),
+    },
+  ];
 
   return (
     <>
       <Card>
-        <CardHeader className="flex flex-row items-center justify-between">
-          <div>
-            <CardTitle>All Classrooms</CardTitle>
-            <CardDescription>
-              Manage classroom availability and capacity. Occupancy updates
-              every 30s.
-            </CardDescription>
-          </div>
-          <div className="flex items-center gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={refreshOccupancy}
-              disabled={refreshingOccupancy}
-            >
-              {refreshingOccupancy ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <RefreshCw className="h-4 w-4" />
-              )}
-              Refresh
-            </Button>
-            <AddClassroomDialog onAdded={load} />
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>All Classrooms</CardTitle>
+              <CardDescription>
+                Manage classroom availability and capacity. Occupancy updates every 30s.
+              </CardDescription>
+            </div>
+            <div className="flex items-center gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={refreshOccupancy}
+                disabled={refreshingOccupancy}
+              >
+                {refreshingOccupancy ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <RefreshCw className="h-4 w-4" />
+                )}
+                Refresh
+              </Button>
+              <AddClassroomDialog onAdded={load} />
+            </div>
           </div>
         </CardHeader>
         <CardContent>
-          {classrooms.length === 0 ? (
-            <p className="text-sm text-muted-foreground text-center py-8">
-              No classrooms added yet.
-            </p>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Capacity</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>
-                    Occupancy{" "}
-                    <span className="text-xs text-muted-foreground">
-                      (now)
-                      {refreshingOccupancy && (
-                        <Loader2 className="inline ml-1 h-3 w-3 animate-spin" />
-                      )}
-                    </span>
-                  </TableHead>
-                  <TableHead className="text-right">Usable</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {classrooms.map((classroom) => (
-                  <TableRow key={classroom.id}>
-                    <TableCell className="font-medium">
-                      {classroom.name}
-                    </TableCell>
-                    <TableCell>{classroom.capacity} students</TableCell>
-                    <TableCell>
-                      <Badge
-                        variant={
-                          classroom.is_usable ? "secondary" : "destructive"
-                        }
-                        className={
-                          classroom.is_usable
-                            ? "bg-green-100 text-green-800 border-green-200 dark:bg-green-900 dark:text-green-100 dark:border-green-700"
-                            : "bg-red-100 text-red-800 border-red-200 dark:bg-red-900 dark:text-red-200 dark:border-red-700"
-                        }
-                        title={
-                          classroom.is_usable
-                            ? "This classroom is available for scheduling"
-                            : "This classroom is under maintenance or temporarily unavailable"
-                        }
-                      >
-                        {classroom.is_usable ? "Usable" : "Unusable"}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      {!classroom.is_usable ? (
-                        <span className="text-xs text-muted-foreground">—</span>
-                      ) : (
-                        <Badge
-                          variant={
-                            availableRooms.includes(classroom.id)
-                              ? "outline"
-                              : "secondary"
-                          }
-                          className={
-                            availableRooms.includes(classroom.id)
-                              ? "bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-950 dark:text-blue-300 dark:border-blue-800"
-                              : "bg-amber-100 text-amber-800 border-amber-200 dark:bg-amber-900 dark:text-amber-200 dark:border-amber-700"
-                          }
-                          title={
-                            availableRooms.includes(classroom.id)
-                              ? "No active classes in this room right now"
-                              : "Currently being used for a class session"
-                          }
-                        >
-                          {availableRooms.includes(classroom.id)
-                            ? "Available"
-                            : "Occupied"}
-                        </Badge>
-                      )}
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <Switch
-                        checked={classroom.is_usable}
-                        onCheckedChange={() => handleToggle(classroom.id)}
-                        title={
-                          classroom.is_usable
-                            ? "Mark as unusable (maintenance mode)"
-                            : "Mark as usable (ready for classes)"
-                        }
-                      />
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex items-center justify-end gap-1">
-                        {onViewDetails && (
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => onViewDetails(classroom)}
-                            title="View details"
-                          >
-                            <ExternalLink className="h-4 w-4" />
-                          </Button>
-                        )}
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => openEdit(classroom)}
-                          title="Edit classroom details"
-                        >
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
+          <DataTable
+            columns={columns}
+            data={classrooms}
+            rowKey={(c) => c.id}
+            loading={loading}
+            error={error}
+            onRetry={load}
+            searchPlaceholder="Search classrooms…"
+            emptyTitle="No classrooms yet"
+            emptyDescription="Add your first classroom to get started."
+          />
         </CardContent>
       </Card>
 
       {/* Edit dialog */}
-      <Dialog
-        open={!!editing}
-        onOpenChange={(open) => !open && setEditing(null)}
-      >
+      <Dialog open={!!editing} onOpenChange={(open) => !open && setEditing(null)}>
         <DialogContent className="sm:max-w-[400px]">
           <form onSubmit={handleEditSubmit}>
             <DialogHeader>
@@ -320,9 +238,7 @@ export function ClassroomList({ onViewDetails }: ClassroomListProps) {
             </DialogHeader>
             <div className="grid gap-4 py-4">
               <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="edit-name" className="text-right">
-                  Name
-                </Label>
+                <Label htmlFor="edit-name" className="text-right">Name</Label>
                 <Input
                   id="edit-name"
                   value={editName}
@@ -332,9 +248,7 @@ export function ClassroomList({ onViewDetails }: ClassroomListProps) {
                 />
               </div>
               <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="edit-capacity" className="text-right">
-                  Capacity
-                </Label>
+                <Label htmlFor="edit-capacity" className="text-right">Capacity</Label>
                 <Input
                   id="edit-capacity"
                   type="number"
@@ -345,29 +259,15 @@ export function ClassroomList({ onViewDetails }: ClassroomListProps) {
                   required
                 />
               </div>
-              {editError && (
-                <p className="text-sm text-destructive text-center">
-                  {editError}
-                </p>
-              )}
+              {editError && <ErrorDisplay message={editError} />}
             </div>
             <DialogFooter>
-              <Button
-                type="button"
-                variant="outline"
-                onClick={() => setEditing(null)}
-              >
+              <Button type="button" variant="outline" onClick={() => setEditing(null)}>
                 Cancel
               </Button>
               <Button type="submit" disabled={editLoading}>
-                {editLoading ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Saving...
-                  </>
-                ) : (
-                  "Save changes"
-                )}
+                {editLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                Save changes
               </Button>
             </DialogFooter>
           </form>
