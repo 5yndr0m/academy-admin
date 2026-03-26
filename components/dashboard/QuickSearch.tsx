@@ -5,7 +5,7 @@ import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Search, Users, BookOpen, DoorOpen, X } from "lucide-react";
-import { mockSearch } from "@/lib/mock-data";
+import { apiClient } from "@/lib/api-client";
 import type { QuickSearchResult } from "@/types";
 import { Button } from "@/components/ui/button";
 
@@ -39,7 +39,30 @@ export function QuickSearch({ open, onOpenChange }: QuickSearchProps) {
   }, [open]);
 
   useEffect(() => {
-    setResults(mockSearch(debouncedQuery));
+    if (debouncedQuery.length < 2) {
+      setResults({ students: [], lecturers: [], classrooms: [] });
+      return;
+    }
+    const q = encodeURIComponent(debouncedQuery);
+    Promise.all([
+      apiClient.get<{ results: { id: string; full_name: string; admission_no: string }[] }>(`/search/students?q=${q}`).catch(() => ({ results: [] })),
+      apiClient.get<{ results: { id: string; full_name: string; subjects?: { name: string }[] }[] }>(`/search/teachers?q=${q}`).catch(() => ({ results: [] })),
+    ]).then(([studentRes, teacherRes]) => {
+      setResults({
+        students: studentRes.results.map((s) => ({
+          id:          s.id,
+          name:        s.full_name,
+          admissionNo: s.admission_no,
+          programme:   "",
+        })),
+        lecturers: teacherRes.results.map((t) => ({
+          id:       t.id,
+          name:     t.full_name,
+          subjects: (t.subjects ?? []).map((s) => s.name),
+        })),
+        classrooms: [],
+      });
+    });
   }, [debouncedQuery]);
 
   const hasResults =
